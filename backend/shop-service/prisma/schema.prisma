@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum MembershipRole {
+  CLIENT
+  OWNER
+  ADMIN
+}
+
+model Shop {
+  id          Int               @id @default(autoincrement())
+  name        String
+  ownerId     String            // UUID mapped from Auth Service
+  memberships ShopMembership[]
+}
+
+model ShopMembership {
+  id        Int            @id @default(autoincrement())
+  userId    String         // UUID mapped from Auth Service
+  shopId    Int
+  shop      Shop           @relation(fields: [shopId], references: [id])
+  role      MembershipRole
+  createdAt DateTime       @default(now())
+
+  @@unique([userId, shopId])
+}

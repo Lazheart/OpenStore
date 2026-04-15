@@ -1,0 +1,26 @@
+{
+  "name": "shop-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/services/shopService.js",
+  "packageManager": "pnpm@10.18.3",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prisma:generate": "pnpm exec prisma generate",
+    "prisma:migrate:dev": "pnpm exec prisma migrate dev",
+    "prisma:studio": "pnpm exec prisma studio",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^7.7.0",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "prisma": "^7.7.0",
+    "typescript": "^5.9.3"
+  }
+}
