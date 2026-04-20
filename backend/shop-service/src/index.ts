@@ -2,11 +2,9 @@ import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 import path from 'path';
-
+import { authenticateToken, AuthRequest } from './middleware/auth';
 //variables de entorno
-dotenv.config({
-  path: path.resolve(__dirname, '../../.env'),
-});
+dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
@@ -64,18 +62,26 @@ app.get('/shops/:id', async (req: Request, res: Response) => {
 });
 
 // 4. CREAR UNA TIENDA
-app.post('/shops', async (req: Request, res: Response) => {
-  const { name, owner_id } = req.body;
-  if (!name || !owner_id) {
-    return res.status(400).json({ error: 'Faltan campos obligatorios (name, owner_id)' });
+app.post('/shops', authenticateToken, async (req: AuthRequest, res: Response) => {
+  const { name } = req.body;
+  const owner_id = req.user?.id || req.user?.sub; 
+
+  if (!name) {
+    return res.status(400).json({ error: 'Falta el campo obligatorio (name)' });
+  }
+
+  if (!owner_id) {
+    return res.status(400).json({ error: 'El token no contiene un ID de usuario válido' });
   }
 
   try {
     const newShop = await prisma.shop.create({
-      data: { name, owner_id },
+      // Convertimos a Number por si el token lo guardó como String
+      data: { name, owner_id: Number(owner_id) }, 
     });
     res.status(201).json(newShop);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Error al crear la tienda' });
   }
 });
