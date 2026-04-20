@@ -4,28 +4,19 @@ generator client {
 
 datasource db {
   provider = "mysql"
-}
-
-enum MembershipRole {
-  CLIENT
-  OWNER
-  ADMIN
+  url      = env("SHOP_DATABASE_URL") // Prisma 5 sí lee esto directamente
 }
 
 model Shop {
-  id          Int               @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   name        String
-  ownerId     String            // UUID mapped from Auth Service
-  memberships ShopMembership[]
+  owner_id    Int          // Prisma 5 mapea esto tal cual en TS
+  memberships Membership[]
 }
 
-model ShopMembership {
-  id        Int            @id @default(autoincrement())
-  userId    String         // UUID mapped from Auth Service
-  shopId    Int
-  shop      Shop           @relation(fields: [shopId], references: [id])
-  role      MembershipRole
-  createdAt DateTime       @default(now())
-
-  @@unique([userId, shopId])
+model Membership {
+  id      Int    @id @default(autoincrement())
+  role    String
+  shop_id Int
+  shop    Shop   @relation(fields: [shop_id], references: [id])
 }
