@@ -72,6 +72,10 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean enabled = true;
 
+    @Column(name = "token_version", nullable = false)
+    @Builder.Default
+    private int tokenVersion = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -24,10 +24,12 @@ public class SecurityConfig {
 
     private final UserService userService;
     private final JwtFilter jwtFilter;
+    private final RateLimitFilter rateLimitFilter;
 
-    public SecurityConfig(UserService userService, JwtFilter jwtFilter) {
+    public SecurityConfig(UserService userService, JwtFilter jwtFilter, RateLimitFilter rateLimitFilter) {
         this.userService = userService;
         this.jwtFilter = jwtFilter;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     @Bean
@@ -42,6 +44,7 @@ public class SecurityConfig {
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(rateLimitFilter, JwtFilter.class)
                 .build();
     }
 

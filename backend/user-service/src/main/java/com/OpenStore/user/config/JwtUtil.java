@@ -1,5 +1,6 @@
 package com.OpenStore.user.config;
 
+import com.OpenStore.user.user.domain.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -23,7 +25,11 @@ public class JwtUtil {
     private long expiration;
 
     public String generateToken(UserDetails userDetails) {
-        return generateToken(Map.of(), userDetails);
+        Map<String, Object> extraClaims = new HashMap<>();
+        if (userDetails instanceof User user) {
+            extraClaims.put("tokenVersion", user.getTokenVersion());
+        }
+        return generateToken(extraClaims, userDetails);
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
@@ -40,8 +46,17 @@ public class JwtUtil {
         return extractUsername(token).equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
+    public boolean isTokenVersionValid(String token, User user) {
+        Integer tokenVersion = extractTokenVersion(token);
+        return tokenVersion != null && tokenVersion == user.getTokenVersion();
+    }
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    public Integer extractTokenVersion(String token) {
+        return extractClaim(token, claims -> claims.get("tokenVersion", Integer.class));
     }
 
     private boolean isTokenExpired(String token) {

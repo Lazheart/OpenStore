@@ -1,5 +1,6 @@
 package com.OpenStore.user.config;
 
+import com.OpenStore.user.user.domain.User;
 import com.OpenStore.user.user.domain.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -46,7 +47,10 @@ public class JwtFilter extends OncePerRequestFilter {
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userService.loadUserByUsername(email);
 
-            if (jwtUtil.isTokenValid(token, userDetails)) {
+            if (jwtUtil.isTokenValid(token, userDetails)
+                    && userDetails instanceof User user
+                    && jwtUtil.isTokenVersionValid(token, user)) {
+
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities()
                 );
