@@ -1,44 +1,44 @@
-from pydantic import BaseModel, Field
-from typing import Optional
-from bson import ObjectId
+from enum import Enum
+from uuid import UUID
 
-class PyObjectId(ObjectId):
-    @classmethod
-    def __get_pydantic_core_schema__(
-            cls, _source_type, _handler
-    ):
-        from pydantic_core import core_schema
-        return core_schema.json_or_python_schema(
-            json_schema=core_schema.str_schema(),
-            python_schema=core_schema.union_schema([
-                core_schema.is_instance_schema(ObjectId),
-                core_schema.chain_schema([
-                    core_schema.str_schema(),
-                    core_schema.no_info_plain_validator_function(cls.validate),
-                ])
-            ]),
-            serialization=core_schema.plain_serializer_function_ser_schema(
-                lambda x: str(x)
-            ),
-        )
-
-    @classmethod
-    def validate(cls, v):
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid objectid")
-        return ObjectId(v)
+from pydantic import BaseModel, Field, HttpUrl
 
 
-class ProductModel(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+class Availability(str, Enum):
+    AVAILABLE = "AVAILABLE"
+    OUT_OF_STOCK = "OUT_OF_STOCK"
+
+
+class Product(BaseModel):
+    id: UUID
+    name: str = Field(min_length=1)
+    price: float = Field(ge=0)
+    description: str = Field(default="")
+    imageUrl: HttpUrl
+    availability: Availability
+    shopId: UUID
+
+
+class ProductListItem(BaseModel):
+    productId: UUID
+    imageUrl: HttpUrl
     name: str
     price: float
-    description: str
-    image: str
-    availability: bool
-    shop_id: int
+    availability: Availability
 
-    class Config:
-        populate_by_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
+
+class ProductCreateRequest(BaseModel):
+    name: str = Field(min_length=1)
+    imageUrl: HttpUrl
+    price: float = Field(ge=0)
+    description: str = Field(default="")
+
+
+class ProductUpdateRequest(BaseModel):
+    price: float | None = Field(default=None, ge=0)
+    availability: Availability | None = None
+    imageUrl: HttpUrl | None = None
+
+
+class ProductIdResponse(BaseModel):
+    productId: UUID
