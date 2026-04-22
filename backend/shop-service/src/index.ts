@@ -141,6 +141,6 @@ app.post('/shops/:id/memberships', authenticateToken, async (req: AuthRequest, r
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Shop Service corriendo en http://localhost:${PORT}`);
+  console.log(` Shop Service corriendo en http://localhost:${PORT}`);
 });
 
