@@ -8,7 +8,7 @@ class ShopService {
    * @param name - The name of the shop.
    * @param ownerId - The UID of the user from Auth Service.
    */
-  async createShop(name: string, ownerId: string): Promise<Shop> {
+  async createShop(name: string, ownerId: number): Promise<Shop> {
     // Validation: Verify existence and role of User (auth-service)
     // In a real microservices architecture, you might perform an HTTP request to auth-service
     // or extract this from a validated JWT containing claims.
@@ -21,16 +21,16 @@ class ShopService {
     const newShop = await prisma.shop.create({
       data: {
         name,
-        ownerId,
+        owner_id: ownerId,
       },
     });
 
     return newShop;
   }
 
-  async getShopsByOwner(ownerId: string): Promise<Shop[]> {
+  async getShopsByOwner(ownerId: number): Promise<Shop[]> {
     return prisma.shop.findMany({
-      where: { ownerId },
+      where: { owner_id: ownerId },
     });
   }
 }

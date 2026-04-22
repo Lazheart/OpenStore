@@ -1,8 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
+type JwtUserPayload = {
+  id?: number | string;
+  sub?: number | string;
+  [key: string]: unknown;
+};
+
 export interface AuthRequest extends Request {
-  user?: any;
+  user?: JwtUserPayload;
 }
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -20,13 +26,17 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 
-  jwt.verify(token, secret, (err, user) => {
+  jwt.verify(token, secret, (err: jwt.VerifyErrors | null, user: string | jwt.JwtPayload | undefined) => {
     if (err) {
       return res.status(403).json({ error: 'Token inválido o expirado.' });
     }
+
+    if (!user || typeof user === 'string') {
+      return res.status(403).json({ error: 'Token inválido.' });
+    }
     
     // Guardamos los datos del token en la petición para usarlos después
-    req.user = user;
+    req.user = user as JwtUserPayload;
     next(); // "continuar a la ruta
   });
 };
