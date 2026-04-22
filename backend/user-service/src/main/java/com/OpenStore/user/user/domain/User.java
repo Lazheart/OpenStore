@@ -72,6 +72,10 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean enabled = true;
 
+    @Column(name = "email_verified", nullable = false)
+    @Builder.Default
+    private boolean emailVerified = false;
+
     @Column(name = "token_version", nullable = false)
     @Builder.Default
     private int tokenVersion = 0;
