@@ -1,14 +1,17 @@
+import { swaggerDocs } from './swagger';
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 import path from 'path';
 import { authenticateToken, AuthRequest } from './middleware/auth';
-//variables de entorno
+import membershipService from './services/membershipService';
+//import membershipService from './membershipService';
+// Variables de entorno
 dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
-const PORT = process.env.SHOP_SERVICE_PORT;
+const PORT = process.env.SHOP_SERVICE_PORT || 3001;
 
 app.use(express.json());
 
@@ -43,13 +46,13 @@ app.get('/shops', async (req: Request, res: Response) => {
   }
 });
 
-// 3. OBTENER UNA TIENDA POR ID (Con sus membresías)
+// 3. OBTENER UNA TIENDA POR ID
 app.get('/shops/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const shop = await prisma.shop.findUnique({
       where: { id: Number(id) },
-      include: { memberships: true }, // Traemos la relación
+      include: { memberships: true }, 
     });
 
     if (!shop) {
@@ -63,25 +66,21 @@ app.get('/shops/:id', async (req: Request, res: Response) => {
 
 // 4. CREAR UNA TIENDA
 app.post('/shops', authenticateToken, async (req: AuthRequest, res: Response) => {
+  if (!req.body) {
+    return res.status(400).json({ error: 'El cuerpo de la petición está vacío' });
+  }
   const { name } = req.body;
   const owner_id = req.user?.id || req.user?.sub; 
 
-  if (!name) {
-    return res.status(400).json({ error: 'Falta el campo obligatorio (name)' });
-  }
-
-  if (!owner_id) {
-    return res.status(400).json({ error: 'El token no contiene un ID de usuario válido' });
-  }
+  if (!name) return res.status(400).json({ error: 'Falta el campo obligatorio (name)' });
+  if (!owner_id) return res.status(400).json({ error: 'Token sin ID válido' });
 
   try {
     const newShop = await prisma.shop.create({
-      // Convertimos a Number por si el token lo guardó como String
       data: { name, owner_id: Number(owner_id) }, 
     });
     res.status(201).json(newShop);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: 'Error al crear la tienda' });
   }
 });
@@ -109,12 +108,39 @@ app.delete('/shops/:id', async (req: Request, res: Response) => {
     await prisma.shop.delete({
       where: { id: Number(id) },
     });
-    res.status(204).send(); // 204 significa "No Content", éxito total.
+    res.status(204).send(); 
   } catch (error) {
     res.status(404).json({ error: 'No se pudo eliminar la tienda' });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Shop Service en http://localhost:${PORT}`);
+
+
+swaggerDocs(app, Number(PORT));
+app.post('/shops/:id/memberships', authenticateToken, async (req: AuthRequest, res: Response) => {
+  const shopId = req.params.id;
+  const { userId, role } = req.body;
+
+  // Verificamos envio de datos 
+  if (!req.body || !userId || !role) {
+    return res.status(400).json({ error: 'Faltan datos obligatorios: userId y role' });
+  }
+
+  try {
+    // Usamos archivos de mebresia ya creados 
+    const newMembership = await membershipService.addMembership(
+      String(userId), 
+      Number(shopId), 
+      role
+    );
+    res.status(201).json(newMembership);
+  } catch (error: any) {
+    console.error(error);
+    res.status(400).json({ error: error.message || 'Error al agregar miembro a la tienda' });
+  }
 });
+
+app.listen(PORT, () => {
+  console.log(` Shop Service corriendo en http://localhost:${PORT}`);
+});
+

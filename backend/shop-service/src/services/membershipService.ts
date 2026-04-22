@@ -3,12 +3,7 @@ import { Membership, PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 class MembershipService {
-  /**
-   * Adds a user as a member to a shop.
-   * @param userId - The UID of the user from Auth Service.
-   * @param shopId - The ID of the shop.
-   * @param role - The membership role .
-   */
+
   async addMembership(
     userId: string,
     shopId: number,
@@ -19,7 +14,7 @@ class MembershipService {
     // if (!userExists) throw new Error("User does not exist");
     console.log(`[Validation Mock] Verified user ${userId} exists in auth-service.`);
 
-    // Validation 2: Verify existence of Shop (shop-service local)
+    
     const shop = await prisma.shop.findUnique({ where: { id: shopId } });
     if (!shop) throw new Error("Shop not found");
 
