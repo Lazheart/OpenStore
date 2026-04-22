@@ -10,6 +10,8 @@ import com.OpenStore.user.user.repository.UserRepository;
 import com.OpenStore.user.verification.EmailService;
 import com.OpenStore.user.verification.EmailVerificationToken;
 import com.OpenStore.user.verification.EmailVerificationTokenRepository;
+import com.OpenStore.user.verification.PasswordResetToken;
+import com.OpenStore.user.verification.PasswordResetTokenRepository;
 import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,23 +31,29 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
-    private final EmailVerificationTokenRepository tokenRepository;
+    private final EmailVerificationTokenRepository verificationTokenRepository;
+    private final PasswordResetTokenRepository resetTokenRepository;
     private final EmailService emailService;
 
     @Value("${app.verification.token-expiration-hours:24}")
-    private int tokenExpirationHours;
+    private int verificationTokenExpirationHours;
+
+    @Value("${app.password-reset.token-expiration-minutes:15}")
+    private int resetTokenExpirationMinutes;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
                        AuthenticationManager authenticationManager,
-                       EmailVerificationTokenRepository tokenRepository,
+                       EmailVerificationTokenRepository verificationTokenRepository,
+                       PasswordResetTokenRepository resetTokenRepository,
                        EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.authenticationManager = authenticationManager;
-        this.tokenRepository = tokenRepository;
+        this.verificationTokenRepository = verificationTokenRepository;
+        this.resetTokenRepository = resetTokenRepository;
         this.emailService = emailService;
     }
 
@@ -83,7 +91,7 @@ public class AuthService {
 
     @Transactional
     public void verifyEmail(UUID token) {
-        EmailVerificationToken verificationToken = tokenRepository.findByToken(token)
+        EmailVerificationToken verificationToken = verificationTokenRepository.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid verification token"));
 
         if (verificationToken.isUsed()) {
@@ -99,7 +107,7 @@ public class AuthService {
         userRepository.save(user);
 
         verificationToken.setUsed(true);
-        tokenRepository.save(verificationToken);
+        verificationTokenRepository.save(verificationToken);
     }
 
     @Transactional
@@ -111,10 +119,10 @@ public class AuthService {
             throw new IllegalArgumentException("Email is already verified");
         }
 
-        tokenRepository.deleteByUser_Id(user.getId());
+        verificationTokenRepository.deleteByUser_Id(user.getId());
 
-        EmailVerificationToken newToken = buildToken(user);
-        tokenRepository.save(newToken);
+        EmailVerificationToken newToken = buildVerificationToken(user);
+        verificationTokenRepository.save(newToken);
 
         try {
             emailService.sendVerificationEmail(user.getEmail(), user.getName(), newToken.getToken());
@@ -122,6 +130,50 @@ public class AuthService {
             throw new RuntimeException("Failed to send verification email. Please try again later.", e);
         }
     }
+
+    // ── Password Recovery ────────────────────────────────────────────────────
+
+    @Transactional
+    public void forgotPassword(String email) {
+        // We don't throw if user not found to avoid leaking account existence
+        userRepository.findByEmail(email).ifPresent(user -> {
+            resetTokenRepository.deleteByUser_Id(user.getId());
+
+            PasswordResetToken resetToken = buildResetToken(user);
+            resetTokenRepository.save(resetToken);
+
+            try {
+                emailService.sendPasswordResetEmail(user.getEmail(), user.getName(), resetToken.getToken());
+            } catch (MessagingException e) {
+                throw new RuntimeException("Failed to send password reset email. Please try again later.", e);
+            }
+        });
+    }
+
+    @Transactional
+    public void resetPassword(UUID token, String newPassword) {
+        PasswordResetToken resetToken = resetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid password reset token"));
+
+        if (resetToken.isUsed()) {
+            throw new IllegalArgumentException("Password reset token has already been used");
+        }
+
+        if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Password reset token has expired. Please request a new one.");
+        }
+
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        // Invalidate all existing JWT tokens
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        userRepository.save(user);
+
+        resetToken.setUsed(true);
+        resetTokenRepository.save(resetToken);
+    }
+
+    // ── Private helpers ──────────────────────────────────────────────────────
 
     private AuthResponse createUser(RegisterRequest request, UserRole role) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -138,8 +190,8 @@ public class AuthService {
 
         userRepository.save(user);
 
-        EmailVerificationToken token = buildToken(user);
-        tokenRepository.save(token);
+        EmailVerificationToken token = buildVerificationToken(user);
+        verificationTokenRepository.save(token);
 
         try {
             emailService.sendVerificationEmail(user.getEmail(), user.getName(), token.getToken());
@@ -150,11 +202,19 @@ public class AuthService {
         return toResponse(user, jwtUtil.generateToken(user));
     }
 
-    private EmailVerificationToken buildToken(User user) {
+    private EmailVerificationToken buildVerificationToken(User user) {
         return EmailVerificationToken.builder()
                 .token(UUID.randomUUID())
                 .user(user)
-                .expiresAt(LocalDateTime.now().plusHours(tokenExpirationHours))
+                .expiresAt(LocalDateTime.now().plusHours(verificationTokenExpirationHours))
+                .build();
+    }
+
+    private PasswordResetToken buildResetToken(User user) {
+        return PasswordResetToken.builder()
+                .token(UUID.randomUUID())
+                .user(user)
+                .expiresAt(LocalDateTime.now().plusMinutes(resetTokenExpirationMinutes))
                 .build();
     }
 
