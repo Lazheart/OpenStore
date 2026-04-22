@@ -1,4 +1,4 @@
-import { MembershipRole, PrismaClient, ShopMembership } from "@prisma/client";
+import { Membership, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -12,8 +12,8 @@ class MembershipService {
   async addMembership(
     userId: string,
     shopId: number,
-    role: MembershipRole
-  ): Promise<ShopMembership> {
+    role: string
+  ): Promise<Membership> {
     // Validation 1: Verify existence of User (auth-service)
     // const userExists = await fetch(`http://auth-service/api/users/${userId}`).then(res => res.ok);
     // if (!userExists) throw new Error("User does not exist");
@@ -23,10 +23,10 @@ class MembershipService {
     const shop = await prisma.shop.findUnique({ where: { id: shopId } });
     if (!shop) throw new Error("Shop not found");
 
-    const newMembership = await prisma.shopMembership.create({
+    const newMembership = await prisma.membership.create({
       data: {
-        userId,
-        shopId,
+        // Current schema does not persist user IDs in memberships.
+        shop_id: shopId,
         role,
       },
     });
