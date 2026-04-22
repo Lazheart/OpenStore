@@ -114,20 +114,20 @@ app.delete('/shops/:id', async (req: Request, res: Response) => {
   }
 });
 
-// --- INICIALIZACIÓN DEL SERVIDOR ---
+
 
 swaggerDocs(app, Number(PORT));
 app.post('/shops/:id/memberships', authenticateToken, async (req: AuthRequest, res: Response) => {
   const shopId = req.params.id;
   const { userId, role } = req.body;
 
-  // Verificamos que envíen los datos correctos
+  // Verificamos envio de datos 
   if (!req.body || !userId || !role) {
     return res.status(400).json({ error: 'Faltan datos obligatorios: userId y role' });
   }
 
   try {
-    // Usamos el archivo de membresías que ya tenías creado
+    // Usamos archivos de mebresia ya creados 
     const newMembership = await membershipService.addMembership(
       String(userId), 
       Number(shopId), 
@@ -144,6 +144,3 @@ app.listen(PORT, () => {
   console.log(`🚀 Shop Service corriendo en http://localhost:${PORT}`);
 });
 
-//app.listen(PORT, () => {
-//  console.log(`Shop Service en http://localhost:${PORT}`);
-//});
