@@ -16,6 +16,7 @@ model Shop {
 
 model Membership {
   id      Int    @id @default(autoincrement())
+  user_id String
   role    String
   shop_id Int
   shop    Shop   @relation(fields: [shop_id], references: [id])
