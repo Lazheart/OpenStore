@@ -32,6 +32,26 @@ Parameters:
   PublicSubnet2:
     Type: AWS::EC2::Subnet::Id
     Description: "Subnet pública 2 (para ALB y EC2 con IP pública)"
+  FrontendRepoUrl:
+    Type: String
+    Default: "https://github.com/Lazheart/OpenStore"
+    Description: "Repositorio Git para Amplify (publico o privado)"
+  FrontendBranchName:
+    Type: String
+    Default: "main"
+    Description: "Branch del repositorio a desplegar en Amplify"
+  FrontendAmplifyAppName:
+    Type: String
+    Default: "openstore-frontend"
+    Description: "Nombre de la app de Amplify"
+  FrontendAmplifyAccessToken:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: "Token de GitHub (opcional para repos publicos, recomendado para privados)"
+
+Conditions:
+  HasFrontendAmplifyAccessToken: !Not [!Equals [!Ref FrontendAmplifyAccessToken, ""]]
 
 Resources:
   LoadBalancerSecurityGroup:
@@ -285,6 +305,50 @@ Resources:
         BlockPublicPolicy: true
         RestrictPublicBuckets: true
 
+  FrontendAmplifyApp:
+    Type: "AWS::Amplify::App"
+    Properties:
+      Name: !Ref FrontendAmplifyAppName
+      Repository: !Ref FrontendRepoUrl
+      AccessToken: !If [HasFrontendAmplifyAccessToken, !Ref FrontendAmplifyAccessToken, !Ref AWS::NoValue]
+      BuildSpec: |
+        version: 1
+        applications:
+          - appRoot: frontend
+            frontend:
+              phases:
+                preBuild:
+                  commands:
+                    - corepack enable
+                    - pnpm install --frozen-lockfile
+                build:
+                  commands:
+                    - pnpm run build
+              artifacts:
+                baseDirectory: dist
+                files:
+                  - '**/*'
+              cache:
+                paths:
+                  - node_modules/**/*
+      EnvironmentVariables:
+        - Name: LOAD_BALANCER_API
+          Value: !Sub "http://${ApplicationLoadBalancer.DNSName}"
+        - Name: VITE_LOAD_BALANCER_API
+          Value: !Sub "http://${ApplicationLoadBalancer.DNSName}"
+      CustomRules:
+        - Source: "/<*>"
+          Target: "/index.html"
+          Status: "404-200"
+
+  FrontendAmplifyBranch:
+    Type: "AWS::Amplify::Branch"
+    Properties:
+      AppId: !GetAtt FrontendAmplifyApp.AppId
+      BranchName: !Ref FrontendBranchName
+      EnableAutoBuild: true
+      Stage: PRODUCTION
+
 Outputs:
   LoadBalancerDNS:
     Description: "DNS del Application Load Balancer"
@@ -301,3 +365,12 @@ Outputs:
   ImagesBucketName:
     Description: "Nombre del bucket S3"
     Value: !Ref ImagesBucket
+  FrontendAmplifyAppId:
+    Description: "AppId de Amplify para frontend"
+    Value: !GetAtt FrontendAmplifyApp.AppId
+  FrontendAmplifyDefaultDomain:
+    Description: "Dominio base de Amplify"
+    Value: !GetAtt FrontendAmplifyApp.DefaultDomain
+  FrontendAmplifyURL:
+    Description: "URL publica del frontend en Amplify"
+    Value: !Sub "https://${FrontendBranchName}.${FrontendAmplifyApp.DefaultDomain}"
