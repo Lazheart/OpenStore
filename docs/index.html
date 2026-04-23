@@ -22,6 +22,7 @@
 				<nav class="quick-links" aria-label="Navegacion rapida">
 					<a href="#overview">Overview</a>
 					<a href="#services">Servicios y puertos</a>
+					<a href="#deploy">Despliegue AWS</a>
 					<a href="#communication">Como comunicarte</a>
 					<a href="#endpoints">Endpoints</a>
 					<a href="#er">Diagrama ER</a>
@@ -91,6 +92,82 @@
 					<li>PostgreSQL</li>
 					<li>MongoDB</li>
 				</ul>
+			</section>
+
+			<section id="deploy" aria-labelledby="deploy-title">
+				<h2 id="deploy-title">Despliegue AWS (CloudFormation + Amplify)</h2>
+				<p>
+					El template <strong>cloud-formation.yml</strong> aprovisiona ALB, EC2 para apps,
+					EC2 para bases de datos, bucket S3 y el despliegue del frontend en Amplify
+					tomando la carpeta <strong>frontend</strong> del mismo repositorio.
+				</p>
+				<div class="card">
+					<h3>1. Prerequisitos</h3>
+					<ul>
+						<li>AWS CLI configurado (credenciales y region).</li>
+						<li>VPC y dos subnets publicas en la misma region.</li>
+						<li>KeyPair existente para las instancias EC2.</li>
+						<li>Permisos para EC2, ELBv2, S3, CloudFormation y Amplify.</li>
+					</ul>
+				</div>
+
+				<div class="card">
+					<h3>2. Obtener IDs de red y keypair</h3>
+					<pre><code>aws ec2 describe-vpcs \
+  --query "Vpcs[].{VpcId:VpcId,Cidr:CidrBlock,Name:Tags[?Key=='Name']|[0].Value}" \
+  --output table
+
+aws ec2 describe-subnets \
+  --filters "Name=vpc-id,Values=vpc-xxxxxx" \
+  --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,PublicIpMap:MapPublicIpOnLaunch,Name:Tags[?Key=='Name']|[0].Value}" \
+  --output table
+
+aws ec2 describe-key-pairs --query "KeyPairs[].KeyName" --output table</code></pre>
+				</div>
+
+				<div class="card">
+					<h3>3. Desplegar stack</h3>
+					<p>Ejemplo (repositorio publico, sin token de GitHub):</p>
+					<pre><code>aws cloudformation deploy \
+  --stack-name openstore-stack \
+  --template-file cloud-formation.yml \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    InstanceName=MV-OpenShop \
+    AMI=ami-08d434e92c0cfa0c0 \
+    KeyName=vockey \
+    InstanceType=t3.micro \
+    VpcId=vpc-xxxxxxxx \
+    PublicSubnet1=subnet-xxxxxxxx \
+    PublicSubnet2=subnet-yyyyyyyy \
+    FrontendRepoUrl=https://github.com/Lazheart/OpenStore \
+    FrontendBranchName=main \
+    FrontendAmplifyAppName=openstore-frontend</code></pre>
+					<p>
+						Si Amplify requiere autenticacion GitHub, agrega:
+						<strong>FrontendAmplifyAccessToken=ghp_tu_token</strong>.
+					</p>
+				</div>
+
+				<div class="card">
+					<h3>4. Validar outputs</h3>
+					<pre><code>aws cloudformation describe-stacks \
+  --stack-name openstore-stack \
+  --query "Stacks[0].Outputs[].[OutputKey,OutputValue]" \
+  --output table</code></pre>
+					<p>
+						Outputs esperados: DNS del ALB, URL de Amplify y datos de las instancias.
+					</p>
+				</div>
+
+				<div class="card">
+					<h3>5. Orden de arranque en backend</h3>
+					<p>
+						El flujo definido en UserData es: primero bases de datos (PostgreSQL, MySQL, MongoDB),
+						luego servicios (user-service, shop-service, product-service) una vez que los puertos de DB
+						estan disponibles.
+					</p>
+				</div>
 			</section>
 
 			<section id="communication" aria-labelledby="communication-title">

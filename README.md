@@ -63,6 +63,7 @@ Script de inicializacion:
 La documentacion tecnica de APIs, comunicacion entre servicios y modelo ER se encuentra en:
 
 - [docs/index.html](docs/index.html)
+- En esa misma pagina, revisa la seccion **Despliegue AWS (CloudFormation + Amplify)** para el paso a paso de deploy.
 
 ## Estado del repositorio
 
