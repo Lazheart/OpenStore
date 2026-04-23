@@ -123,6 +123,7 @@ Resources:
 
   AppServer1:
     Type: "AWS::EC2::Instance"
+    DependsOn: DbServer
     Properties:
       Tags:
         - Key: "Name"
@@ -142,7 +143,7 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           apt update -y
-          apt install -y docker.io git
+          apt install -y docker.io git netcat-openbsd
           systemctl start docker
           systemctl enable docker
           sudo usermod -aG docker ubuntu
@@ -154,13 +155,30 @@ Resources:
             cd OpenStore && git pull || true
             cd ..
           fi
-          cd OpenStore/backend/product-service
+          #Eliminar carpeta frontend si existe
+          if [ -d "/home/ubuntu/OpenStore/frontend" ]; then
+            rm -rf /home/ubuntu/OpenStore/frontend
+          fi
+          cd OpenStore/backend/
 
-          docker build -t product-service .
-          docker run -d -p 80:8000 product-service
+          cp -f .env.example .env
+
+          sed -i "s/^POSTGRES_HOST=.*/POSTGRES_HOST=${DbServer.PrivateIp}/" .env
+          sed -i "s/^MYSQL_HOST=.*/MYSQL_HOST=${DbServer.PrivateIp}/" .env
+          sed -i "s/^MONGO_HOST=.*/MONGO_HOST=${DbServer.PrivateIp}/" .env
+          sed -i "s|^DATABASE_URL=.*|DATABASE_URL=jdbc:postgresql://${DbServer.PrivateIp}:5432/openstoredb|" .env
+          sed -i "s|^SHOP_DATABASE_URL=.*|SHOP_DATABASE_URL=mysql://shopuser:shoppass@${DbServer.PrivateIp}:3306/shopdb|" .env
+          sed -i "s|^MONGO_URI=.*|MONGO_URI=mongodb://${DbServer.PrivateIp}:27017/productdb|" .env
+
+          until nc -z ${DbServer.PrivateIp} 5432; do echo "Esperando PostgreSQL..."; sleep 5; done
+          until nc -z ${DbServer.PrivateIp} 3306; do echo "Esperando MySQL..."; sleep 5; done
+          until nc -z ${DbServer.PrivateIp} 27017; do echo "Esperando Mongo..."; sleep 5; done
+
+          docker compose up -d user-service shop-service product-service
 
   AppServer2:
     Type: "AWS::EC2::Instance"
+    DependsOn: DbServer
     Properties:
       Tags:
         - Key: "Name"
@@ -180,7 +198,7 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           apt update -y
-          apt install -y docker.io git
+          apt install -y docker.io git netcat-openbsd
           systemctl start docker
           systemctl enable docker
           usermod -aG docker ubuntu
@@ -192,10 +210,26 @@ Resources:
             cd OpenStore && git pull || true
             cd ..
           fi
-          cd OpenStore/backend/product-service
+          #Eliminar carpeta frontend si existe
+          if [ -d "/home/ubuntu/OpenStore/frontend" ]; then
+            rm -rf /home/ubuntu/OpenStore/frontend
+          fi
+          cd OpenStore/backend/
 
-          docker build -t product-service .
-          docker run -d -p 80:8000 product-service
+          cp -f .env.example .env
+
+          sed -i "s/^POSTGRES_HOST=.*/POSTGRES_HOST=${DbServer.PrivateIp}/" .env
+          sed -i "s/^MYSQL_HOST=.*/MYSQL_HOST=${DbServer.PrivateIp}/" .env
+          sed -i "s/^MONGO_HOST=.*/MONGO_HOST=${DbServer.PrivateIp}/" .env
+          sed -i "s|^DATABASE_URL=.*|DATABASE_URL=jdbc:postgresql://${DbServer.PrivateIp}:5432/openstoredb|" .env
+          sed -i "s|^SHOP_DATABASE_URL=.*|SHOP_DATABASE_URL=mysql://shopuser:shoppass@${DbServer.PrivateIp}:3306/shopdb|" .env
+          sed -i "s|^MONGO_URI=.*|MONGO_URI=mongodb://${DbServer.PrivateIp}:27017/productdb|" .env
+
+          until nc -z ${DbServer.PrivateIp} 5432; do echo "Esperando PostgreSQL..."; sleep 5; done
+          until nc -z ${DbServer.PrivateIp} 3306; do echo "Esperando MySQL..."; sleep 5; done
+          until nc -z ${DbServer.PrivateIp} 27017; do echo "Esperando Mongo..."; sleep 5; done
+
+          docker compose up -d user-service shop-service product-service
 
   DbServer:
     Type: "AWS::EC2::Instance"
@@ -223,9 +257,23 @@ Resources:
           systemctl enable docker
           usermod -aG docker ubuntu
 
-          docker run -d -p 5432:5432 postgres
-          docker run -d -p 3306:3306 mysql
-          docker run -d -p 27017:27017 mongo
+          #Eliminar carpeta frontend si existe
+          if [ -d "/home/ubuntu/OpenStore/frontend" ]; then
+            rm -rf /home/ubuntu/OpenStore/frontend
+          fi
+
+          cd /home/ubuntu
+          if [ ! -d "OpenStore" ]; then
+            git clone https://github.com/Lazheart/OpenStore
+          else
+            cd OpenStore && git pull || true
+            cd ..
+          fi
+
+          cd OpenStore/backend/
+          cp -f .env.example .env
+
+          docker compose up -d postgres mysql mongo
 
   ImagesBucket:
     Type: "AWS::S3::Bucket"

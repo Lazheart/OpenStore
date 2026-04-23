@@ -1,0 +1,112 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: openstore-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-openstoredb}
+      POSTGRES_USER: ${POSTGRES_USER:-openstoreuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-openstorepass}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-openstoreuser} -d ${POSTGRES_DB:-openstoredb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mysql:
+    image: mysql:8.4
+    container_name: openstore-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-shopdb}
+      MYSQL_USER: ${MYSQL_USER:-shopuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-shoppass}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u${MYSQL_USER:-shopuser} -p${MYSQL_PASSWORD:-shoppass} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  mongo:
+    image: mongo:7
+    container_name: openstore-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  user-service:
+    build:
+      context: ./user-service
+    container_name: openstore-user-service
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      SERVER_PORT: ${APP_PORT:-8080}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-openstoredb}
+      DB_USERNAME: ${POSTGRES_USER:-openstoreuser}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-openstorepass}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8080}:8080"
+
+  shop-service:
+    build:
+      context: ./shop-service
+    container_name: openstore-shop-service
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      SHOP_SERVICE_PORT: 3000
+      JWT_SECRET: ${JWT_SECRET}
+      SHOP_DATABASE_URL: mysql://${MYSQL_USER:-shopuser}:${MYSQL_PASSWORD:-shoppass}@${MYSQL_HOST:-mysql}:${MYSQL_PORT:-3306}/${MYSQL_DATABASE:-shopdb}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${SHOP_APP_PORT:-8081}:3000"
+    command: sh -c "pnpm exec prisma migrate deploy && node dist/index.js"
+
+  product-service:
+    build:
+      context: ./product-service
+    container_name: openstore-product-service
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      BUCKET_NAME: ${BUCKET_NAME}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      MONGO_URI: mongodb://${MONGO_HOST:-mongo}:27017/productdb
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "80:8000"
+      - "${PRODUCT_APP_PORT:-8082}:8000"
+
+volumes:
+  postgres_data:
+  mysql_data:
+  mongo_data:
