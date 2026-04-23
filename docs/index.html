@@ -126,7 +126,56 @@ aws ec2 describe-key-pairs --query "KeyPairs[].KeyName" --output table</code></p
 				</div>
 
 				<div class="card">
-					<h3>3. Desplegar stack</h3>
+					<h3>3. Generar Personal Access Token de GitHub (para Amplify)</h3>
+					<p>
+						Amplify necesita conectarse al repositorio de GitHub para clonar el código y crear webhooks
+						de auto-despliegue. Para ello, requiere un token personal de GitHub (PAT) con permisos específicos.
+					</p>
+					<h4>Pasos para crear el token:</h4>
+					<ol>
+						<li>
+							Entra a tu cuenta de GitHub → 
+							<strong>Settings (engranaje) → Developer settings → Personal access tokens → Tokens (classic)</strong>
+						</li>
+						<li>
+							Haz clic en <strong>Generate new token (classic)</strong>
+						</li>
+						<li>
+							Dale un nombre descriptivo, ej: <strong>openstore-amplify</strong>
+						</li>
+						<li>
+							Define expiración (recomendado: 30 o 90 días)
+						</li>
+						<li>
+							Selecciona estos permisos:
+							<ul>
+								<li><strong>repo</strong> (acceso completo a repositorios)</li>
+								<li><strong>admin:repo_hook</strong> (crear webhooks)</li>
+								<li><strong>repo:status</strong> (acceso al status del repositorio)</li>
+								<li><strong>repo:deployment</strong> (gestionar deployments)</li>
+							</ul>
+						</li>
+						<li>
+							Haz clic en <strong>Generate token</strong>
+						</li>
+						<li>
+							Copia el token (comienza con <strong>ghp_</strong>) - GitHub NO lo vuelve a mostrar
+						</li>
+						<li>
+							Si tu repositorio está en una organización, autoriza el SSO haciendo clic en <strong>Configure SSO</strong> al lado del token
+						</li>
+					</ol>
+					<p>
+						Guarda este token en un archivo <strong>.env</strong> en la raíz del proyecto:
+					</p>
+					<pre><code>FRONTEND_AMPLIFY_ACCESS_TOKEN=ghp_tu_token_aqui</code></pre>
+					<p style="color: #d32f2f; font-weight: bold;">
+						 NO commits este archivo a Git. Agrega .env a .gitignore si aún no está.
+					</p>
+				</div>
+
+				<div class="card">
+					<h3>4. Desplegar stack</h3>
 					<p>Ejemplo (repositorio publico, sin token de GitHub):</p>
 					<pre><code>aws cloudformation deploy \
   --stack-name openstore-stack \
@@ -150,7 +199,7 @@ aws ec2 describe-key-pairs --query "KeyPairs[].KeyName" --output table</code></p
 				</div>
 
 				<div class="card">
-					<h3>4. Validar outputs</h3>
+					<h3>5. Validar outputs</h3>
 					<pre><code>aws cloudformation describe-stacks \
   --stack-name openstore-stack \
   --query "Stacks[0].Outputs[].[OutputKey,OutputValue]" \
@@ -161,7 +210,7 @@ aws ec2 describe-key-pairs --query "KeyPairs[].KeyName" --output table</code></p
 				</div>
 
 				<div class="card">
-					<h3>5. Orden de arranque en backend</h3>
+					<h3>6. Orden de arranque en backend</h3>
 					<p>
 						El flujo definido en UserData es: primero bases de datos (PostgreSQL, MySQL, MongoDB),
 						luego servicios (user-service, shop-service, product-service) una vez que los puertos de DB
