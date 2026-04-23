@@ -1,10 +1,23 @@
 set -euo pipefail
 
+if [ -f ".env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
 # 1) Variables base
 STACK_NAME="openstore-stack"
 TEMPLATE_FILE="cloud-formation.yml"
 VPC_ID="vpc-06bfc35d3dddba731"
 KEY_NAME="openstore-key-$(date +%Y%m%d%H%M%S)"
+
+if [ -z "${FRONTEND_AMPLIFY_ACCESS_TOKEN:-}" ]; then
+  echo "Falta FRONTEND_AMPLIFY_ACCESS_TOKEN en .env" >&2
+  echo "Agrega FRONTEND_AMPLIFY_ACCESS_TOKEN=ghp_xxx en .env y vuelve a ejecutar." >&2
+  exit 1
+fi
 
 # 2) Crear Key Pair nuevo (guarda el .pem local)
 aws ec2 create-key-pair \
@@ -70,7 +83,8 @@ aws cloudformation deploy \
     PublicSubnet2="$SUBNET2" \
     FrontendRepoUrl=https://github.com/Lazheart/OpenStore \
     FrontendBranchName=main \
-    FrontendAmplifyAppName=openstore-frontend
+    FrontendAmplifyAppName=openstore-frontend \
+    FrontendAmplifyAccessToken="$FRONTEND_AMPLIFY_ACCESS_TOKEN"
 
 # 5) Ver outputs finales (ALB/Amplify)
 aws cloudformation describe-stacks \
