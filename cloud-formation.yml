@@ -131,7 +131,7 @@ Resources:
   ProductTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
     Properties:
-      Name: !Sub "openstore-prod-tg-${AWS::StackName}"
+      Name: "os-root-tg"
       VpcId: !Ref VpcId
       Protocol: "HTTP"
       Port: 80
@@ -150,7 +150,7 @@ Resources:
   UserTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
     Properties:
-      Name: !Sub "openstore-user-tg-${AWS::StackName}"
+      Name: "os-user-tg"
       VpcId: !Ref VpcId
       Protocol: "HTTP"
       Port: 8080
@@ -169,7 +169,7 @@ Resources:
   ShopTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
     Properties:
-      Name: !Sub "openstore-shop-tg-${AWS::StackName}"
+      Name: "os-shop-tg"
       VpcId: !Ref VpcId
       Protocol: "HTTP"
       Port: 8081
@@ -188,7 +188,7 @@ Resources:
   ProductApiTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
     Properties:
-      Name: !Sub "openstore-papi-tg-${AWS::StackName}"
+      Name: "os-prodapi-tg"
       VpcId: !Ref VpcId
       Protocol: "HTTP"
       Port: 8082
