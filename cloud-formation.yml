@@ -76,6 +76,18 @@ Resources:
           ToPort: 80
           SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
         - IpProtocol: "tcp"
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: "tcp"
+          FromPort: 8081
+          ToPort: 8081
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: "tcp"
+          FromPort: 8082
+          ToPort: 8082
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: "tcp"
           FromPort: 22
           ToPort: 22
           CidrIp: "0.0.0.0/0"
@@ -83,21 +95,25 @@ Resources:
   DbServerSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
-      GroupDescription: "DB Server: PostgreSQL/MySQL/Mongo solo desde App Servers"
+      GroupDescription: "DB Server: PostgreSQL/MySQL/Mongo accesibles publicamente (segun requerimiento)"
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: "tcp"
+          FromPort: 22
+          ToPort: 22
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: "tcp"
           FromPort: 5432
           ToPort: 5432
-          SourceSecurityGroupId: !Ref AppServerSecurityGroup
+          CidrIp: "0.0.0.0/0"
         - IpProtocol: "tcp"
           FromPort: 3306
           ToPort: 3306
-          SourceSecurityGroupId: !Ref AppServerSecurityGroup
+          CidrIp: "0.0.0.0/0"
         - IpProtocol: "tcp"
           FromPort: 27017
           ToPort: 27017
-          SourceSecurityGroupId: !Ref AppServerSecurityGroup
+          CidrIp: "0.0.0.0/0"
 
   ApplicationLoadBalancer:
     Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
@@ -112,10 +128,10 @@ Resources:
         - !Ref PublicSubnet1
         - !Ref PublicSubnet2
 
-  AppTargetGroup:
+  ProductTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
     Properties:
-      Name: !Sub "openstore-tg-${AWS::StackName}"
+      Name: !Sub "openstore-prod-tg-${AWS::StackName}"
       VpcId: !Ref VpcId
       Protocol: "HTTP"
       Port: 80
@@ -131,6 +147,63 @@ Resources:
         - Id: !Ref AppServer2
           Port: 80
 
+  UserTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Name: !Sub "openstore-user-tg-${AWS::StackName}"
+      VpcId: !Ref VpcId
+      Protocol: "HTTP"
+      Port: 8080
+      TargetType: "instance"
+      HealthCheckProtocol: "HTTP"
+      HealthCheckPort: "traffic-port"
+      HealthCheckPath: "/api"
+      Matcher:
+        HttpCode: "200-499"
+      Targets:
+        - Id: !Ref AppServer1
+          Port: 8080
+        - Id: !Ref AppServer2
+          Port: 8080
+
+  ShopTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Name: !Sub "openstore-shop-tg-${AWS::StackName}"
+      VpcId: !Ref VpcId
+      Protocol: "HTTP"
+      Port: 8081
+      TargetType: "instance"
+      HealthCheckProtocol: "HTTP"
+      HealthCheckPort: "traffic-port"
+      HealthCheckPath: "/health"
+      Matcher:
+        HttpCode: "200-399"
+      Targets:
+        - Id: !Ref AppServer1
+          Port: 8081
+        - Id: !Ref AppServer2
+          Port: 8081
+
+  ProductApiTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Name: !Sub "openstore-papi-tg-${AWS::StackName}"
+      VpcId: !Ref VpcId
+      Protocol: "HTTP"
+      Port: 8082
+      TargetType: "instance"
+      HealthCheckProtocol: "HTTP"
+      HealthCheckPort: "traffic-port"
+      HealthCheckPath: "/"
+      Matcher:
+        HttpCode: "200-399"
+      Targets:
+        - Id: !Ref AppServer1
+          Port: 8082
+        - Id: !Ref AppServer2
+          Port: 8082
+
   HttpListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
     Properties:
@@ -139,7 +212,47 @@ Resources:
       Protocol: "HTTP"
       DefaultActions:
         - Type: "forward"
-          TargetGroupArn: !Ref AppTargetGroup
+          TargetGroupArn: !Ref ProductTargetGroup
+
+  UserListenerRule:
+    Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 10
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - "/api/*"
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref UserTargetGroup
+
+  ProductApiListenerRule:
+    Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 20
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - "/shops/*/products*"
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref ProductApiTargetGroup
+
+  ShopListenerRule:
+    Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 30
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - "/shops*"
+            - "/health"
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref ShopTargetGroup
 
   AppServer1:
     Type: "AWS::EC2::Instance"
@@ -162,8 +275,11 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
+          set -euxo pipefail
+          exec > >(tee /var/log/openstore-userdata.log | logger -t user-data -s 2>/dev/console) 2>&1
+
           apt update -y
-          apt install -y docker.io git netcat-openbsd
+          apt install -y docker.io docker-compose-plugin git netcat-openbsd
           systemctl start docker
           systemctl enable docker
           sudo usermod -aG docker ubuntu
@@ -194,6 +310,7 @@ Resources:
           until nc -z ${DbServer.PrivateIp} 3306; do echo "Esperando MySQL..."; sleep 5; done
           until nc -z ${DbServer.PrivateIp} 27017; do echo "Esperando Mongo..."; sleep 5; done
 
+          docker compose version
           docker compose up -d user-service shop-service product-service
 
   AppServer2:
@@ -217,8 +334,11 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
+          set -euxo pipefail
+          exec > >(tee /var/log/openstore-userdata.log | logger -t user-data -s 2>/dev/console) 2>&1
+
           apt update -y
-          apt install -y docker.io git netcat-openbsd
+          apt install -y docker.io docker-compose-plugin git netcat-openbsd
           systemctl start docker
           systemctl enable docker
           usermod -aG docker ubuntu
@@ -249,6 +369,7 @@ Resources:
           until nc -z ${DbServer.PrivateIp} 3306; do echo "Esperando MySQL..."; sleep 5; done
           until nc -z ${DbServer.PrivateIp} 27017; do echo "Esperando Mongo..."; sleep 5; done
 
+          docker compose version
           docker compose up -d user-service shop-service product-service
 
   DbServer:
@@ -271,8 +392,11 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
+          set -euxo pipefail
+          exec > >(tee /var/log/openstore-userdata.log | logger -t user-data -s 2>/dev/console) 2>&1
+
           apt update -y
-          apt install -y docker.io git
+          apt install -y docker.io docker-compose-plugin git
           systemctl start docker
           systemctl enable docker
           usermod -aG docker ubuntu
@@ -293,6 +417,7 @@ Resources:
           cd OpenStore/backend/
           cp -f .env.example .env
 
+          docker compose version
           docker compose up -d postgres mysql mongo
 
   ImagesBucket:
@@ -336,6 +461,8 @@ Resources:
           Value: !Sub "http://${ApplicationLoadBalancer.DNSName}"
         - Name: VITE_LOAD_BALANCER_API
           Value: !Sub "http://${ApplicationLoadBalancer.DNSName}"
+        - Name: AMPLIFY_MONOREPO_APP_ROOT
+          Value: "frontend"
       CustomRules:
         - Source: "/<*>"
           Target: "/index.html"
@@ -343,11 +470,15 @@ Resources:
 
   FrontendAmplifyBranch:
     Type: "AWS::Amplify::Branch"
+    DependsOn: ApplicationLoadBalancer
     Properties:
       AppId: !GetAtt FrontendAmplifyApp.AppId
       BranchName: !Ref FrontendBranchName
       EnableAutoBuild: true
       Stage: PRODUCTION
+      EnvironmentVariables:
+        - Name: AMPLIFY_MONOREPO_APP_ROOT
+          Value: "frontend"
 
 Outputs:
   LoadBalancerDNS:
