@@ -273,27 +273,12 @@ Resources:
           Ebs:
             VolumeSize: "30"
       UserData:
-        Fn::Base64: |
+        Fn::Base64: !Sub |
           #!/bin/bash
-          set -euxo pipefail
-          apt update -y
-          apt install -y docker.io docker-compose-plugin git netcat-openbsd
-          systemctl enable docker
-          systemctl start docker
-          usermod -aG docker ubuntu
-
-          cd /home/ubuntu
-          if [ ! -d "OpenStore" ]; then
-            git clone https://github.com/Lazheart/OpenStore
-          else
-            cd OpenStore && git pull || true
-            cd ..
-          fi
-
-          # En VMs de API no se necesita frontend
-          if [ -d "/home/ubuntu/OpenStore/frontend" ]; then
-            rm -rf /home/ubuntu/OpenStore/frontend
-          fi
+          git clone https://github.com/Lazheart/OpenStore
+          cd OpenStore
+          rm -rf frontend
+          cd ..
 
   AppServer2:
     Type: "AWS::EC2::Instance"
@@ -314,27 +299,13 @@ Resources:
           Ebs:
             VolumeSize: "30"
       UserData:
-        Fn::Base64: |
+        Fn::Base64: !Sub |
           #!/bin/bash
-          set -euxo pipefail
-          apt update -y
-          apt install -y docker.io docker-compose-plugin git netcat-openbsd
-          systemctl enable docker
-          systemctl start docker
-          usermod -aG docker ubuntu
+          git clone https://github.com/Lazheart/OpenStore
+          cd OpenStore
+          rm -rf frontend
+          cd ..
 
-          cd /home/ubuntu
-          if [ ! -d "OpenStore" ]; then
-            git clone https://github.com/Lazheart/OpenStore
-          else
-            cd OpenStore && git pull || true
-            cd ..
-          fi
-
-          # En VMs de API no se necesita frontend
-          if [ -d "/home/ubuntu/OpenStore/frontend" ]; then
-            rm -rf /home/ubuntu/OpenStore/frontend
-          fi
 
   DbServer:
     Type: "AWS::EC2::Instance"
@@ -354,22 +325,14 @@ Resources:
           Ebs:
             VolumeSize: "30"
       UserData:
-        Fn::Base64: |
+      UserData:
+        Fn::Base64: !Sub |
           #!/bin/bash
-          set -euxo pipefail
-          apt update -y
-          apt install -y docker.io docker-compose-plugin git
-          systemctl enable docker
-          systemctl start docker
-          usermod -aG docker ubuntu
-
-          cd /home/ubuntu
-          if [ ! -d "OpenStore" ]; then
-            git clone https://github.com/Lazheart/OpenStore
-          else
-            cd OpenStore && git pull || true
-            cd ..
-          fi
+          git clone OpenStore
+          cd OpenStore
+          rm -rf frontend
+          rm -rf backend
+          cd ..
 
   ImagesBucket:
     Type: "AWS::S3::Bucket"
