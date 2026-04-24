@@ -385,8 +385,8 @@ Resources:
     Type: AWS::Amplify::App
     Properties:
       Name: !Ref FrontendAmplifyAppName
-    Repository: !Ref FrontendRepoUrl
-    AccessToken: !If [HasFrontendAmplifyAccessToken, !Ref FrontendAmplifyAccessToken, !Ref AWS::NoValue]
+      Repository: !Ref FrontendRepoUrl
+      AccessToken: !If [HasFrontendAmplifyAccessToken, !Ref FrontendAmplifyAccessToken, !Ref AWS::NoValue]
       BuildSpec: |
         version: 1
         applications:
