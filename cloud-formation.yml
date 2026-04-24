@@ -273,16 +273,14 @@ Resources:
           Ebs:
             VolumeSize: "30"
       UserData:
-        Fn::Base64: !Sub |
+        Fn::Base64: |
           #!/bin/bash
           set -euxo pipefail
-          exec > >(tee /var/log/openstore-userdata.log | logger -t user-data -s 2>/dev/console) 2>&1
-
           apt update -y
           apt install -y docker.io docker-compose-plugin git netcat-openbsd
-          systemctl start docker
           systemctl enable docker
-          sudo usermod -aG docker ubuntu
+          systemctl start docker
+          usermod -aG docker ubuntu
 
           cd /home/ubuntu
           if [ ! -d "OpenStore" ]; then
@@ -291,27 +289,11 @@ Resources:
             cd OpenStore && git pull || true
             cd ..
           fi
-          #Eliminar carpeta frontend si existe
+
+          # En VMs de API no se necesita frontend
           if [ -d "/home/ubuntu/OpenStore/frontend" ]; then
             rm -rf /home/ubuntu/OpenStore/frontend
           fi
-          cd OpenStore/backend/
-
-          cp -f .env.example .env
-
-          sed -i "s/^POSTGRES_HOST=.*/POSTGRES_HOST=${DbServer.PrivateIp}/" .env
-          sed -i "s/^MYSQL_HOST=.*/MYSQL_HOST=${DbServer.PrivateIp}/" .env
-          sed -i "s/^MONGO_HOST=.*/MONGO_HOST=${DbServer.PrivateIp}/" .env
-          sed -i "s|^DATABASE_URL=.*|DATABASE_URL=jdbc:postgresql://${DbServer.PrivateIp}:5432/openstoredb|" .env
-          sed -i "s|^SHOP_DATABASE_URL=.*|SHOP_DATABASE_URL=mysql://shopuser:shoppass@${DbServer.PrivateIp}:3306/shopdb|" .env
-          sed -i "s|^MONGO_URI=.*|MONGO_URI=mongodb://${DbServer.PrivateIp}:27017/productdb|" .env
-
-          until nc -z ${DbServer.PrivateIp} 5432; do echo "Esperando PostgreSQL..."; sleep 5; done
-          until nc -z ${DbServer.PrivateIp} 3306; do echo "Esperando MySQL..."; sleep 5; done
-          until nc -z ${DbServer.PrivateIp} 27017; do echo "Esperando Mongo..."; sleep 5; done
-
-          docker compose version
-          docker compose up -d user-service shop-service product-service
 
   AppServer2:
     Type: "AWS::EC2::Instance"
@@ -332,15 +314,13 @@ Resources:
           Ebs:
             VolumeSize: "30"
       UserData:
-        Fn::Base64: !Sub |
+        Fn::Base64: |
           #!/bin/bash
           set -euxo pipefail
-          exec > >(tee /var/log/openstore-userdata.log | logger -t user-data -s 2>/dev/console) 2>&1
-
           apt update -y
           apt install -y docker.io docker-compose-plugin git netcat-openbsd
-          systemctl start docker
           systemctl enable docker
+          systemctl start docker
           usermod -aG docker ubuntu
 
           cd /home/ubuntu
@@ -350,27 +330,11 @@ Resources:
             cd OpenStore && git pull || true
             cd ..
           fi
-          #Eliminar carpeta frontend si existe
+
+          # En VMs de API no se necesita frontend
           if [ -d "/home/ubuntu/OpenStore/frontend" ]; then
             rm -rf /home/ubuntu/OpenStore/frontend
           fi
-          cd OpenStore/backend/
-
-          cp -f .env.example .env
-
-          sed -i "s/^POSTGRES_HOST=.*/POSTGRES_HOST=${DbServer.PrivateIp}/" .env
-          sed -i "s/^MYSQL_HOST=.*/MYSQL_HOST=${DbServer.PrivateIp}/" .env
-          sed -i "s/^MONGO_HOST=.*/MONGO_HOST=${DbServer.PrivateIp}/" .env
-          sed -i "s|^DATABASE_URL=.*|DATABASE_URL=jdbc:postgresql://${DbServer.PrivateIp}:5432/openstoredb|" .env
-          sed -i "s|^SHOP_DATABASE_URL=.*|SHOP_DATABASE_URL=mysql://shopuser:shoppass@${DbServer.PrivateIp}:3306/shopdb|" .env
-          sed -i "s|^MONGO_URI=.*|MONGO_URI=mongodb://${DbServer.PrivateIp}:27017/productdb|" .env
-
-          until nc -z ${DbServer.PrivateIp} 5432; do echo "Esperando PostgreSQL..."; sleep 5; done
-          until nc -z ${DbServer.PrivateIp} 3306; do echo "Esperando MySQL..."; sleep 5; done
-          until nc -z ${DbServer.PrivateIp} 27017; do echo "Esperando Mongo..."; sleep 5; done
-
-          docker compose version
-          docker compose up -d user-service shop-service product-service
 
   DbServer:
     Type: "AWS::EC2::Instance"
@@ -390,21 +354,14 @@ Resources:
           Ebs:
             VolumeSize: "30"
       UserData:
-        Fn::Base64: !Sub |
+        Fn::Base64: |
           #!/bin/bash
           set -euxo pipefail
-          exec > >(tee /var/log/openstore-userdata.log | logger -t user-data -s 2>/dev/console) 2>&1
-
           apt update -y
           apt install -y docker.io docker-compose-plugin git
-          systemctl start docker
           systemctl enable docker
+          systemctl start docker
           usermod -aG docker ubuntu
-
-          #Eliminar carpeta frontend si existe
-          if [ -d "/home/ubuntu/OpenStore/frontend" ]; then
-            rm -rf /home/ubuntu/OpenStore/frontend
-          fi
 
           cd /home/ubuntu
           if [ ! -d "OpenStore" ]; then
@@ -413,12 +370,6 @@ Resources:
             cd OpenStore && git pull || true
             cd ..
           fi
-
-          cd OpenStore/backend/
-          cp -f .env.example .env
-
-          docker compose version
-          docker compose up -d postgres mysql mongo
 
   ImagesBucket:
     Type: "AWS::S3::Bucket"
@@ -436,6 +387,7 @@ Resources:
       Name: !Ref FrontendAmplifyAppName
       Repository: !Ref FrontendRepoUrl
       AccessToken: !If [HasFrontendAmplifyAccessToken, !Ref FrontendAmplifyAccessToken, !Ref AWS::NoValue]
+      IAMServiceRole: !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole"
       BuildSpec: |
         version: 1
         applications:
