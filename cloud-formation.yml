@@ -382,12 +382,11 @@ Resources:
         RestrictPublicBuckets: true
 
   FrontendAmplifyApp:
-    Type: "AWS::Amplify::App"
-    Properties:
-      Name: !Ref FrontendAmplifyAppName
-      Repository: !Ref FrontendRepoUrl
-      AccessToken: !If [HasFrontendAmplifyAccessToken, !Ref FrontendAmplifyAccessToken, !Ref AWS::NoValue]
-      IAMServiceRole: !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole"
+  Type: AWS::Amplify::App
+  Properties:
+    Name: !Ref FrontendAmplifyAppName
+    Repository: !Ref FrontendRepoUrl
+    AccessToken: !If [HasFrontendAmplifyAccessToken, !Ref FrontendAmplifyAccessToken, !Ref AWS::NoValue]
       BuildSpec: |
         version: 1
         applications:
