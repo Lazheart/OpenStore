@@ -382,9 +382,9 @@ Resources:
         RestrictPublicBuckets: true
 
   FrontendAmplifyApp:
-  Type: AWS::Amplify::App
-  Properties:
-    Name: !Ref FrontendAmplifyAppName
+    Type: AWS::Amplify::App
+    Properties:
+      Name: !Ref FrontendAmplifyAppName
     Repository: !Ref FrontendRepoUrl
     AccessToken: !If [HasFrontendAmplifyAccessToken, !Ref FrontendAmplifyAccessToken, !Ref AWS::NoValue]
       BuildSpec: |
