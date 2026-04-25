@@ -111,7 +111,8 @@ aws cloudformation deploy \
     InstanceName=MV-OpenShop \
     AMI=ami-08d434e92c0cfa0c0 \
     KeyName="$KEY_NAME" \
-    InstanceType=t3.micro \
+    InstanceType=t3.medium \
+    DbInstanceType=t3.medium \
     VpcId="$VPC_ID" \
     PublicSubnet1="$SUBNET1" \
     PublicSubnet2="$SUBNET2" \

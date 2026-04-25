@@ -16,13 +16,22 @@ Parameters:
     Description: "KeyPair para acceso SSH (opcional)"
   InstanceType:
     Type: String
-    Default: "t3.micro"
+    Default: "t3.medium"
     AllowedValues:
       - "t2.micro"
       - "t3.micro"
       - "t3.small"
       - "t3.medium"
-    Description: "Tipo de instancia para App/DB"
+    Description: "Tipo de instancia para App Servers"
+  DbInstanceType:
+    Type: String
+    Default: "t3.medium"
+    AllowedValues:
+      - "t3.micro"
+      - "t3.small"
+      - "t3.medium"
+      - "t3.large"
+    Description: "Tipo de instancia para DB Server"
   VpcId:
     Type: AWS::EC2::VPC::Id
     Description: "VPC donde desplegar los recursos"
@@ -320,7 +329,7 @@ Resources:
         - Key: "Name"
           Value: !Sub "${InstanceName}-DB"
       ImageId: !Ref AMI
-      InstanceType: !Ref InstanceType
+      InstanceType: !Ref DbInstanceType
       KeyName: !Ref KeyName
       IamInstanceProfile: "LabInstanceProfile"
       SecurityGroupIds:
