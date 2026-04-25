@@ -46,14 +46,18 @@
 
 			<section id="services" aria-labelledby="services-title">
 				<h2 id="services-title">Servicios y puertos</h2>
-				<p>Los puertos pueden variar por entorno. Esta tabla resume valores observables en el repositorio:</p>
+				<p>
+					Los puertos varian por entorno. A continuacion se resumen los valores definidos
+					en Docker Compose y CloudFormation.
+				</p>
 				<div class="table-wrap">
 					<table>
 						<thead>
 							<tr>
 								<th>Servicio</th>
 								<th>Stack</th>
-								<th>Puerto</th>
+								<th>Puerto host</th>
+								<th>Puerto interno</th>
 								<th>Base path</th>
 							</tr>
 						</thead>
@@ -62,19 +66,76 @@
 								<td>user-service</td>
 								<td>Spring Boot</td>
 								<td>8080</td>
+								<td>8080</td>
 								<td>/api</td>
 							</tr>
 							<tr>
 								<td>shop-service</td>
 								<td>Express + Prisma</td>
-								<td>3001 (default)</td>
+								<td>8081</td>
+								<td>3000</td>
 								<td>/</td>
 							</tr>
 							<tr>
 								<td>product-service</td>
 								<td>FastAPI</td>
+								<td>8082 (y 80 en docker-compose)</td>
 								<td>8000</td>
 								<td>/</td>
+							</tr>
+							<tr>
+								<td>postgres</td>
+								<td>PostgreSQL</td>
+								<td>${POSTGRES_PORT:-5432}</td>
+								<td>5432</td>
+								<td>N/A</td>
+							</tr>
+							<tr>
+								<td>mysql</td>
+								<td>MySQL</td>
+								<td>${MYSQL_PORT:-3306}</td>
+								<td>3306</td>
+								<td>N/A</td>
+							</tr>
+							<tr>
+								<td>mongo</td>
+								<td>MongoDB</td>
+								<td>${MONGO_PORT:-27017}</td>
+								<td>27017</td>
+								<td>N/A</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<p>
+					Nota local: si un puerto ya esta en uso (ejemplo 3306), el script SETUP_BD.sh
+					asigna automaticamente el siguiente puerto libre y lo refleja en
+					<strong>backend/.env</strong> y <strong>backend/.env.api.generated</strong>.
+				</p>
+				<div class="table-wrap">
+					<table>
+						<thead>
+							<tr>
+								<th>Componente AWS</th>
+								<th>Puerto</th>
+								<th>Detalle</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>ALB listener</td>
+								<td>80</td>
+								<td>Entrada publica HTTP y enrutamiento por path</td>
+							</tr>
+							<tr>
+								<td>App servers (EC2)</td>
+								<td>80, 8080, 8081, 8082</td>
+								<td>Reciben trafico desde el SG del ALB</td>
+							</tr>
+							<tr>
+								<td>DB server (EC2)</td>
+								<td>5432, 3306, 27017</td>
+								<td>Puertos de BD abiertos por Security Group</td>
 							</tr>
 						</tbody>
 					</table>
