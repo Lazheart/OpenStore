@@ -10,12 +10,30 @@ fi
 # 1) Variables base
 STACK_NAME="openstore-stack"
 TEMPLATE_FILE="cloud-formation.yml"
-VPC_ID="vpc-06bfc35d3dddba731"
+VPC_ID="${VPC_ID:-}"
 KEY_NAME="openstore-key-$(date +%Y%m%d%H%M%S)"
 
 AWS_REGION_VALUE="${AWS_REGION:-${AWS_DEFAULT_REGION:-$(aws configure get region 2>/dev/null || true)}}"
 if [ -z "$AWS_REGION_VALUE" ]; then
   AWS_REGION_VALUE="us-east-1"
+fi
+
+# Si no se pasa VPC_ID por .env, intenta usar la VPC por defecto de la región.
+if [ -z "$VPC_ID" ]; then
+  VPC_ID="$(aws ec2 describe-vpcs \
+    --region "$AWS_REGION_VALUE" \
+    --filters "Name=is-default,Values=true" \
+    --query 'Vpcs[0].VpcId' \
+    --output text 2>/dev/null || true)"
+
+  if [ "$VPC_ID" = "None" ]; then
+    VPC_ID=""
+  fi
+fi
+
+if [ -z "$VPC_ID" ]; then
+  echo "No se encontro VPC_ID. Define VPC_ID en .env o crea/usa una VPC por defecto en $AWS_REGION_VALUE." >&2
+  exit 1
 fi
 
 if [ -z "${FRONTEND_AMPLIFY_ACCESS_TOKEN:-}" ]; then
@@ -93,6 +111,21 @@ if [ -z "$SUBNET1" ] || [ -z "$SUBNET2" ]; then
 fi
 
 if [ -z "$SUBNET1" ] || [ -z "$SUBNET2" ]; then
+  echo "No se pudieron encontrar 2 subnets validas en AZ distintas para la VPC $VPC_ID en la region $AWS_REGION_VALUE" >&2
+  echo "Diagnostico de subnets encontradas en esa VPC:" >&2
+  aws ec2 describe-subnets \
+    --region "$AWS_REGION_VALUE" \
+    --filters "Name=vpc-id,Values=${VPC_ID}" \
+    --query "Subnets[].[SubnetId,AvailabilityZone,MapPublicIpOnLaunch]" \
+    --output table >&2 || true
+
+  echo "Cantidad de subnets por AZ:" >&2
+  aws ec2 describe-subnets \
+    --region "$AWS_REGION_VALUE" \
+    --filters "Name=vpc-id,Values=${VPC_ID}" \
+    --query "Subnets[].AvailabilityZone" \
+    --output text 2>/dev/null | tr '\t' '\n' | sort | uniq -c >&2 || true
+
   echo "No se pudieron encontrar 2 subnets validas en AZ distintas para la VPC $VPC_ID en la region $AWS_REGION_VALUE" >&2
   exit 1
 fi
