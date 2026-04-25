@@ -338,7 +338,6 @@ Resources:
           git clone https://github.com/Lazheart/OpenStore
           cd OpenStore
           rm -rf frontend
-          rm -rf backend
           cd ..
 
   ImagesBucket:
