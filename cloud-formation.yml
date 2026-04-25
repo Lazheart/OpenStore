@@ -275,6 +275,9 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
+          set -e
+          exec > /var/log/user-data.log 2>&1
+          cd /home/ubuntu
           git clone https://github.com/Lazheart/OpenStore
           cd OpenStore
           rm -rf frontend
@@ -301,6 +304,9 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
+          set -e
+          exec > /var/log/user-data.log 2>&1
+          cd /home/ubuntu
           git clone https://github.com/Lazheart/OpenStore
           cd OpenStore
           rm -rf frontend
@@ -328,7 +334,7 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          git clone OpenStore
+          git clone https://github.com/Lazheart/OpenStore
           cd OpenStore
           rm -rf frontend
           rm -rf backend
