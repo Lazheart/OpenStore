@@ -16,9 +16,9 @@ export default function HomePage() {
           <Link to="/owner" className="btn btn-primary">
             Start free trial <ArrowRight size={18} />
           </Link>
-          <Link to="/admin" className="btn btn-outline">
+          <a href="https://lazheart.github.io/OpenStore/" target="_blank" rel="noopener noreferrer" className="btn btn-outline">
             Developer tools
-          </Link>
+          </a>
         </div>
       </section>
 

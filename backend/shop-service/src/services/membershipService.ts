@@ -20,7 +20,8 @@ class MembershipService {
 
     const newMembership = await prisma.membership.create({
       data: {
-        // Current schema does not persist user IDs in memberships.
+        // Persist both the owner user reference and shop relation.
+        user_id: userId,
         shop_id: shopId,
         role,
       },

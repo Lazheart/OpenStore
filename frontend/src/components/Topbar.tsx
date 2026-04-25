@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTheme } from '../config/ThemeConfig';
 import { Moon, Sun, Bell, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const Topbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -20,7 +21,7 @@ export const Topbar: React.FC = () => {
           <Bell size={20} />
         </button>
         
-        <div style={{ 
+        <Link to="/profile" style={{ 
           width: '36px', 
           height: '36px', 
           borderRadius: '50%', 
@@ -29,10 +30,11 @@ export const Topbar: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'center',
           color: '#000',
-          cursor: 'pointer'
+          cursor: 'pointer',
+          textDecoration: 'none'
         }}>
           <User size={20} />
-        </div>
+        </Link>
       </div>
     </header>
   );
