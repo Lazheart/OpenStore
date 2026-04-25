@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$SCRIPT_DIR"
 BACKEND_DIR="$REPO_DIR/backend"
+DB_COMPOSE_FILE="${DB_COMPOSE_FILE:-docker-compose.bd.yml}"
 
 if [ ! -d "$BACKEND_DIR" ]; then
 	echo "No se encontro backend en $BACKEND_DIR" >&2
@@ -16,6 +17,11 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 cd "$BACKEND_DIR"
+
+if [ ! -f "$DB_COMPOSE_FILE" ]; then
+	echo "No se encontro $BACKEND_DIR/$DB_COMPOSE_FILE" >&2
+	exit 1
+fi
 
 if [ ! -f ".env" ]; then
 	cp .env.example .env
@@ -94,46 +100,38 @@ if [ "$MONGO_PORT_RESOLVED" != "$MONGO_PORT_VALUE" ]; then
 	MONGO_PORT_VALUE="$MONGO_PORT_RESOLVED"
 fi
 
-docker compose up -d postgres mysql mongo
+docker compose -f "$DB_COMPOSE_FILE" up -d postgres mysql mongo
 
 DB_HOST="$(ip -4 route get 1.1.1.1 | awk '{print $7; exit}')"
-AWS_REGION_VALUE="${AWS_REGION:-${AWS_DEFAULT_REGION:-$(aws configure get region 2>/dev/null || true)}}"
-if [ -z "$AWS_REGION_VALUE" ]; then
-	AWS_REGION_VALUE="us-east-1"
+if [ -z "$DB_HOST" ]; then
+	DB_HOST="$(hostname -I 2>/dev/null | awk '{print $1}')"
 fi
 
-if command -v aws >/dev/null 2>&1; then
-	ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text 2>/dev/null || true)"
-else
-	ACCOUNT_ID=""
+if [ -z "$DB_HOST" ]; then
+	echo "No se pudo detectar la IP privada de esta maquina." >&2
+	exit 1
 fi
-
-if [ -n "$ACCOUNT_ID" ]; then
-	BUCKET_NAME_VALUE="openstore-images-$ACCOUNT_ID"
-else
-	BUCKET_NAME_VALUE="openstore-images-CHANGE_ME"
-fi
-
-cat > .env.api.generated <<EOF
-# Generado por SETUP_BD.sh
-POSTGRES_HOST=$DB_HOST
-MYSQL_HOST=$DB_HOST
-MONGO_HOST=$DB_HOST
-DATABASE_URL=jdbc:postgresql://$DB_HOST:$POSTGRES_PORT_VALUE/openstoredb
-SHOP_DATABASE_URL=mysql://shopuser:shoppass@$DB_HOST:$MYSQL_PORT_VALUE/shopdb
-MONGO_URI=mongodb://$DB_HOST:$MONGO_PORT_VALUE/productdb
-BUCKET_NAME=$BUCKET_NAME_VALUE
-AWS_REGION=$AWS_REGION_VALUE
-EOF
 
 echo
 echo "BD levantada correctamente."
-echo "Comparte estos valores en la VM de APIs (o copia backend/.env.api.generated):"
-cat .env.api.generated
+echo "Valores de base de datos para la VM de APIs:"
+echo "POSTGRES_HOST=$DB_HOST"
+echo "MYSQL_HOST=$DB_HOST"
+echo "MONGO_HOST=$DB_HOST"
+echo "DATABASE_URL=jdbc:postgresql://$DB_HOST:$POSTGRES_PORT_VALUE/openstoredb"
+echo "SHOP_DATABASE_URL=mysql://shopuser:shoppass@$DB_HOST:$MYSQL_PORT_VALUE/shopdb"
+echo "MONGO_URI=mongodb://$DB_HOST:$MONGO_PORT_VALUE/productdb"
 echo
 echo "Bloque rapido para copiar/pegar en la VM de APIs:"
 echo "-----------------------------------------------"
-awk 'BEGIN {print "set -a"} !/^#/ {print "export "$0} END {print "set +a"}' .env.api.generated
+echo "set -a"
+echo "export POSTGRES_HOST=$DB_HOST"
+echo "export MYSQL_HOST=$DB_HOST"
+echo "export MONGO_HOST=$DB_HOST"
+echo "export DATABASE_URL=jdbc:postgresql://$DB_HOST:$POSTGRES_PORT_VALUE/openstoredb"
+echo "export SHOP_DATABASE_URL=mysql://shopuser:shoppass@$DB_HOST:$MYSQL_PORT_VALUE/shopdb"
+echo "export MONGO_URI=mongodb://$DB_HOST:$MONGO_PORT_VALUE/productdb"
+echo "set +a"
 echo "-----------------------------------------------"
 echo "Luego ejecuta:"
 echo "./SETUP_API.sh"

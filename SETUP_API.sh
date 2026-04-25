@@ -22,23 +22,10 @@ if [ ! -w "$BACKEND_DIR" ]; then
 	exit 1
 fi
 
-ENV_GENERATED_FILE="${ENV_GENERATED_FILE:-$BACKEND_DIR/.env.api.generated}"
-
-# Prioridad de origen de valores:
-# 1) argumento DB host
-# 2) variables exportadas del shell
-# 3) archivo generado por SETUP_BD.sh
-if [ -f "$ENV_GENERATED_FILE" ]; then
-	set -a
-	# shellcheck disable=SC1090
-	source "$ENV_GENERATED_FILE"
-	set +a
-fi
-
 DB_HOST="${1:-${DB_HOST:-${POSTGRES_HOST:-}}}"
 if [ -z "$DB_HOST" ]; then
 	echo "Uso: ./SETUP_API.sh <DB_PRIVATE_IP>" >&2
-	echo "Tambien puedes exportar DB_HOST o tener $ENV_GENERATED_FILE" >&2
+	echo "Tambien puedes exportar DB_HOST o POSTGRES_HOST" >&2
 	exit 1
 fi
 
@@ -82,7 +69,16 @@ fi
 cd "$BACKEND_DIR"
 
 if [ ! -f ".env" ]; then
-	cp .env.example .env
+	if [ -f ".env.example" ]; then
+		echo "No existe backend/.env. Se encontro backend/.env.example y se creara backend/.env desde ahi."
+		cp .env.example .env
+	else
+		echo "No existe backend/.env ni backend/.env.example" >&2
+		echo "Crea uno de esos archivos antes de ejecutar SETUP_API.sh" >&2
+		exit 1
+	fi
+else
+	echo "Se usara backend/.env existente."
 fi
 
 if [ ! -w ".env" ]; then
@@ -112,8 +108,8 @@ if command -v nc >/dev/null 2>&1; then
 	until nc -z "$MONGO_HOST_VALUE" "$MONGO_PORT_VALUE"; do echo "Esperando Mongo en $MONGO_HOST_VALUE:$MONGO_PORT_VALUE..."; sleep 3; done
 fi
 
-# No inicia dependencias locales (postgres/mysql/mongo) en la VM de APIs
-docker compose up -d --no-deps user-service shop-service product-service
+# En la VM de APIs, docker-compose.yml contiene solo servicios de API
+docker compose up -d user-service shop-service product-service
 
 echo
 echo "APIs levantadas con DB_HOST=$DB_HOST"
