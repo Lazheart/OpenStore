@@ -91,7 +91,6 @@ const options: swaggerJSDoc.Options = {
           responses: { '204': { description: 'Tienda eliminada' } }
         }
       },
-      // --- NUEVO ENDPOINT DE MEMBRESÍAS ---
       '/shops/{id}/memberships': {
         post: {
           summary: 'Agrega un miembro (usuario) a una tienda',

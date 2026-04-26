@@ -1,6 +1,7 @@
-import { Membership, PrismaClient } from "@prisma/client";
+const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
+type MembershipRecord = Awaited<ReturnType<typeof prisma.membership.create>>;
 
 class MembershipService {
 
@@ -8,10 +9,7 @@ class MembershipService {
     userId: string,
     shopId: number,
     role: string
-  ): Promise<Membership> {
-    // Validation 1: Verify existence of User (auth-service)
-    // const userExists = await fetch(`http://auth-service/api/users/${userId}`).then(res => res.ok);
-    // if (!userExists) throw new Error("User does not exist");
+  ): Promise<MembershipRecord> {
     console.log(`[Validation Mock] Verified user ${userId} exists in auth-service.`);
 
     

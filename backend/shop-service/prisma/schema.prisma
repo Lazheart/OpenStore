@@ -9,8 +9,9 @@ datasource db {
 
 model Shop {
   id          Int          @id @default(autoincrement())
-  name        String
+  name        String       @unique
   owner_id    Int          // Prisma 5 mapea esto tal cual en TS
+  phone_number String
   memberships Membership[]
 }
 

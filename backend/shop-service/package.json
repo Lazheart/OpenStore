@@ -21,6 +21,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "swagger-jsdoc": "^6.2.8",
+    "swagger-ui": "^5.32.4",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {

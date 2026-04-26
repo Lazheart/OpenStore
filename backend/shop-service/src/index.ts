@@ -1,28 +1,83 @@
 import { swaggerDocs } from './swagger';
 import express, { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+const { PrismaClient } = require('@prisma/client');
 import dotenv from 'dotenv';
-import path from 'path';
 import { authenticateToken, AuthRequest } from './middleware/auth';
 import membershipService from './services/membershipService';
-//import membershipService from './membershipService';
-// Variables de entorno
+
 dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
-const PORT = process.env.SHOP_SERVICE_PORT || 3001;
+const PORT = process.env.SHOP_SERVICE_PORT;
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL ;
 
 app.use(express.json());
 
-// --- ENDPOINTS ---
+type MePayload = {
+  id: number | string;
+  role: 'OWNER' | 'ADMIN' | 'USER' | string;
+  subscriptions?: 'FREE' | 'PRO' | 'MAX' | string;
+  subscriptionPlan?: 'FREE' | 'PRO' | 'MAX' | string;
+  phoneNumber?: string;
+};
 
-// 1. Health Check
+const PLAN_LIMITS: Record<string, number> = {
+  FREE: 1,
+  PRO: 5,
+  MAX: Number.POSITIVE_INFINITY,
+};
+
+const getBearerToken = (req: Request): string | null => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(' ')[1];
+  return token || null;
+};
+
+const buildMeUrl = (): string => {
+  if (!USER_SERVICE_URL) {
+    throw new Error('USER_SERVICE_URL no esta definido en las variables de entorno');
+  }
+  return `${USER_SERVICE_URL}/me`;
+}
+
+const getCurrentUserFromMe = async (token: string): Promise<MePayload> => {
+  const response = await fetch(buildMeUrl(), {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('No se pudo obtener la informacion del usuario desde /me');
+  }
+
+  const user = (await response.json()) as MePayload;
+  if (!user.id) {
+    throw new Error('El payload de /me no incluye id de usuario');
+  }
+
+  return user;
+};
+
+const toShopResponse = (shop: { id: number; owner_id: number; name: string; phone_number: string }) => ({
+  shopId: shop.id,
+  ownerId: shop.owner_id,
+  shopName: shop.name,
+  phoneNumber: shop.phone_number,
+});
+
+const getPlanLimit = (plan: string): number | null => {
+  const normalized = plan.toUpperCase();
+  return PLAN_LIMITS[normalized] ?? null;
+};
+
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', service: 'shop-service' });
 });
 
-// 2. LISTAR TIENDAS (Paginado)
 app.get('/shops', async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -38,7 +93,7 @@ app.get('/shops', async (req: Request, res: Response) => {
     ]);
 
     res.json({
-      data: shops,
+      data: shops.map(toShopResponse),
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     });
   } catch (error) {
@@ -46,88 +101,238 @@ app.get('/shops', async (req: Request, res: Response) => {
   }
 });
 
-// 3. OBTENER UNA TIENDA POR ID
 app.get('/shops/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
+
+  if (Number.isNaN(Number(id))) {
+    return res.status(400).json({ error: 'shopId invalido' });
+  }
+
   try {
     const shop = await prisma.shop.findUnique({
       where: { id: Number(id) },
-      include: { memberships: true }, 
     });
 
     if (!shop) {
       return res.status(404).json({ error: 'Tienda no encontrada' });
     }
-    res.json(shop);
+
+    res.json(toShopResponse(shop));
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener la tienda' });
   }
 });
 
-// 4. CREAR UNA TIENDA
-app.post('/shops', authenticateToken, async (req: AuthRequest, res: Response) => {
-  if (!req.body) {
-    return res.status(400).json({ error: 'El cuerpo de la petición está vacío' });
-  }
-  const { name } = req.body;
-  const owner_id = req.user?.id || req.user?.sub; 
+app.post('/openshop/shop', authenticateToken, async (req: AuthRequest, res: Response) => {
+  const { shopName, phoneNumber } = req.body ?? {};
 
-  if (!name) return res.status(400).json({ error: 'Falta el campo obligatorio (name)' });
-  if (!owner_id) return res.status(400).json({ error: 'Token sin ID válido' });
+  if (!shopName || typeof shopName !== 'string' || !shopName.trim()) {
+    return res.status(400).json({ error: 'shopName es obligatorio' });
+  }
+
+  if (!phoneNumber || typeof phoneNumber !== 'string' || !phoneNumber.trim()) {
+    return res.status(400).json({ error: 'phoneNumber es obligatorio' });
+  }
+
+  const token = getBearerToken(req);
+  if (!token) {
+    return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
+  }
 
   try {
+    const user = await getCurrentUserFromMe(token);
+    const ownerId = Number(user.id);
+
+    if (Number.isNaN(ownerId)) {
+      return res.status(400).json({ error: 'id de usuario invalido en /me' });
+    }
+
+    if (String(user.role).toUpperCase() !== 'OWNER') {
+      return res.status(403).json({ error: 'Unete a Openshop para registrar una tienda' });
+    }
+
+    const plan = String(user.subscriptions ?? user.subscriptionPlan ?? 'FREE').toUpperCase();
+    const maxAllowedShops = getPlanLimit(plan);
+
+    if (maxAllowedShops === null) {
+      return res.status(400).json({ error: 'Plan de suscripcion invalido' });
+    }
+
+    const existingByName = await prisma.shop.findFirst({
+      where: { name: shopName.trim() },
+    });
+
+    if (existingByName) {
+      return res.status(409).json({ error: 'Este nombre ya esta en uso' });
+    }
+
+    const ownerShopsCount = await prisma.shop.count({
+      where: { owner_id: ownerId },
+    });
+
+    if (ownerShopsCount >= maxAllowedShops) {
+      return res.status(403).json({
+        error: `Has alcanzado el limite de tiendas para el plan ${plan}`,
+      });
+    }
+
     const newShop = await prisma.shop.create({
-      data: { name, owner_id: Number(owner_id) }, 
+      data: {
+        name: shopName.trim(),
+        owner_id: ownerId,
+        phone_number: phoneNumber.trim(),
+      },
     });
-    res.status(201).json(newShop);
+
+    return res.status(201).json(toShopResponse(newShop));
   } catch (error) {
-    res.status(500).json({ error: 'Error al crear la tienda' });
+    if (error instanceof Error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    return res.status(500).json({ error: 'Error al crear la tienda' });
   }
 });
 
-// 5. ACTUALIZAR UNA TIENDA
-app.put('/shops/:id', async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { name, owner_id } = req.body;
+app.get('/shop/name/:shopName', async (req: Request, res: Response) => {
+  const shopName = String(req.params.shopName ?? '');
 
   try {
+    const shop = await prisma.shop.findFirst({
+      where: { name: shopName },
+    });
+
+    if (!shop) {
+      return res.status(404).json({ error: 'Tienda no encontrada' });
+    }
+
+    return res.json({
+      shopName: shop.name,
+      shopId: shop.id,
+      phoneNumber: shop.phone_number,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al obtener la tienda por nombre' });
+  }
+});
+
+app.patch('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: Response) => {
+  const { shopId } = req.params;
+  const { shopName, phoneNumber } = req.body ?? {};
+
+  if (Number.isNaN(Number(shopId))) {
+    return res.status(400).json({ error: 'shopId invalido' });
+  }
+
+  if (!shopName && !phoneNumber) {
+    return res.status(400).json({ error: 'Debes enviar shopName, phoneNumber o ambos' });
+  }
+
+  const token = getBearerToken(req);
+  if (!token) {
+    return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
+  }
+
+  try {
+    const user = await getCurrentUserFromMe(token);
+    const requesterId = Number(user.id);
+
+    if (Number.isNaN(requesterId)) {
+      return res.status(400).json({ error: 'id de usuario invalido en /me' });
+    }
+
+    const existingShop = await prisma.shop.findUnique({
+      where: { id: Number(shopId) },
+    });
+
+    if (!existingShop) {
+      return res.status(404).json({ error: 'Tienda no encontrada' });
+    }
+
+    if (existingShop.owner_id !== requesterId) {
+      return res.status(403).json({ error: 'No puedes modificar una tienda que no te pertenece' });
+    }
+
+    if (shopName && typeof shopName === 'string') {
+      const duplicatedName = await prisma.shop.findFirst({
+        where: {
+          name: shopName.trim(),
+          NOT: { id: Number(shopId) },
+        },
+      });
+
+      if (duplicatedName) {
+        return res.status(409).json({ error: 'Este nombre ya esta en uso' });
+      }
+    }
+
+    const data: { name?: string; phone_number?: string } = {};
+    if (shopName && typeof shopName === 'string') data.name = shopName.trim();
+    if (phoneNumber && typeof phoneNumber === 'string') data.phone_number = phoneNumber.trim();
+
     const updatedShop = await prisma.shop.update({
-      where: { id: Number(id) },
-      data: { name, owner_id },
+      where: { id: Number(shopId) },
+      data,
     });
-    res.json(updatedShop);
+
+    return res.json(toShopResponse(updatedShop));
   } catch (error) {
-    res.status(404).json({ error: 'Tienda no encontrada o error en datos' });
+    return res.status(500).json({ error: 'No se pudo actualizar la tienda' });
   }
 });
 
-// 6. BORRAR UNA TIENDA
-app.delete('/shops/:id', async (req: Request, res: Response) => {
-  const { id } = req.params;
+app.delete('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: Response) => {
+  const { shopId } = req.params;
+
+  if (Number.isNaN(Number(shopId))) {
+    return res.status(400).json({ error: 'shopId invalido' });
+  }
+
+  const token = getBearerToken(req);
+  if (!token) {
+    return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
+  }
+
   try {
-    await prisma.shop.delete({
-      where: { id: Number(id) },
+    const user = await getCurrentUserFromMe(token);
+    const requesterId = Number(user.id);
+
+    if (Number.isNaN(requesterId)) {
+      return res.status(400).json({ error: 'id de usuario invalido en /me' });
+    }
+
+    const existingShop = await prisma.shop.findUnique({
+      where: { id: Number(shopId) },
     });
-    res.status(204).send(); 
+
+    if (!existingShop) {
+      return res.status(404).json({ error: 'Tienda no encontrada' });
+    }
+
+    if (existingShop.owner_id !== requesterId) {
+      return res.status(403).json({ error: 'No puedes eliminar una tienda que no te pertenece' });
+    }
+
+    await prisma.shop.delete({
+      where: { id: Number(shopId) },
+    });
+
+    return res.json({ shopId: Number(shopId) });
   } catch (error) {
-    res.status(404).json({ error: 'No se pudo eliminar la tienda' });
+    return res.status(500).json({ error: 'No se pudo eliminar la tienda' });
   }
 });
-
-
 
 swaggerDocs(app, Number(PORT));
 app.post('/shops/:id/memberships', authenticateToken, async (req: AuthRequest, res: Response) => {
   const shopId = req.params.id;
   const { userId, role } = req.body;
 
-  // Verificamos envio de datos 
   if (!req.body || !userId || !role) {
     return res.status(400).json({ error: 'Faltan datos obligatorios: userId y role' });
   }
 
   try {
-    // Usamos archivos de mebresia ya creados 
     const newMembership = await membershipService.addMembership(
       String(userId), 
       Number(shopId), 

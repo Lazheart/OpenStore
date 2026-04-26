@@ -1,19 +1,18 @@
-import { PrismaClient, Shop } from "@prisma/client";
+const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
+type ShopRecord = Awaited<ReturnType<typeof prisma.shop.create>>;
+type ShopList = Awaited<ReturnType<typeof prisma.shop.findMany>>;
 
 class ShopService {
   /**
    * Create a shop, validating that the user is an OWNER.
    * @param name - The name of the shop.
    * @param ownerId - The UID of the user from Auth Service.
+    * @param phoneNumber - Contact phone number associated with the shop.
    */
-  async createShop(name: string, ownerId: number): Promise<Shop> {
-    // Validation: Verify existence and role of User (auth-service)
-    // In a real microservices architecture, you might perform an HTTP request to auth-service
-    // or extract this from a validated JWT containing claims.
-    // const user = await fetch(`http://auth-service/api/users/${ownerId}`).then(res => res.json());
-    // if (user.role !== 'OWNER') throw new Error("Only OWNER can create shops");
+  async createShop(name: string, ownerId: number, phoneNumber: string): Promise<ShopRecord> {
+    
 
     // Mocked check:
     console.log(`[Validation Mock] Verified ${ownerId} is an OWNER via auth-service.`);
@@ -22,13 +21,14 @@ class ShopService {
       data: {
         name,
         owner_id: ownerId,
+        phone_number: phoneNumber,
       },
     });
 
     return newShop;
   }
 
-  async getShopsByOwner(ownerId: number): Promise<Shop[]> {
+  async getShopsByOwner(ownerId: number): Promise<ShopList> {
     return prisma.shop.findMany({
       where: { owner_id: ownerId },
     });
