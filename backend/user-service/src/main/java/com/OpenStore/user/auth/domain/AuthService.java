@@ -260,18 +260,12 @@ public class AuthService {
         }
 
         try {
-            UUID uid = UUID.fromString(value);
-            return userRepository.findByUid(uid)
+            Long id = Long.valueOf(value);
+            return userRepository.findById(id)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        } catch (IllegalArgumentException ignored) {
-            try {
-                Long id = Long.valueOf(value);
-                return userRepository.findById(id)
-                        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-            } catch (NumberFormatException ignoredAgain) {
-                return userRepository.findByNameIgnoreCase(value)
-                        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-            }
+        } catch (NumberFormatException ignored) {
+            return userRepository.findByNameIgnoreCase(value)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         }
     }
 
@@ -305,7 +299,7 @@ public class AuthService {
     private AuthResponse toResponse(User user, String token) {
         return AuthResponse.builder()
                 .token(token)
-                .uid(user.getUid())
+                .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole())

@@ -5,10 +5,9 @@ import com.OpenStore.user.user.domain.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,6 +29,7 @@ class UserRepositoryTest {
                 .phoneNumber("1234567890")
                 .password("hashed")
                 .role(UserRole.CLIENT)
+                .enabled(true)
                 .build());
     }
 
@@ -47,8 +47,8 @@ class UserRepositoryTest {
     }
 
     @Test
-    void findByUid_returns_user_when_exists() {
-        Optional<User> result = userRepository.findByUid(saved.getUid());
+    void findById_returns_user_when_exists() {
+        Optional<User> result = userRepository.findById(saved.getId());
         assertThat(result).isPresent();
         assertThat(result.get().getEmail()).isEqualTo("carlos@test.com");
     }
@@ -60,13 +60,13 @@ class UserRepositoryTest {
     }
 
     @Test
-    void soft_deleted_user_is_not_returned() {
-        saved.setDeletedAt(LocalDateTime.now());
+    void disabled_flag_is_persisted() {
         saved.setEnabled(false);
         userRepository.save(saved);
 
-        Optional<User> result = userRepository.findByEmail("carlos@test.com");
-        assertThat(result).isEmpty();
+        Optional<User> result = userRepository.findById(saved.getId());
+        assertThat(result).isPresent();
+        assertThat(result.get().isEnabled()).isFalse();
     }
 
     @Test

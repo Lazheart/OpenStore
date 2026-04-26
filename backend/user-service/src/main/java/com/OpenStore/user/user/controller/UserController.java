@@ -8,7 +8,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/users")
@@ -26,23 +25,23 @@ public class UserController {
         return ResponseEntity.ok(userService.findAll());
     }
 
-    @GetMapping("/{uid}")
+    @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<UserResponse> findByUid(@PathVariable UUID uid) {
-        return ResponseEntity.ok(userService.findByUid(uid));
+    public ResponseEntity<UserResponse> findById(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.findById(id));
     }
 
-    @PutMapping("/{uid}")
+    @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<UserResponse> update(@PathVariable UUID uid,
+    public ResponseEntity<UserResponse> update(@PathVariable Long id,
                                                @RequestBody UpdateUserRequest request) {
-        return ResponseEntity.ok(userService.update(uid, request));
+        return ResponseEntity.ok(userService.update(id, request));
     }
 
-    @DeleteMapping("/{uid}")
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable UUID uid) {
-        userService.delete(uid);
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        userService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

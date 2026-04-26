@@ -1,7 +1,8 @@
-package com.OpenStore.user.user.domain;
+package main.java.com.OpenStore.user.user.domain;
 
 import com.OpenStore.user.user.dto.UpdateUserRequest;
 import com.OpenStore.user.user.dto.UpdateMeRequest;
+import com.OpenStore.user.user.dto.MeResponse;
 import com.OpenStore.user.user.dto.OwnerUserResponse;
 import com.OpenStore.user.user.dto.UserResponse;
 import com.OpenStore.user.user.repository.UserRepository;
@@ -19,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -55,15 +55,15 @@ public class UserService implements UserDetailsService {
                 .map(this::toOwnerResponse);
     }
 
-    public UserResponse findByUid(UUID uid) {
-        return userRepository.findByUid(uid)
+    public UserResponse findById(Long id) {
+        return userRepository.findById(id)
                 .map(this::toResponse)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + uid));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + id));
     }
 
-    public UserResponse update(UUID uid, UpdateUserRequest request) {
-        User user = userRepository.findByUid(uid)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + uid));
+    public UserResponse update(Long id, UpdateUserRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + id));
 
         if (request.getName() != null) user.setName(request.getName());
         if (request.getPhoneNumber() != null) user.setPhoneNumber(request.getPhoneNumber());
@@ -71,12 +71,23 @@ public class UserService implements UserDetailsService {
         return toResponse(userRepository.save(user));
     }
 
-    public void delete(UUID uid) {
-        User user = userRepository.findByUid(uid)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + uid));
-        user.setDeletedAt(LocalDateTime.now());
+    public void delete(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + id));
         user.setEnabled(false);
         userRepository.save(user);
+    }
+
+    public MeResponse getMe(String email) {
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        return MeResponse.builder()
+                .id(currentUser.getId())
+                .role(currentUser.getRole())
+                .subscriptions(currentUser.getSubscription())
+                .phoneNumber(currentUser.getPhoneNumber())
+                .build();
     }
 
     @Transactional
@@ -155,7 +166,7 @@ public class UserService implements UserDetailsService {
 
     private UserResponse toResponse(User user) {
         return UserResponse.builder()
-                .uid(user.getUid())
+                .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())

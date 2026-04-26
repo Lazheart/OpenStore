@@ -15,7 +15,7 @@
       "type": "string"
     },
     {
-      "key": "userUid",
+      "key": "userId",
       "value": "",
       "type": "string"
     }
@@ -34,9 +34,9 @@
                   "if (pm.response.code === 200) {",
                   "    const body = pm.response.json();",
                   "    pm.collectionVariables.set('token', body.token);",
-                  "    pm.collectionVariables.set('userUid', body.uid);",
+                  "    pm.collectionVariables.set('userId', body.id);",
                   "    pm.test('Token received', () => pm.expect(body.token).to.be.a('string'));",
-                  "    pm.test('UID received', () => pm.expect(body.uid).to.be.a('string'));",
+                  "    pm.test('ID received', () => pm.expect(body.id).to.be.a('number'));",
                   "    pm.test('Role is correct', () => pm.expect(body.role).to.eql('CLIENT'));",
                   "}"
                 ]
@@ -101,7 +101,7 @@
                   "if (pm.response.code === 200) {",
                   "    const body = pm.response.json();",
                   "    pm.collectionVariables.set('token', body.token);",
-                  "    pm.collectionVariables.set('userUid', body.uid);",
+                  "    pm.collectionVariables.set('userId', body.id);",
                   "    pm.test('Token received', () => pm.expect(body.token).to.be.a('string'));",
                   "    pm.test('Role is ADMIN', () => pm.expect(body.role).to.eql('ADMIN'));",
                   "}"
@@ -135,7 +135,7 @@
                   "if (pm.response.code === 200) {",
                   "    const body = pm.response.json();",
                   "    pm.collectionVariables.set('token', body.token);",
-                  "    pm.collectionVariables.set('userUid', body.uid);",
+                  "    pm.collectionVariables.set('userId', body.id);",
                   "    pm.test('Token received', () => pm.expect(body.token).to.be.a('string'));",
                   "    pm.test('Email matches', () => pm.expect(body.email).to.eql('carlos@test.com'));",
                   "}"
@@ -281,16 +281,16 @@
           }
         },
         {
-          "name": "Get User by UID",
+          "name": "Get User by ID",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "pm.test('Returns 200', () => pm.response.to.have.status(200));",
-                  "pm.test('UID matches', () => {",
+                  "pm.test('ID matches', () => {",
                   "    const body = pm.response.json();",
-                  "    pm.expect(body.uid).to.eql(pm.collectionVariables.get('userUid'));",
+                  "    pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('userId')));",
                   "});",
                   "pm.test('Password not exposed', () => {",
                   "    const body = pm.response.json();",
@@ -306,9 +306,9 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/users/{{userUid}}",
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "{{userUid}}"]
+              "path": ["api", "users", "{{userId}}"]
             }
           }
         },
@@ -330,9 +330,9 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/users/00000000-0000-0000-0000-000000000000",
+              "raw": "{{baseUrl}}/api/users/999999",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "00000000-0000-0000-0000-000000000000"]
+              "path": ["api", "users", "999999"]
             }
           }
         },
@@ -363,9 +363,9 @@
               "raw": "{\n  \"name\": \"Carlos Updated\",\n  \"phoneNumber\": \"5557654321\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/users/{{userUid}}",
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "{{userUid}}"]
+              "path": ["api", "users", "{{userId}}"]
             }
           }
         },
@@ -387,9 +387,9 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/users/{{userUid}}",
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "{{userUid}}"]
+              "path": ["api", "users", "{{userId}}"]
             }
           }
         },
@@ -411,9 +411,9 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/users/{{userUid}}",
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "{{userUid}}"]
+              "path": ["api", "users", "{{userId}}"]
             }
           }
         }

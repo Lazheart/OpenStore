@@ -3,6 +3,7 @@ package com.OpenStore.user.user.domain;
 import com.OpenStore.user.user.dto.UpdateUserRequest;
 import com.OpenStore.user.user.dto.UserResponse;
 import com.OpenStore.user.user.repository.UserRepository;
+import com.OpenStore.user.verification.PasswordResetTokenRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,10 +11,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -26,6 +27,12 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private PasswordResetTokenRepository resetTokenRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     @InjectMocks
     private UserService userService;
 
@@ -34,13 +41,13 @@ class UserServiceTest {
     @BeforeEach
     void setUp() {
         user = User.builder()
+            .id(1L)
                 .name("Carlos")
                 .email("carlos@test.com")
                 .phoneNumber("1234567890")
                 .password("hashed")
                 .role(UserRole.CLIENT)
                 .build();
-        user.onCreate();
     }
 
     @Test
@@ -71,33 +78,33 @@ class UserServiceTest {
     }
 
     @Test
-    void findByUid_returns_response_when_found() {
-        when(userRepository.findByUid(user.getUid())).thenReturn(Optional.of(user));
+    void findById_returns_response_when_found() {
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
-        UserResponse result = userService.findByUid(user.getUid());
+        UserResponse result = userService.findById(user.getId());
 
-        assertThat(result.getUid()).isEqualTo(user.getUid());
+        assertThat(result.getId()).isEqualTo(user.getId());
     }
 
     @Test
-    void findByUid_throws_when_not_found() {
-        UUID uid = UUID.randomUUID();
-        when(userRepository.findByUid(uid)).thenReturn(Optional.empty());
+    void findById_throws_when_not_found() {
+        Long id = 999L;
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> userService.findByUid(uid))
+        assertThatThrownBy(() -> userService.findById(id))
                 .isInstanceOf(UsernameNotFoundException.class);
     }
 
     @Test
     void update_changes_name_and_phoneNumber() {
-        when(userRepository.findByUid(user.getUid())).thenReturn(Optional.of(user));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenReturn(user);
 
         UpdateUserRequest request = new UpdateUserRequest();
         request.setName("Nuevo Nombre");
         request.setPhoneNumber("9999999999");
 
-        UserResponse result = userService.update(user.getUid(), request);
+        UserResponse result = userService.update(user.getId(), request);
 
         assertThat(result.getName()).isEqualTo("Nuevo Nombre");
         assertThat(result.getPhoneNumber()).isEqualTo("9999999999");
@@ -105,26 +112,25 @@ class UserServiceTest {
 
     @Test
     void update_ignores_null_fields() {
-        when(userRepository.findByUid(user.getUid())).thenReturn(Optional.of(user));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenReturn(user);
 
         UpdateUserRequest request = new UpdateUserRequest();
         request.setName(null);
         request.setPhoneNumber(null);
 
-        UserResponse result = userService.update(user.getUid(), request);
+        UserResponse result = userService.update(user.getId(), request);
 
         assertThat(result.getName()).isEqualTo("Carlos");
         assertThat(result.getPhoneNumber()).isEqualTo("1234567890");
     }
 
     @Test
-    void delete_sets_deletedAt_and_disables_user() {
-        when(userRepository.findByUid(user.getUid())).thenReturn(Optional.of(user));
+    void delete_disables_user() {
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
-        userService.delete(user.getUid());
+        userService.delete(user.getId());
 
-        assertThat(user.getDeletedAt()).isNotNull();
         assertThat(user.isEnabled()).isFalse();
         verify(userRepository).save(user);
     }
