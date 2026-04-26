@@ -23,6 +23,9 @@ public class PasswordResetToken {
     @Column(unique = true, nullable = false, updatable = false)
     private UUID token;
 
+    @Column(name = "code", length = 6, unique = true, nullable = false)
+    private String code;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

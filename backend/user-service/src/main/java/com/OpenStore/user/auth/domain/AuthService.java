@@ -3,7 +3,9 @@ package com.OpenStore.user.auth.domain;
 import com.OpenStore.user.auth.dto.AuthResponse;
 import com.OpenStore.user.auth.dto.LoginRequest;
 import com.OpenStore.user.auth.dto.RegisterRequest;
+import com.OpenStore.user.auth.dto.ShopRegisterRequest;
 import com.OpenStore.user.config.JwtUtil;
+import com.OpenStore.user.user.domain.SubscriptionPlan;
 import com.OpenStore.user.user.domain.User;
 import com.OpenStore.user.user.domain.UserRole;
 import com.OpenStore.user.user.repository.UserRepository;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -59,25 +62,61 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        return createUser(request, UserRole.CLIENT);
+        return createOwnerUser(request);
     }
 
     @Transactional
-    public AuthResponse registerPrivileged(RegisterRequest request) {
-        return createUser(request, request.getRole());
+    public AuthResponse registerShopUser(Long shopId, ShopRegisterRequest request) {
+        if (shopId == null) {
+            throw new IllegalArgumentException("Shop id is required");
+        }
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email already in use");
+        }
+
+        String generatedName = request.getEmail().split("@")[0];
+        User user = User.builder()
+                .name(generatedName)
+                .email(request.getEmail().trim().toLowerCase(Locale.ROOT))
+                .phoneNumber(request.getPhone())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(UserRole.USER)
+                .shopId(shopId)
+                .emailVerified(true)
+                .build();
+
+        userRepository.save(user);
+        return toResponse(user, jwtUtil.generateToken(user));
     }
 
     public AuthResponse login(LoginRequest request) {
+        User user = findByIdentifier(request.getIdentifier());
+
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(user.getEmail(), request.getPassword())
         );
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return toResponse(user, jwtUtil.generateToken(user));
+    }
 
-        if (!user.isEmailVerified()) {
-            throw new IllegalStateException("Email not verified. Please check your inbox and verify your account before logging in.");
+    public AuthResponse loginShopUser(Long shopId, LoginRequest request) {
+        User user = findByIdentifier(request.getIdentifier());
+
+        if (user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.OWNER) {
+            throw new IllegalStateException("Ningun admin u owner se puede logear en su propia tienda");
         }
+
+        if (user.getRole() != UserRole.USER) {
+            throw new IllegalStateException("Solo usuarios de tienda pueden usar este endpoint");
+        }
+
+        if (user.getShopId() == null || !user.getShopId().equals(shopId)) {
+            throw new IllegalStateException("Usuario no pertenece a la tienda indicada");
+        }
+
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(user.getEmail(), request.getPassword())
+        );
 
         return toResponse(user, jwtUtil.generateToken(user));
     }
@@ -143,11 +182,24 @@ public class AuthService {
             resetTokenRepository.save(resetToken);
 
             try {
-                emailService.sendPasswordResetEmail(user.getEmail(), user.getName(), resetToken.getToken());
+                emailService.sendPasswordResetEmail(user.getEmail(), user.getName(), resetToken.getCode(), resetTokenExpirationMinutes);
             } catch (MessagingException e) {
                 throw new RuntimeException("Failed to send password reset email. Please try again later.", e);
             }
         });
+    }
+
+    public void verifyRecoveryCode(String code) {
+        PasswordResetToken resetToken = resetTokenRepository.findByCode(code)
+                .orElseThrow(() -> new IllegalArgumentException("Codigo invalido"));
+
+        if (resetToken.isUsed()) {
+            throw new IllegalArgumentException("Codigo ya fue usado");
+        }
+
+        if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Codigo expirado");
+        }
     }
 
     @Transactional
@@ -175,31 +227,52 @@ public class AuthService {
 
     // ── Private helpers ──────────────────────────────────────────────────────
 
-    private AuthResponse createUser(RegisterRequest request, UserRole role) {
+    private AuthResponse createOwnerUser(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already in use");
         }
 
         User user = User.builder()
                 .name(request.getName())
-                .email(request.getEmail())
-                .phoneNumber(request.getPhoneNumber())
+                .email(request.getEmail().trim().toLowerCase(Locale.ROOT))
+                .phoneNumber(request.getPhone())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(role)
+                .role(UserRole.OWNER)
+                .subscription(SubscriptionPlan.FREE)
+                .emailVerified(true)
                 .build();
 
         userRepository.save(user);
 
-        EmailVerificationToken token = buildVerificationToken(user);
-        verificationTokenRepository.save(token);
+        return toResponse(user, jwtUtil.generateToken(user));
+    }
 
-        try {
-            emailService.sendVerificationEmail(user.getEmail(), user.getName(), token.getToken());
-        } catch (MessagingException e) {
-            throw new RuntimeException("Failed to send verification email. Please try again later.", e);
+    private User findByIdentifier(String identifier) {
+        if (identifier == null || identifier.isBlank()) {
+            throw new IllegalArgumentException("Identifier is required");
         }
 
-        return toResponse(user, jwtUtil.generateToken(user));
+        String value = identifier.trim();
+
+        if (value.contains("@")) {
+            return userRepository.findByEmail(value.toLowerCase(Locale.ROOT))
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        }
+
+        try {
+            UUID uid = UUID.fromString(value);
+            return userRepository.findByUid(uid)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        } catch (IllegalArgumentException ignored) {
+            try {
+                Long id = Long.valueOf(value);
+                return userRepository.findById(id)
+                        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+            } catch (NumberFormatException ignoredAgain) {
+                return userRepository.findByNameIgnoreCase(value)
+                        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+            }
+        }
     }
 
     private EmailVerificationToken buildVerificationToken(User user) {
@@ -211,11 +284,22 @@ public class AuthService {
     }
 
     private PasswordResetToken buildResetToken(User user) {
+        String code = generateRecoveryCode();
         return PasswordResetToken.builder()
                 .token(UUID.randomUUID())
+                .code(code)
                 .user(user)
                 .expiresAt(LocalDateTime.now().plusMinutes(resetTokenExpirationMinutes))
                 .build();
+    }
+
+    private String generateRecoveryCode() {
+        String code;
+        do {
+            int random = (int) (Math.random() * 900000) + 100000;
+            code = Integer.toString(random);
+        } while (resetTokenRepository.existsByCodeAndUsedFalse(code));
+        return code;
     }
 
     private AuthResponse toResponse(User user, String token) {

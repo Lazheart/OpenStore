@@ -5,11 +5,12 @@ import com.OpenStore.user.auth.dto.AuthResponse;
 import com.OpenStore.user.auth.dto.ForgotPasswordRequest;
 import com.OpenStore.user.auth.dto.LoginRequest;
 import com.OpenStore.user.auth.dto.RegisterRequest;
-import com.OpenStore.user.auth.dto.ResendVerificationRequest;
 import com.OpenStore.user.auth.dto.ResetPasswordRequest;
+import com.OpenStore.user.auth.dto.ResendVerificationRequest;
+import com.OpenStore.user.auth.dto.ShopRegisterRequest;
+import com.OpenStore.user.auth.dto.VerifyRecoveryCodeRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,7 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping({"/api/auth", "/auth"})
 public class AuthController {
 
     private final AuthService authService;
@@ -31,15 +32,21 @@ public class AuthController {
         return ResponseEntity.ok(authService.register(request));
     }
 
-    @PostMapping("/register/privileged")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<AuthResponse> registerPrivileged(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(authService.registerPrivileged(request));
+    @PostMapping("/{shopId}/register")
+    public ResponseEntity<AuthResponse> registerShopUser(@PathVariable Long shopId,
+                                                         @Valid @RequestBody ShopRegisterRequest request) {
+        return ResponseEntity.ok(authService.registerShopUser(shopId, request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/{shopId}/login")
+    public ResponseEntity<AuthResponse> loginShopUser(@PathVariable Long shopId,
+                                                      @Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.loginShopUser(shopId, request));
     }
 
     @PostMapping("/logout")
@@ -48,7 +55,17 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    // ── Email Verification ───────────────────────────────────────────────────
+    @PostMapping("/recovery")
+    public ResponseEntity<Map<String, String>> recovery(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok(Map.of("message", "ok"));
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<Map<String, String>> verifyRecoveryCode(@Valid @RequestBody VerifyRecoveryCodeRequest request) {
+        authService.verifyRecoveryCode(request.getCode());
+        return ResponseEntity.ok(Map.of("message", "Codigo para actualizar datos correcto"));
+    }
 
     @GetMapping("/verify-email")
     public ResponseEntity<Map<String, String>> verifyEmail(@RequestParam UUID token) {
@@ -62,13 +79,10 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Verification email sent. Please check your inbox."));
     }
 
-    // ── Password Recovery ────────────────────────────────────────────────────
-
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getEmail());
-        // Always return the same message to avoid leaking account existence
-        return ResponseEntity.ok(Map.of("message", "If an account with that email exists, a password reset link has been sent."));
+        return ResponseEntity.ok(Map.of("message", "ok"));
     }
 
     @PostMapping("/reset-password")

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/users")
 public class UserController {
 
     private final UserService userService;
@@ -27,13 +27,13 @@ public class UserController {
     }
 
     @GetMapping("/{uid}")
-    @PreAuthorize("hasRole('ADMIN') or authentication.name == @userRepository.findByUid(#uid).map(u -> u.getEmail()).orElse('')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponse> findByUid(@PathVariable UUID uid) {
         return ResponseEntity.ok(userService.findByUid(uid));
     }
 
     @PutMapping("/{uid}")
-    @PreAuthorize("hasRole('ADMIN') or authentication.name == @userRepository.findByUid(#uid).map(u -> u.getEmail()).orElse('')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponse> update(@PathVariable UUID uid,
                                                @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(userService.update(uid, request));

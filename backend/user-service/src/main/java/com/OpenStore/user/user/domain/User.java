@@ -60,6 +60,10 @@ public class User implements UserDetails {
     @Column(nullable = false, length = 20)
     private UserRole role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private SubscriptionPlan subscription;
+
     @Column(name = "shop_id")
     private Long shopId;
 

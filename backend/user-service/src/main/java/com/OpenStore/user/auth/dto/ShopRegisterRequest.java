@@ -1,6 +1,5 @@
 package com.OpenStore.user.auth.dto;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -8,18 +7,13 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class RegisterRequest {
-
-    @NotBlank
-    @Size(max = 100)
-    private String name;
+public class ShopRegisterRequest {
 
     @Email
     @NotBlank
     @Size(max = 150)
     private String email;
 
-    @JsonAlias({"phone", "phoneNumber"})
     private String phone;
 
     @NotBlank
