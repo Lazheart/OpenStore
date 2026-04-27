@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import boto3
 from botocore.client import BaseClient
+from botocore.exceptions import NoCredentialsError
 from fastapi import UploadFile
 
 
@@ -64,7 +65,11 @@ class S3Uploader:
         if not key:
             return
 
-        self.client.delete_object(Bucket=self.bucket_name, Key=key)
-
+        try:
+            self.client.delete_object(Bucket=self.bucket_name, Key=key)
+        except NoCredentialsError:
+            print(f"S3 deletion skipped: No credentials found for key {key}")
+        except Exception as e:
+            print(f"S3 deletion failed for key {key}: {e}")
 
 s3_uploader = S3Uploader()

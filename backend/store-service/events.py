@@ -18,17 +18,17 @@ from services_paths import (
 
 @dataclass(frozen=True)
 class ShopDeletionRequestedEvent:
-	shop_id: int
+	shop_id: str
 
 
 @dataclass(frozen=True)
 class OwnerDeletedEvent:
-	owner_id: int
+	owner_id: str
 
 
 @dataclass(frozen=True)
 class ProductDeletionRequestedEvent:
-	shop_id: int
+	shop_id: str
 	product_id: str
 	authorization: str | None
 
@@ -117,7 +117,7 @@ class EventBus:
 				shop_id_raw = shop.get("shopId") if isinstance(shop, dict) else None
 				if shop_id_raw is None:
 					continue
-				await self._handle_shop_deletion(ShopDeletionRequestedEvent(shop_id=int(shop_id_raw)))
+				await self._handle_shop_deletion(ShopDeletionRequestedEvent(shop_id=str(shop_id_raw)))
 
 	async def _handle_product_deletion(self, event: ProductDeletionRequestedEvent) -> None:
 		headers = {"Content-Type": "application/json"}

@@ -6,14 +6,14 @@ from pydantic import BaseModel, Field, model_validator
 class AuthLoginRequest(BaseModel):
 	identifier: str = Field(min_length=1)
 	password: str = Field(min_length=1)
-	shopId: Optional[int] = None
+	shopId: Optional[str] = None
 
 
 class AuthRegisterRequest(BaseModel):
 	email: str = Field(min_length=1)
 	phoneNumber: str = Field(min_length=1)
 	name: str = Field(min_length=1)
-	shopId: Optional[int] = None
+	shopId: Optional[str] = None
 
 
 class ShopCreateRequest(BaseModel):

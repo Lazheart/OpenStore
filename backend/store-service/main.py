@@ -159,7 +159,7 @@ async def get_shop_by_name(shop_name: str) -> Any:
 
 @app.patch("/shop/id/{shop_id}")
 async def update_shop(
-	shop_id: int,
+	shop_id: str,
 	payload: ShopUpdateRequest,
 	authorization: str | None = Header(default=None),
 ) -> Any:
@@ -172,7 +172,7 @@ async def update_shop(
 
 
 @app.delete("/shop/id/{shop_id}")
-async def delete_shop(shop_id: int, authorization: str | None = Header(default=None)) -> Any:
+async def delete_shop(shop_id: str, authorization: str | None = Header(default=None)) -> Any:
 	user = await _resolve_current_user(authorization)
 	shop = await _forward("GET", shop_get_by_id_url(shop_id))
 
@@ -182,8 +182,8 @@ async def delete_shop(shop_id: int, authorization: str | None = Header(default=N
 	shop_owner_id_raw = shop.get("ownerId")
 	user_id_raw = user.get("id")
 	try:
-		shop_owner_id = int(str(shop_owner_id_raw))
-		user_id = int(str(user_id_raw))
+		shop_owner_id = str(shop_owner_id_raw)
+		user_id = str(user_id_raw)
 	except ValueError as exc:
 		raise HTTPException(status_code=400, detail="No se pudo validar ownership de la tienda") from exc
 
@@ -195,7 +195,7 @@ async def delete_shop(shop_id: int, authorization: str | None = Header(default=N
 
 
 @app.delete("/shops/{shop_id}/products/{product_id}")
-async def delete_product(shop_id: int, product_id: str, authorization: str | None = Header(default=None)) -> dict[str, str | int]:
+async def delete_product(shop_id: str, product_id: str, authorization: str | None = Header(default=None)) -> dict[str, str | int]:
 	if not authorization:
 		raise HTTPException(status_code=401, detail="Acceso denegado. Token no proporcionado.")
 
@@ -216,7 +216,7 @@ async def delete_product(shop_id: int, product_id: str, authorization: str | Non
 
 @app.post("/events/users/{user_id}/deleted")
 async def on_user_deleted_event(
-	user_id: int,
+	user_id: str,
 	payload: UserDeletedEventRequest,
 	x_internal_token: str | None = Header(default=None),
 ) -> dict[str, str | int]:
@@ -230,14 +230,14 @@ async def on_user_deleted_event(
 
 
 @app.get("/shop/id/{shop_id}/owner")
-async def get_owner_by_shop_id(shop_id: int) -> dict[str, int]:
+async def get_owner_by_shop_id(shop_id: str) -> dict[str, str]:
 	shop_data = await _forward("GET", shop_get_by_id_url(shop_id))
 
 	owner_id = shop_data.get("ownerId") if isinstance(shop_data, dict) else None
 	if owner_id is None:
 		raise HTTPException(status_code=404, detail="No se pudo resolver ownerId para la tienda")
 
-	return {"shopId": shop_id, "ownerId": int(owner_id)}
+	return {"shopId": shop_id, "ownerId": str(owner_id)}
 
 
 @app.get("/docs", response_class=HTMLResponse)
