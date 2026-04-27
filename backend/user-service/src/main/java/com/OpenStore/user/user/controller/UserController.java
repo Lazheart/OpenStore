@@ -8,9 +8,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping({"/api/users", "/users"})
 public class UserController {
 
     private final UserService userService;
@@ -27,20 +28,20 @@ public class UserController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<UserResponse> findById(@PathVariable Long id) {
+    public ResponseEntity<UserResponse> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(userService.findById(id));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<UserResponse> update(@PathVariable Long id,
+    public ResponseEntity<UserResponse> update(@PathVariable UUID id,
                                                @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(userService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
     }

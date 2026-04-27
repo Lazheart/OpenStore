@@ -11,9 +11,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping({"/api/user", "/user"})
 public class OwnerController {
 
     private final UserService userService;
@@ -34,7 +35,7 @@ public class OwnerController {
     @PatchMapping("/{id}/subcription")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> updateOwnerSubscription(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @Valid @RequestBody UpdateSubscriptionRequest request
     ) {
         userService.updateOwnerSubscriptionByAdmin(id, request.getSubscription());

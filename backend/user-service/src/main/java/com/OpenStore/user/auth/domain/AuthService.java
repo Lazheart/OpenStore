@@ -86,6 +86,7 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
+
         return toResponse(user, jwtUtil.generateToken(user));
     }
 
@@ -260,10 +261,10 @@ public class AuthService {
         }
 
         try {
-            Long id = Long.valueOf(value);
+            UUID id = UUID.fromString(value);
             return userRepository.findById(id)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        } catch (NumberFormatException ignored) {
+        } catch (IllegalArgumentException ignored) {
             return userRepository.findByNameIgnoreCase(value)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         }

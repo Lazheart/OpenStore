@@ -1,4 +1,8 @@
-package main.java.com.OpenStore.user.user.domain;
+package com.OpenStore.user.user.domain;
+
+import com.OpenStore.user.user.domain.User;
+import com.OpenStore.user.user.domain.UserRole;
+import com.OpenStore.user.user.domain.SubscriptionPlan;
 
 import com.OpenStore.user.user.dto.UpdateUserRequest;
 import com.OpenStore.user.user.dto.UpdateMeRequest;
@@ -20,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -55,13 +60,13 @@ public class UserService implements UserDetailsService {
                 .map(this::toOwnerResponse);
     }
 
-    public UserResponse findById(Long id) {
+    public UserResponse findById(UUID id) {
         return userRepository.findById(id)
                 .map(this::toResponse)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + id));
     }
 
-    public UserResponse update(Long id, UpdateUserRequest request) {
+    public UserResponse update(UUID id, UpdateUserRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + id));
 
@@ -71,7 +76,7 @@ public class UserService implements UserDetailsService {
         return toResponse(userRepository.save(user));
     }
 
-    public void delete(Long id) {
+    public void delete(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + id));
         user.setEnabled(false);
@@ -91,7 +96,7 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public void updateOwnerSubscriptionByAdmin(Long id, SubscriptionPlan subscription) {
+    public void updateOwnerSubscriptionByAdmin(UUID id, SubscriptionPlan subscription) {
         User owner = userRepository.findById(id)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + id));
 

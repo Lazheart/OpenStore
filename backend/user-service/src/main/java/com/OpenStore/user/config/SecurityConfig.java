@@ -25,11 +25,13 @@ public class SecurityConfig {
     private final UserService userService;
     private final JwtFilter jwtFilter;
     private final RateLimitFilter rateLimitFilter;
+    private final PasswordEncoder passwordEncoder;
 
-    public SecurityConfig(UserService userService, JwtFilter jwtFilter, RateLimitFilter rateLimitFilter) {
+    public SecurityConfig(UserService userService, JwtFilter jwtFilter, RateLimitFilter rateLimitFilter, PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.jwtFilter = jwtFilter;
         this.rateLimitFilter = rateLimitFilter;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Bean
@@ -51,7 +53,7 @@ public class SecurityConfig {
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userService);
-        provider.setPasswordEncoder(passwordEncoder());
+        provider.setPasswordEncoder(passwordEncoder);
         return provider;
     }
 
@@ -60,8 +62,4 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
 }

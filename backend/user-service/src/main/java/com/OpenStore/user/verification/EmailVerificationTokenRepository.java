@@ -11,5 +11,5 @@ public interface EmailVerificationTokenRepository extends JpaRepository<EmailVer
     Optional<EmailVerificationToken> findByToken(UUID token);
 
     @Transactional
-    void deleteByUser_Id(Long userId);
+    void deleteByUser_Id(UUID userId);
 }

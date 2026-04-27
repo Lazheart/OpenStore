@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -88,7 +89,7 @@ class UserServiceTest {
 
     @Test
     void findById_throws_when_not_found() {
-        Long id = 999L;
+        UUID id = UUID.randomUUID();
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.findById(id))
