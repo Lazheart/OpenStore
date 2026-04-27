@@ -1,120 +1,91 @@
-import os
-from uuid import UUID, uuid4
+from __future__ import annotations
 
-from models import Availability, Product, ProductCreateRequest, ProductListItem
+from models import Availability, ProductCreateRequest, ProductListItem
 
-
-class NotFoundError(Exception):
-    pass
-
-
-class BadRequestError(Exception):
-    pass
+from integrations import BadRequestError, NotFoundError, external_service_client, product_repository
 
 
 class ProductService:
-    def __init__(self) -> None:
-        self._products: dict[UUID, Product] = {}
-        self._shop_products: dict[UUID, set[UUID]] = {}
+    async def _ensure_shop_exists(self, shop_id: str) -> None:
+        await external_service_client.get_shop(shop_id)
 
-    def _shop_exists(self, shop_id: UUID) -> bool:
-        mode = os.getenv("SHOP_VALIDATION_MODE", "allow_all").strip().lower()
-        if mode == "strict":
-            raw = os.getenv("MOCK_SHOP_IDS", "")
-            allowed: set[UUID] = set()
-            for token in raw.split(","):
-                token = token.strip()
-                if not token:
-                    continue
-                allowed.add(UUID(token))
-            return shop_id in allowed
-        return True
+    async def _ensure_owner(self, shop_id: str, authorization: str | None) -> str:
+        user = await external_service_client.get_current_user(authorization)
+        if str(user.role).upper() != "OWNER":
+            raise BadRequestError("Solo un usuario OWNER puede administrar productos")
 
-    def _ensure_shop_exists(self, shop_id: UUID) -> None:
-        if not self._shop_exists(shop_id):
-            raise NotFoundError("Shop not found")
+        shop = await external_service_client.get_shop(shop_id)
+        if str(shop.owner_id) != str(user.user_id):
+            raise BadRequestError("No puedes modificar productos de una tienda que no te pertenece")
 
-    def _ensure_product_in_shop(self, shop_id: UUID, product_id: UUID) -> Product:
-        self._ensure_shop_exists(shop_id)
-        product = self._products.get(product_id)
-        if not product:
-            raise NotFoundError("Product not found")
-        if product.shopId != shop_id:
-            raise NotFoundError("Product not found for this shop")
-        return product
+        return user.user_id
 
-    def list_products(self, shop_id: UUID) -> list[ProductListItem]:
-        self._ensure_shop_exists(shop_id)
-        product_ids = self._shop_products.get(shop_id, set())
-        items: list[ProductListItem] = []
-        for product_id in product_ids:
-            product = self._products[product_id]
-            items.append(
-                ProductListItem(
-                    productId=product.id,
-                    imageUrl=product.imageUrl,
-                    name=product.name,
-                    price=product.price,
-                    availability=product.availability,
-                )
-            )
-        return items
+    async def list_products(self, shop_id: str) -> list[ProductListItem]:
+        await self._ensure_shop_exists(shop_id)
+        return await product_repository.list_products(shop_id)
 
-    def create_product_with_url(self, shop_id: UUID, payload: ProductCreateRequest) -> UUID:
-        self._ensure_shop_exists(shop_id)
-        product_id = uuid4()
-        product = Product(
-            id=product_id,
-            name=payload.name,
-            price=payload.price,
-            description=payload.description,
-            imageUrl=payload.imageUrl,
-            availability=Availability.AVAILABLE,
-            shopId=shop_id,
-        )
-        self._products[product_id] = product
-        self._shop_products.setdefault(shop_id, set()).add(product_id)
-        return product_id
-
-    def create_product_with_uploaded_url(
+    async def create_product_with_url(
         self,
-        shop_id: UUID,
+        shop_id: str,
+        payload: ProductCreateRequest,
         *,
+        authorization: str | None,
+    ) -> str:
+        owner_id = await self._ensure_owner(shop_id, authorization)
+        if not str(payload.imageUrl).strip():
+            raise BadRequestError("Product image is required")
+        return await product_repository.create_product(
+            shop_id,
+            payload,
+            image_url=str(payload.imageUrl),
+            owner_id=owner_id,
+        )
+
+    async def create_product_with_uploaded_url(
+        self,
+        shop_id: str,
+        *,
+        authorization: str | None,
         name: str,
         price: float,
         description: str,
         image_url: str,
-    ) -> UUID:
+    ) -> str:
+        owner_id = await self._ensure_owner(shop_id, authorization)
         if price < 0:
             raise BadRequestError("Price must be greater than or equal to 0")
-        payload = ProductCreateRequest(
-            name=name,
-            price=price,
-            description=description,
-            imageUrl=image_url,
+        payload = ProductCreateRequest(name=name, price=price, description=description, imageUrl=image_url)
+        return await product_repository.create_product(
+            shop_id,
+            payload,
+            image_url=image_url,
+            owner_id=owner_id,
         )
-        return self.create_product_with_url(shop_id, payload)
 
-    def update_product(
+    async def update_product(
         self,
-        shop_id: UUID,
-        product_id: UUID,
+        shop_id: str,
+        product_id: str,
         *,
+        authorization: str | None,
+        name: str | None = None,
         price: float | None = None,
         availability: Availability | None = None,
         image_url: str | None = None,
     ) -> None:
-        product = self._ensure_product_in_shop(shop_id, product_id)
-        if price is None and availability is None and image_url is None:
+        await self._ensure_owner(shop_id, authorization)
+        if name is None and price is None and availability is None and image_url is None:
             raise BadRequestError("At least one field must be provided")
-        if price is not None:
-            if price < 0:
-                raise BadRequestError("Price must be greater than or equal to 0")
-            product.price = price
-        if availability is not None:
-            product.availability = availability
-        if image_url is not None:
-            product.imageUrl = image_url
+        if price is not None and price < 0:
+            raise BadRequestError("Price must be greater than or equal to 0")
+        await product_repository.update_product(
+            shop_id,
+            product_id,
+            name=name,
+            price=price,
+            availability=availability,
+            image_url=image_url,
+        )
 
 
 product_service = ProductService()

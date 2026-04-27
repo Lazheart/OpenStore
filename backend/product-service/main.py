@@ -1,11 +1,10 @@
-from uuid import UUID
-
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from pydantic import ValidationError
 
 from models import Availability, ProductCreateRequest, ProductIdResponse, ProductListItem, ProductUpdateRequest
 from s3 import s3_uploader
 from services import BadRequestError, NotFoundError, product_service
+from integrations import ForbiddenError
 
 app = FastAPI(title="product-service")
 
@@ -16,16 +15,18 @@ def read_root() -> dict[str, str]:
 
 
 @app.get("/shops/{shop_id}/products", response_model=list[ProductListItem])
-def get_products(shop_id: UUID) -> list[ProductListItem]:
+async def get_products(shop_id: str) -> list[ProductListItem]:
     try:
-        return product_service.list_products(shop_id)
+        return await product_service.list_products(shop_id)
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except BadRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/shops/{shop_id}/products", response_model=ProductIdResponse, status_code=201)
 async def create_product(
-    shop_id: UUID,
+    shop_id: str,
     request: Request,
     name: str | None = Form(default=None),
     price: float | None = Form(default=None),
@@ -33,12 +34,13 @@ async def create_product(
     file: UploadFile | None = File(default=None),
 ) -> ProductIdResponse:
     content_type = request.headers.get("content-type", "")
+    authorization = request.headers.get("authorization")
 
     try:
         if content_type.startswith("application/json"):
             data = await request.json()
             payload = ProductCreateRequest.model_validate(data)
-            product_id = product_service.create_product_with_url(shop_id, payload)
+            product_id = await product_service.create_product_with_url(shop_id, payload, authorization=authorization)
             return ProductIdResponse(productId=product_id)
 
         if content_type.startswith("multipart/form-data"):
@@ -46,8 +48,9 @@ async def create_product(
                 raise HTTPException(status_code=400, detail="name, price, description and file are required")
 
             image_url = await s3_uploader.upload_image(file)
-            product_id = product_service.create_product_with_uploaded_url(
+            product_id = await product_service.create_product_with_uploaded_url(
                 shop_id,
+                authorization=authorization,
                 name=name,
                 price=price,
                 description=description,
@@ -60,6 +63,8 @@ async def create_product(
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except BadRequestError as exc:
@@ -68,23 +73,27 @@ async def create_product(
 
 @app.patch("/shops/{shop_id}/products/{product_id}", status_code=204)
 async def update_product(
-    shop_id: UUID,
-    product_id: UUID,
+    shop_id: str,
+    product_id: str,
     request: Request,
+    name: str | None = Form(default=None),
     price: float | None = Form(default=None),
     availability: Availability | None = Form(default=None),
     imageUrl: str | None = Form(default=None),
     file: UploadFile | None = File(default=None),
 ) -> None:
     content_type = request.headers.get("content-type", "")
+    authorization = request.headers.get("authorization")
 
     try:
         if content_type.startswith("application/json"):
             data = await request.json()
             payload = ProductUpdateRequest.model_validate(data)
-            product_service.update_product(
+            await product_service.update_product(
                 shop_id,
                 product_id,
+                authorization=authorization,
+                name=payload.name,
                 price=payload.price,
                 availability=payload.availability,
                 image_url=str(payload.imageUrl) if payload.imageUrl else None,
@@ -98,15 +107,18 @@ async def update_product(
 
             ProductUpdateRequest.model_validate(
                 {
+                    "name": name,
                     "price": price,
                     "availability": availability,
                     "imageUrl": final_image_url,
                 }
             )
 
-            product_service.update_product(
+            await product_service.update_product(
                 shop_id,
                 product_id,
+                authorization=authorization,
+                name=name,
                 price=price,
                 availability=availability,
                 image_url=final_image_url,
@@ -118,6 +130,8 @@ async def update_product(
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except BadRequestError as exc:

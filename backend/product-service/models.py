@@ -23,6 +23,7 @@ class ProductListItem(BaseModel):
     productId: UUID
     imageUrl: HttpUrl
     name: str
+    description: str = Field(default="")
     price: float
     availability: Availability
 
@@ -35,6 +36,7 @@ class ProductCreateRequest(BaseModel):
 
 
 class ProductUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1)
     price: float | None = Field(default=None, ge=0)
     availability: Availability | None = None
     imageUrl: HttpUrl | None = None
