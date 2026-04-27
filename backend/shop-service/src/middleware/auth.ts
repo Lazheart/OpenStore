@@ -26,7 +26,9 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 
-  jwt.verify(token, secret, (err: jwt.VerifyErrors | null, user: string | jwt.JwtPayload | undefined) => {
+  const secretBuffer = Buffer.from(secret, 'base64');
+
+  jwt.verify(token, secretBuffer, (err: jwt.VerifyErrors | null, user: string | jwt.JwtPayload | undefined) => {
     if (err) {
       return res.status(403).json({ error: 'Token inválido o expirado.' });
     }

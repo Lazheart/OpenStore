@@ -63,7 +63,7 @@ const getCurrentUserFromMe = async (token: string): Promise<MePayload> => {
   return user;
 };
 
-const toShopResponse = (shop: { id: number; owner_id: number; name: string; phone_number: string }) => ({
+const toShopResponse = (shop: { id: number; owner_id: string; name: string; phone_number: string }) => ({
   shopId: shop.id,
   ownerId: shop.owner_id,
   shopName: shop.name,
@@ -140,8 +140,8 @@ app.get('/owners/:ownerId/shops', async (req: Request, res: Response) => {
     return res.status(403).json({ error: 'Token interno invalido' });
   }
 
-  const ownerId = Number(req.params.ownerId);
-  if (Number.isNaN(ownerId)) {
+  const ownerId = String(req.params.ownerId);
+  if (!ownerId) {
     return res.status(400).json({ error: 'ownerId invalido' });
   }
 
@@ -174,9 +174,9 @@ app.post('/openshop/shop', authenticateToken, async (req: AuthRequest, res: Resp
 
   try {
     const user = await getCurrentUserFromMe(token);
-    const ownerId = Number(user.id);
+    const ownerId = String(user.id);
 
-    if (Number.isNaN(ownerId)) {
+    if (!ownerId) {
       return res.status(400).json({ error: 'id de usuario invalido en /me' });
     }
 
@@ -268,9 +268,9 @@ app.patch('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: R
 
   try {
     const user = await getCurrentUserFromMe(token);
-    const requesterId = Number(user.id);
+    const requesterId = String(user.id);
 
-    if (Number.isNaN(requesterId)) {
+    if (!requesterId) {
       return res.status(400).json({ error: 'id de usuario invalido en /me' });
     }
 
@@ -328,9 +328,9 @@ app.delete('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: 
 
   try {
     const user = await getCurrentUserFromMe(token);
-    const requesterId = Number(user.id);
+    const requesterId = String(user.id);
 
-    if (Number.isNaN(requesterId)) {
+    if (!requesterId) {
       return res.status(400).json({ error: 'id de usuario invalido en /me' });
     }
 

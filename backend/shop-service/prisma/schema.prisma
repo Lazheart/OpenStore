@@ -9,9 +9,9 @@ datasource db {
 }
 
 model Shop {
-  id          Int          @id @default(autoincrement())
+  id          String       @id @default(uuid())
   name        String       @unique
-  owner_id    Int          // Prisma 5 mapea esto tal cual en TS
+  owner_id    String
   phone_number String
   memberships Membership[]
 }
@@ -20,6 +20,6 @@ model Membership {
   id      Int    @id @default(autoincrement())
   user_id String
   role    String
-  shop_id Int
+  shop_id String
   shop    Shop   @relation(fields: [shop_id], references: [id])
 }
