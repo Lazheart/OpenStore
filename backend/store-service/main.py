@@ -107,6 +107,14 @@ def health() -> dict[str, str]:
 	return {"status": "ok"}
 
 
+@app.get("/me")
+async def me(authorization: str | None = Header(default=None)) -> Any:
+	if not authorization:
+		raise HTTPException(status_code=401, detail="Acceso denegado. Token no proporcionado.")
+
+	return await _forward("GET", user_me_url(), authorization=authorization)
+
+
 @app.post("/auth/login")
 async def auth_login(payload: AuthLoginRequest) -> Any:
 	target_url = user_auth_login_url(payload.shopId)
