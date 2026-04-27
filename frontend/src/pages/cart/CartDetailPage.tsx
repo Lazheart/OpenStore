@@ -4,8 +4,8 @@ import { ArrowLeft, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 
 export default function CartDetailPage() {
   const [cartItems, setCartItems] = useState([
-    { id: 1, name: 'Premium Wireless Headphones', price: 299.99, quantity: 1, image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80' },
-    { id: 3, name: 'Ergonomic Desk Chair', price: 349.00, quantity: 2, image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?w=500&q=80' },
+    { id: 1, name: 'Premium Wireless Headphones', price: 299.99, quantity: 1, image: '' },
+    { id: 3, name: 'Ergonomic Desk Chair', price: 349.00, quantity: 2, image: '' },
   ]);
 
   const updateQuantity = (id: number, delta: number) => {
