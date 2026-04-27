@@ -1,4 +1,20 @@
 services:
+  store-service:
+    build:
+      context: ./store-service
+    container_name: openstore-store-service
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      USER_SERVICE_URL: ${USER_SERVICE_URL:-http://user-service:8080}
+      SHOP_SERVICE_URL: ${SHOP_SERVICE_URL:-http://shop-service:3000}
+      PRODUCT_SERVICE_URL: ${PRODUCT_SERVICE_URL:-http://product-service:8000}
+      STORE_SERVICE_TIMEOUT: ${STORE_SERVICE_TIMEOUT:-15}
+      EVENTS_INTERNAL_TOKEN: ${EVENTS_INTERNAL_TOKEN}
+    ports:
+      - "${STORE_APP_PORT:-2060}:8000"
+
   user-service:
     build:
       context: ./user-service
@@ -7,14 +23,14 @@ services:
     env_file:
       - ./.env
     environment:
-      SERVER_PORT: ${APP_PORT:-8080}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-openstoredb}
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-4050}/${POSTGRES_DB:-openstoredb}
       DB_USERNAME: ${POSTGRES_USER:-openstoreuser}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-openstorepass}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${APP_PORT:-3050}:8080"
 
   shop-service:
     build:
@@ -26,10 +42,12 @@ services:
     environment:
       SHOP_SERVICE_PORT: 3000
       JWT_SECRET: ${JWT_SECRET}
-      SHOP_DATABASE_URL: mysql://${MYSQL_USER:-shopuser}:${MYSQL_PASSWORD:-shoppass}@${MYSQL_HOST:-mysql}:${MYSQL_PORT:-3306}/${MYSQL_DATABASE:-shopdb}
+      STORE_SERVICE_URL: ${STORE_SERVICE_URL:-http://store-service:8000}
+      EVENTS_INTERNAL_TOKEN: ${EVENTS_INTERNAL_TOKEN}
+      SHOP_DATABASE_URL: mysql://${MYSQL_USER:-shopuser}:${MYSQL_PASSWORD:-shoppass}@${MYSQL_HOST:-mysql}:${MYSQL_PORT:-4060}/${MYSQL_DATABASE:-shopdb}
     ports:
-      - "${SHOP_APP_PORT:-8081}:3000"
-    command: sh -c "pnpm exec prisma migrate deploy && node dist/index.js"
+      - "${SHOP_APP_PORT:-3060}:3000"
+    command: sh -c "./node_modules/.bin/prisma migrate deploy && node dist/index.js"
 
   product-service:
     build:
@@ -41,10 +59,9 @@ services:
     environment:
       BUCKET_NAME: ${BUCKET_NAME}
       AWS_REGION: ${AWS_REGION:-us-east-1}
-      USER_SERVICE_URL: ${USER_SERVICE_URL:-http://user-service:8080}
-      SHOP_SERVICE_URL: ${SHOP_SERVICE_URL:-http://shop-service:3000}
-      MONGO_URI: mongodb://${MONGO_HOST:-mongo}:27017/productdb
+      STORE_SERVICE_URL: ${STORE_SERVICE_URL:-http://store-service:8000}
+      EVENTS_INTERNAL_TOKEN: ${EVENTS_INTERNAL_TOKEN}
+      MONGO_URI: mongodb://${MONGO_HOST:-mongo}:${MONGO_PORT:-4070}/productdb
     ports:
-      - "80:8000"
-      - "${PRODUCT_APP_PORT:-8082}:8000"
+      - "${PRODUCT_APP_PORT:-3070}:8000"
 

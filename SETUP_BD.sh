@@ -70,9 +70,9 @@ next_free_port() {
 	echo "$port"
 }
 
-POSTGRES_PORT_VALUE="$(get_env_value POSTGRES_PORT 5432)"
-MYSQL_PORT_VALUE="$(get_env_value MYSQL_PORT 3306)"
-MONGO_PORT_VALUE="$(get_env_value MONGO_PORT 27017)"
+POSTGRES_PORT_VALUE="$(get_env_value POSTGRES_PORT 4050)"
+MYSQL_PORT_VALUE="$(get_env_value MYSQL_PORT 4060)"
+MONGO_PORT_VALUE="$(get_env_value MONGO_PORT 4070)"
 
 POSTGRES_PORT_RESOLVED="$(next_free_port "$POSTGRES_PORT_VALUE")"
 MYSQL_PORT_RESOLVED="$(next_free_port "$MYSQL_PORT_VALUE")"

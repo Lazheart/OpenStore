@@ -41,8 +41,7 @@ class UserPayload:
 
 class ExternalServiceClient:
     def __init__(self) -> None:
-        self.user_service_url = os.getenv("USER_SERVICE_URL", "http://localhost:8080").rstrip("/")
-        self.shop_service_url = os.getenv("SHOP_SERVICE_URL", "http://localhost:8081").rstrip("/")
+        self.store_service_url = os.getenv("STORE_SERVICE_URL", "http://store-service:8000").rstrip("/")
 
     async def get_current_user(self, authorization: str | None) -> UserPayload:
         if not authorization:
@@ -50,7 +49,7 @@ class ExternalServiceClient:
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
-                f"{self.user_service_url}/me",
+                f"{self.store_service_url}/me",
                 headers={"Authorization": authorization, "Content-Type": "application/json"},
             )
 
@@ -72,7 +71,7 @@ class ExternalServiceClient:
 
     async def get_shop(self, shop_id: str) -> ShopPayload:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{self.shop_service_url}/shops/{shop_id}")
+            response = await client.get(f"{self.store_service_url}/shop/id/{shop_id}/owner")
 
         if response.status_code == 404:
             raise NotFoundError("Shop not found")
@@ -81,7 +80,7 @@ class ExternalServiceClient:
 
         payload = response.json()
         owner_id = payload.get("ownerId")
-        shop_name = str(payload.get("shopName", ""))
+        shop_name = ""
 
         if owner_id is None:
             raise BadRequestError("La tienda no incluye ownerId")

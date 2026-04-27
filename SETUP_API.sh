@@ -33,9 +33,9 @@ POSTGRES_HOST_VALUE="${POSTGRES_HOST:-$DB_HOST}"
 MYSQL_HOST_VALUE="${MYSQL_HOST:-$DB_HOST}"
 MONGO_HOST_VALUE="${MONGO_HOST:-$DB_HOST}"
 
-DATABASE_URL_VALUE="${DATABASE_URL:-jdbc:postgresql://${POSTGRES_HOST_VALUE}:5432/openstoredb}"
-SHOP_DATABASE_URL_VALUE="${SHOP_DATABASE_URL:-mysql://shopuser:shoppass@${MYSQL_HOST_VALUE}:3306/shopdb}"
-MONGO_URI_VALUE="${MONGO_URI:-mongodb://${MONGO_HOST_VALUE}:27017/productdb}"
+DATABASE_URL_VALUE="${DATABASE_URL:-jdbc:postgresql://${POSTGRES_HOST_VALUE}:4050/openstoredb}"
+SHOP_DATABASE_URL_VALUE="${SHOP_DATABASE_URL:-mysql://shopuser:shoppass@${MYSQL_HOST_VALUE}:4060/shopdb}"
+MONGO_URI_VALUE="${MONGO_URI:-mongodb://${MONGO_HOST_VALUE}:4070/productdb}"
 
 extract_port() {
 	local uri="$1"
@@ -49,9 +49,9 @@ extract_port() {
 	fi
 }
 
-POSTGRES_PORT_VALUE="$(extract_port "$DATABASE_URL_VALUE" "5432")"
-MYSQL_PORT_VALUE="$(extract_port "$SHOP_DATABASE_URL_VALUE" "3306")"
-MONGO_PORT_VALUE="$(extract_port "$MONGO_URI_VALUE" "27017")"
+POSTGRES_PORT_VALUE="$(extract_port "$DATABASE_URL_VALUE" "4050")"
+MYSQL_PORT_VALUE="$(extract_port "$SHOP_DATABASE_URL_VALUE" "4060")"
+MONGO_PORT_VALUE="$(extract_port "$MONGO_URI_VALUE" "4070")"
 
 AWS_REGION_VALUE="${AWS_REGION:-us-east-1}"
 if command -v aws >/dev/null 2>&1; then
@@ -91,6 +91,47 @@ fi
 sed -i "s/^POSTGRES_HOST=.*/POSTGRES_HOST=$POSTGRES_HOST_VALUE/" .env
 sed -i "s/^MYSQL_HOST=.*/MYSQL_HOST=$MYSQL_HOST_VALUE/" .env
 sed -i "s/^MONGO_HOST=.*/MONGO_HOST=$MONGO_HOST_VALUE/" .env
+sed -i "s/^POSTGRES_PORT=.*/POSTGRES_PORT=$POSTGRES_PORT_VALUE/" .env
+sed -i "s/^MYSQL_PORT=.*/MYSQL_PORT=$MYSQL_PORT_VALUE/" .env
+if grep -q '^MONGO_PORT=' .env; then
+	sed -i "s/^MONGO_PORT=.*/MONGO_PORT=$MONGO_PORT_VALUE/" .env
+else
+	echo "MONGO_PORT=$MONGO_PORT_VALUE" >> .env
+fi
+sed -i "s/^APP_PORT=.*/APP_PORT=3050/" .env
+if grep -q '^MAIL_HOST=' .env; then
+	sed -i "s/^MAIL_HOST=.*/MAIL_HOST=smtp.example.com/" .env
+else
+	echo "MAIL_HOST=smtp.example.com" >> .env
+fi
+if grep -q '^MAIL_PORT=' .env; then
+	sed -i "s/^MAIL_PORT=.*/MAIL_PORT=587/" .env
+else
+	echo "MAIL_PORT=587" >> .env
+fi
+if grep -q '^MAIL_USERNAME=' .env; then
+	sed -i "s/^MAIL_USERNAME=.*/MAIL_USERNAME=no-reply@example.com/" .env
+else
+	echo "MAIL_USERNAME=no-reply@example.com" >> .env
+fi
+if grep -q '^MAIL_PASSWORD=' .env; then
+	sed -i "s/^MAIL_PASSWORD=.*/MAIL_PASSWORD=change-me/" .env
+else
+	echo "MAIL_PASSWORD=change-me" >> .env
+fi
+if grep -q '^APP_BASE_URL=' .env; then
+	sed -i "s|^APP_BASE_URL=.*|APP_BASE_URL=http://localhost:3050|" .env
+else
+	echo "APP_BASE_URL=http://localhost:3050" >> .env
+fi
+sed -i "s/^SHOP_APP_PORT=.*/SHOP_APP_PORT=3060/" .env
+sed -i "s/^PRODUCT_APP_PORT=.*/PRODUCT_APP_PORT=3070/" .env
+if grep -q '^STORE_APP_PORT=' .env; then
+	sed -i "s/^STORE_APP_PORT=.*/STORE_APP_PORT=2060/" .env
+else
+	echo "STORE_APP_PORT=2060" >> .env
+fi
+sed -i "s|^STORE_SERVICE_URL=.*|STORE_SERVICE_URL=http://store-service:8000|" .env
 sed -i "s|^DATABASE_URL=.*|DATABASE_URL=$DATABASE_URL_VALUE|" .env
 sed -i "s|^SHOP_DATABASE_URL=.*|SHOP_DATABASE_URL=$SHOP_DATABASE_URL_VALUE|" .env
 sed -i "s|^MONGO_URI=.*|MONGO_URI=$MONGO_URI_VALUE|" .env
@@ -109,11 +150,12 @@ if command -v nc >/dev/null 2>&1; then
 fi
 
 # En la VM de APIs, docker-compose.yml contiene solo servicios de API
-docker compose up -d user-service shop-service product-service
+docker compose up -d store-service user-service shop-service product-service
 
 echo
 echo "APIs levantadas con DB_HOST=$DB_HOST"
 echo "Bucket configurado: $BUCKET_NAME_VALUE"
-echo "User service: puerto 8080"
-echo "Shop service: puerto 8081"
-echo "Product service: puerto 8082 (y 80 para root)"
+echo "User service: puerto 3050"
+echo "Shop service: puerto 3060"
+echo "Product service: puerto 3070"
+echo "Store service: puerto 2060"
