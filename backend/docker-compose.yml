@@ -47,7 +47,7 @@ services:
       SHOP_DATABASE_URL: mysql://${MYSQL_USER:-shopuser}:${MYSQL_PASSWORD:-shoppass}@${MYSQL_HOST:-mysql}:${MYSQL_PORT:-4060}/${MYSQL_DATABASE:-shopdb}
     ports:
       - "${SHOP_APP_PORT:-3060}:3000"
-    command: sh -c "./node_modules/.bin/prisma migrate deploy && node dist/index.js"
+    command: sh -c "./node_modules/.bin/prisma db push --accept-data-loss && node dist/index.js"
 
   product-service:
     build:

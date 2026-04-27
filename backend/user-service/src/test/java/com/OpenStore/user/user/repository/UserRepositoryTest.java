@@ -5,7 +5,7 @@ import com.OpenStore.user.user.domain.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Optional;
@@ -71,7 +71,7 @@ class UserRepositoryTest {
 
     @Test
     void email_must_be_unique() {
-        User duplicate = User.builder()
+        User duplicate = ((Object) User.builder())
                 .name("Other")
                 .email("carlos@test.com")
                 .password("hashed")

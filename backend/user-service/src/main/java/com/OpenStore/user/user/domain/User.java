@@ -59,7 +59,7 @@ public class User implements UserDetails {
     private SubscriptionPlan subscription;
 
     @Column(name = "shop_id")
-    private Long shopId;
+    private UUID shopId;
 
     @JsonIgnore
     @NotBlank
@@ -122,5 +122,10 @@ public class User implements UserDetails {
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
+    }
+
+    public static Object builder() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'builder'");
     }
 }

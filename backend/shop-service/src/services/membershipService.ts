@@ -7,7 +7,7 @@ class MembershipService {
 
   async addMembership(
     userId: string,
-    shopId: number,
+    shopId: string,
     role: string
   ): Promise<MembershipRecord> {
     console.log(`[Validation Mock] Verified user ${userId} exists in auth-service.`);

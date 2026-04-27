@@ -45,4 +45,4 @@ USER nodeapp
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "./node_modules/.bin/prisma generate --schema=./prisma/schema.prisma && ./node_modules/.bin/prisma migrate deploy --schema=./prisma/schema.prisma && node dist/index.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma generate --schema=./prisma/schema.prisma && ./node_modules/.bin/prisma db push --schema=./prisma/schema.prisma --accept-data-loss && node dist/index.js"]

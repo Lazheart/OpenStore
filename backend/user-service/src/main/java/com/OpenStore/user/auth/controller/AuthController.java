@@ -33,7 +33,7 @@ public class AuthController {
     }
 
     @PostMapping("/{shopId}/register")
-    public ResponseEntity<AuthResponse> registerShopUser(@PathVariable Long shopId,
+    public ResponseEntity<AuthResponse> registerShopUser(@PathVariable UUID shopId,
                                                          @Valid @RequestBody ShopRegisterRequest request) {
         return ResponseEntity.ok(authService.registerShopUser(shopId, request));
     }
@@ -44,7 +44,7 @@ public class AuthController {
     }
 
     @PostMapping("/{shopId}/login")
-    public ResponseEntity<AuthResponse> loginShopUser(@PathVariable Long shopId,
+    public ResponseEntity<AuthResponse> loginShopUser(@PathVariable UUID shopId,
                                                       @Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.loginShopUser(shopId, request));
     }

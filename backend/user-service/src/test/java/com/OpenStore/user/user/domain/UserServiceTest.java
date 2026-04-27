@@ -41,7 +41,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        user = User.builder()
+        user = ((Object) User.builder())
             .id(1L)
                 .name("Carlos")
                 .email("carlos@test.com")

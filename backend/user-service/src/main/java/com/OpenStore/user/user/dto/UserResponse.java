@@ -16,5 +16,5 @@ public class UserResponse {
     private String phoneNumber;
     private UserRole role;
     private SubscriptionPlan subscription;
-    private Long shopId;
+    private UUID shopId;
 }

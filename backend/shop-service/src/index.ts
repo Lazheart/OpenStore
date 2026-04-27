@@ -63,7 +63,7 @@ const getCurrentUserFromMe = async (token: string): Promise<MePayload> => {
   return user;
 };
 
-const toShopResponse = (shop: { id: number; owner_id: string; name: string; phone_number: string }) => ({
+const toShopResponse = (shop: { id: string; owner_id: string; name: string; phone_number: string }) => ({
   shopId: shop.id,
   ownerId: shop.owner_id,
   shopName: shop.name,
@@ -111,15 +111,14 @@ app.get('/shops', async (req: Request, res: Response) => {
 });
 
 app.get('/shops/:id', async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  if (Number.isNaN(Number(id))) {
+  const id = String(req.params.id);
+  if (!id) {
     return res.status(400).json({ error: 'shopId invalido' });
   }
 
   try {
     const shop = await prisma.shop.findUnique({
-      where: { id: Number(id) },
+      where: { id: id },
     });
 
     if (!shop) {
@@ -250,10 +249,10 @@ app.get('/shop/name/:shopName', async (req: Request, res: Response) => {
 });
 
 app.patch('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: Response) => {
-  const { shopId } = req.params;
+  const shopId = String(req.params.shopId);
   const { shopName, phoneNumber } = req.body ?? {};
 
-  if (Number.isNaN(Number(shopId))) {
+  if (!shopId) {
     return res.status(400).json({ error: 'shopId invalido' });
   }
 
@@ -275,7 +274,7 @@ app.patch('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: R
     }
 
     const existingShop = await prisma.shop.findUnique({
-      where: { id: Number(shopId) },
+      where: { id: shopId },
     });
 
     if (!existingShop) {
@@ -290,7 +289,7 @@ app.patch('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: R
       const duplicatedName = await prisma.shop.findFirst({
         where: {
           name: shopName.trim(),
-          NOT: { id: Number(shopId) },
+          NOT: { id: shopId },
         },
       });
 
@@ -304,7 +303,7 @@ app.patch('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: R
     if (phoneNumber && typeof phoneNumber === 'string') data.phone_number = phoneNumber.trim();
 
     const updatedShop = await prisma.shop.update({
-      where: { id: Number(shopId) },
+      where: { id: shopId },
       data,
     });
 
@@ -315,9 +314,9 @@ app.patch('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: R
 });
 
 app.delete('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: Response) => {
-  const { shopId } = req.params;
+  const shopId = String(req.params.shopId);
 
-  if (Number.isNaN(Number(shopId))) {
+  if (!shopId) {
     return res.status(400).json({ error: 'shopId invalido' });
   }
 
@@ -347,10 +346,10 @@ app.delete('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: 
     }
 
     await prisma.shop.delete({
-      where: { id: Number(shopId) },
+      where: { id: shopId },
     });
 
-    return res.json({ shopId: Number(shopId) });
+    return res.json({ shopId });
   } catch (error) {
     return res.status(500).json({ error: 'No se pudo eliminar la tienda' });
   }
@@ -364,8 +363,8 @@ app.delete('/internal/shops/:shopId', async (req: Request, res: Response) => {
     return res.status(403).json({ error: 'Token interno invalido' });
   }
 
-  const shopId = Number(req.params.shopId);
-  if (Number.isNaN(shopId)) {
+  const shopId = String(req.params.shopId);
+  if (!shopId) {
     return res.status(400).json({ error: 'shopId invalido' });
   }
 
@@ -384,7 +383,7 @@ app.delete('/internal/shops/:shopId', async (req: Request, res: Response) => {
 
 swaggerDocs(app, Number(PORT));
 app.post('/shops/:id/memberships', authenticateToken, async (req: AuthRequest, res: Response) => {
-  const shopId = req.params.id;
+  const shopId = String(req.params.id);
   const { userId, role } = req.body;
 
   if (!req.body || !userId || !role) {
@@ -394,7 +393,7 @@ app.post('/shops/:id/memberships', authenticateToken, async (req: AuthRequest, r
   try {
     const newMembership = await membershipService.addMembership(
       String(userId), 
-      Number(shopId), 
+      shopId, 
       role
     );
     res.status(201).json(newMembership);

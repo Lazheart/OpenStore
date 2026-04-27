@@ -66,7 +66,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse registerShopUser(Long shopId, ShopRegisterRequest request) {
+    public AuthResponse registerShopUser(UUID shopId, ShopRegisterRequest request) {
         if (shopId == null) {
             throw new IllegalArgumentException("Shop id is required");
         }
@@ -100,7 +100,7 @@ public class AuthService {
         return toResponse(user, jwtUtil.generateToken(user));
     }
 
-    public AuthResponse loginShopUser(Long shopId, LoginRequest request) {
+    public AuthResponse loginShopUser(UUID shopId, LoginRequest request) {
         User user = findByIdentifier(request.getIdentifier());
 
         if (user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.OWNER) {

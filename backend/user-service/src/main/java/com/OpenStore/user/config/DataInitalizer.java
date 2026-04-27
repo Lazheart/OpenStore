@@ -8,6 +8,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.UUID;
 
 @Configuration
 public class DataInitalizer {
@@ -23,7 +24,7 @@ public class DataInitalizer {
 					"+0000000001",
 					UserRole.USER,
 					null,
-					1L
+					UUID.randomUUID()
 			);
 
 			createIfMissing(
@@ -57,7 +58,7 @@ public class DataInitalizer {
 								 String phone,
 								 UserRole role,
 								 SubscriptionPlan subscription,
-								 Long shopId) {
+								 UUID shopId) {
 		if (userRepository.findByEmail(email).isPresent()) {
 			return;
 		}
