@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Collection;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,8 +42,9 @@ class UserTest {
 
     @Test
     void equals_and_hashCode_based_on_id() {
-        User user1 = User.builder().id(10L).name("A").email("a@test.com").role(UserRole.CLIENT).build();
-        User user2 = User.builder().id(10L).name("B").email("b@test.com").role(UserRole.OWNER).build();
+        UUID uuid = UUID.randomUUID();
+        User user1 = User.builder().id(uuid).name("A").email("a@test.com").role(UserRole.CLIENT).build();
+        User user2 = User.builder().id(uuid).name("B").email("b@test.com").role(UserRole.OWNER).build();
 
         assertThat(user1).isEqualTo(user2);
         assertThat(user1.hashCode()).isEqualTo(user2.hashCode());
@@ -50,8 +52,8 @@ class UserTest {
 
     @Test
     void users_with_different_ids_are_not_equal() {
-        User user1 = User.builder().id(10L).build();
-        User user2 = User.builder().id(11L).build();
+        User user1 = User.builder().id(UUID.randomUUID()).build();
+        User user2 = User.builder().id(UUID.randomUUID()).build();
 
         assertThat(user1).isNotEqualTo(user2);
     }

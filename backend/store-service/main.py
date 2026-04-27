@@ -1,7 +1,9 @@
 from typing import Any
 
 import httpx
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
 from events import OwnerDeletedEvent, ProductDeletionRequestedEvent, ShopDeletionRequestedEvent, event_bus
 from mapping import (
@@ -26,6 +28,9 @@ from services_paths import (
 )
 
 app = FastAPI(title="store-service")
+
+# Templates folder (relative to store-service/)
+templates = Jinja2Templates(directory="templates")
 
 
 @app.on_event("startup")
@@ -233,3 +238,16 @@ async def get_owner_by_shop_id(shop_id: int) -> dict[str, int]:
 		raise HTTPException(status_code=404, detail="No se pudo resolver ownerId para la tienda")
 
 	return {"shopId": shop_id, "ownerId": int(owner_id)}
+
+
+@app.get("/docs", response_class=HTMLResponse)
+async def docs(request: Request) -> HTMLResponse:
+	from services_paths import SHOP_SERVICE_URL, PRODUCT_SERVICE_URL, USER_SERVICE_URL
+
+	services = [
+		{"name": "Shop Service", "url": f"{SHOP_SERVICE_URL}/api-docs"},
+		{"name": "Product Service", "url": f"{PRODUCT_SERVICE_URL}/docs"},
+		{"name": "User Service (Swagger UI)", "url": f"{USER_SERVICE_URL}/swagger-ui/index.html"},
+	]
+
+	return templates.TemplateResponse("docs.html", {"request": request, "services": services})

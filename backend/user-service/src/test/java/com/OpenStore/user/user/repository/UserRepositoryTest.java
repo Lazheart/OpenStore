@@ -71,7 +71,7 @@ class UserRepositoryTest {
 
     @Test
     void email_must_be_unique() {
-        User duplicate = ((Object) User.builder())
+        User duplicate = User.builder()
                 .name("Other")
                 .email("carlos@test.com")
                 .password("hashed")

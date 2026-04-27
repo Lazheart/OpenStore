@@ -41,8 +41,8 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        user = ((Object) User.builder())
-            .id(1L)
+        user = User.builder()
+                .id(UUID.randomUUID())
                 .name("Carlos")
                 .email("carlos@test.com")
                 .phoneNumber("1234567890")
