@@ -10,7 +10,7 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.SHOP_SERVICE_PORT;
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL ;
+const STORE_SERVICE_URL = process.env.STORE_SERVICE_URL;
 const EVENTS_INTERNAL_TOKEN = process.env.EVENTS_INTERNAL_TOKEN;
 
 app.use(express.json());
@@ -36,10 +36,10 @@ const getBearerToken = (req: Request): string | null => {
 };
 
 const buildMeUrl = (): string => {
-  if (!USER_SERVICE_URL) {
-    throw new Error('USER_SERVICE_URL no esta definido en las variables de entorno');
+  if (!STORE_SERVICE_URL) {
+    throw new Error('STORE_SERVICE_URL no esta definido en las variables de entorno');
   }
-  return `${USER_SERVICE_URL}/me`;
+  return `${STORE_SERVICE_URL}/me`;
 }
 
 const getCurrentUserFromMe = async (token: string): Promise<MePayload> => {
