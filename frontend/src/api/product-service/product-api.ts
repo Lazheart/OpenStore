@@ -40,11 +40,13 @@ export const createProduct = async (
 export const updateProduct = async (
   shopId: string,
   productId: string,
+  name?: string,
   price?: number,
   availability?: string,
   file?: File
 ): Promise<void> => {
   const formData = new FormData();
+  if (name !== undefined) formData.append('name', name);
   if (price !== undefined) formData.append('price', price.toString());
   if (availability !== undefined) formData.append('availability', availability);
   if (file) formData.append('file', file);

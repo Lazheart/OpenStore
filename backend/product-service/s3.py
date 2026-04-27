@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlparse
 from uuid import uuid4
 
 import boto3
@@ -38,6 +39,32 @@ class S3Uploader:
             Params={"Bucket": self.bucket_name, "Key": key},
             ExpiresIn=3600,
         )
+
+    def _extract_key_from_url(self, image_url: str) -> str | None:
+        parsed = urlparse(image_url)
+
+        query_key = parse_qs(parsed.query).get("Key")
+        if query_key:
+            return unquote(query_key[0])
+
+        path = parsed.path.lstrip("/")
+        if path.startswith(f"{self.bucket_name}/"):
+            return path[len(self.bucket_name) + 1 :]
+
+        if path:
+            return unquote(path)
+
+        return None
+
+    async def delete_image_by_url(self, image_url: str | None) -> None:
+        if not self.bucket_name or not image_url:
+            return
+
+        key = self._extract_key_from_url(image_url)
+        if not key:
+            return
+
+        self.client.delete_object(Bucket=self.bucket_name, Key=key)
 
 
 s3_uploader = S3Uploader()

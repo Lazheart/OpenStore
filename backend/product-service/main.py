@@ -136,3 +136,32 @@ async def update_product(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except BadRequestError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.delete("/shops/{shop_id}/products/{product_id}", status_code=204)
+async def delete_product(shop_id: str, product_id: str, request: Request) -> None:
+    authorization = request.headers.get("authorization")
+
+    try:
+        await product_service.delete_product(shop_id, product_id, authorization=authorization)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except BadRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.delete("/internal/shops/{shop_id}/products")
+async def purge_products_by_shop(shop_id: str, request: Request) -> dict[str, int | str]:
+    internal_token = request.headers.get("x-internal-token")
+
+    try:
+        deleted_count = await product_service.purge_shop_products(shop_id, internal_token=internal_token)
+        return {"shopId": shop_id, "deletedProducts": deleted_count}
+    except BadRequestError as exc:
+        message = str(exc)
+        status = 403 if "Token interno" in message else 400
+        raise HTTPException(status_code=status, detail=message) from exc

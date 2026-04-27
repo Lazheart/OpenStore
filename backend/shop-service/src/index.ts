@@ -11,6 +11,7 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.SHOP_SERVICE_PORT;
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL ;
+const EVENTS_INTERNAL_TOKEN = process.env.EVENTS_INTERNAL_TOKEN;
 
 app.use(express.json());
 
@@ -74,6 +75,14 @@ const getPlanLimit = (plan: string): number | null => {
   return PLAN_LIMITS[normalized] ?? null;
 };
 
+const hasValidInternalToken = (token: string | undefined): boolean => {
+  if (!EVENTS_INTERNAL_TOKEN) {
+    return false;
+  }
+
+  return token === EVENTS_INTERNAL_TOKEN;
+};
+
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', service: 'shop-service' });
 });
@@ -120,6 +129,30 @@ app.get('/shops/:id', async (req: Request, res: Response) => {
     res.json(toShopResponse(shop));
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener la tienda' });
+  }
+});
+
+app.get('/owners/:ownerId/shops', async (req: Request, res: Response) => {
+  const internalToken = req.headers['x-internal-token'];
+  const tokenValue = Array.isArray(internalToken) ? internalToken[0] : internalToken;
+
+  if (!hasValidInternalToken(tokenValue)) {
+    return res.status(403).json({ error: 'Token interno invalido' });
+  }
+
+  const ownerId = Number(req.params.ownerId);
+  if (Number.isNaN(ownerId)) {
+    return res.status(400).json({ error: 'ownerId invalido' });
+  }
+
+  try {
+    const shops = await prisma.shop.findMany({ where: { owner_id: ownerId } });
+    return res.json({
+      ownerId,
+      shops: shops.map(toShopResponse),
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'No se pudieron obtener tiendas del owner' });
   }
 });
 
@@ -318,6 +351,32 @@ app.delete('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: 
     });
 
     return res.json({ shopId: Number(shopId) });
+  } catch (error) {
+    return res.status(500).json({ error: 'No se pudo eliminar la tienda' });
+  }
+});
+
+app.delete('/internal/shops/:shopId', async (req: Request, res: Response) => {
+  const internalToken = req.headers['x-internal-token'];
+  const tokenValue = Array.isArray(internalToken) ? internalToken[0] : internalToken;
+
+  if (!hasValidInternalToken(tokenValue)) {
+    return res.status(403).json({ error: 'Token interno invalido' });
+  }
+
+  const shopId = Number(req.params.shopId);
+  if (Number.isNaN(shopId)) {
+    return res.status(400).json({ error: 'shopId invalido' });
+  }
+
+  try {
+    const existingShop = await prisma.shop.findUnique({ where: { id: shopId } });
+    if (!existingShop) {
+      return res.status(404).json({ error: 'Tienda no encontrada' });
+    }
+
+    await prisma.shop.delete({ where: { id: shopId } });
+    return res.json({ shopId });
   } catch (error) {
     return res.status(500).json({ error: 'No se pudo eliminar la tienda' });
   }

@@ -15,6 +15,7 @@ export default function OwnerPanel() {
   
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '' });
+  const [newProductFile, setNewProductFile] = useState<File | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const user = getCurrentUser();
@@ -80,10 +81,12 @@ export default function OwnerPanel() {
         String(myShop.id), 
         newProduct.name, 
         parseFloat(newProduct.price), 
-        newProduct.description
+        newProduct.description,
+        newProductFile ?? undefined
       );
       setShowAddProduct(false);
       setNewProduct({ name: '', price: '', description: '' });
+      setNewProductFile(null);
       loadProducts(String(myShop.id));
     } catch (error) {
       console.error('Error adding product:', error);
@@ -95,7 +98,13 @@ export default function OwnerPanel() {
     e.preventDefault();
     if (!myShop || !editingProduct) return;
     try {
-      await updateProduct(String(myShop.id), editingProduct.productId, editingProduct.price);
+      await updateProduct(
+        String(myShop.id),
+        editingProduct.productId,
+        editingProduct.name,
+        editingProduct.price,
+        editingProduct.availability,
+      );
       setEditingProduct(null);
       loadProducts(String(myShop.id));
     } catch (error) {
@@ -173,6 +182,13 @@ export default function OwnerPanel() {
               onChange={e => setNewProduct({...newProduct, description: e.target.value})}
               required
             />
+            <input
+              type="file"
+              accept="image/*"
+              className="input-field"
+              onChange={e => setNewProductFile(e.target.files?.[0] ?? null)}
+              required
+            />
             <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>Publish Product</button>
           </form>
         </div>
@@ -180,8 +196,15 @@ export default function OwnerPanel() {
 
       {editingProduct && (
         <div className="card mb-6" style={{ border: '1px solid var(--primary)' }}>
-          <h3 style={{ marginBottom: '1rem' }}>Edit Price: {editingProduct.name}</h3>
-          <form onSubmit={handleUpdatePrice} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <h3 style={{ marginBottom: '1rem' }}>Edit Product: {editingProduct.name}</h3>
+          <form onSubmit={handleUpdatePrice} style={{ display: 'grid', gap: '1rem', maxWidth: '520px' }}>
+            <input 
+              type="text" 
+              className="input-field" 
+              value={editingProduct.name}
+              onChange={e => setEditingProduct({...editingProduct, name: e.target.value})}
+              required
+            />
             <input 
               type="number" 
               step="0.01"
@@ -190,7 +213,15 @@ export default function OwnerPanel() {
               onChange={e => setEditingProduct({...editingProduct, price: parseFloat(e.target.value)})}
               required
             />
-            <button type="submit" className="btn btn-primary">Save Price</button>
+            <select
+              className="input-field"
+              value={editingProduct.availability ?? 'AVAILABLE'}
+              onChange={e => setEditingProduct({...editingProduct, availability: e.target.value})}
+            >
+              <option value="AVAILABLE">AVAILABLE</option>
+              <option value="OUT_OF_STOCK">OUT_OF_STOCK</option>
+            </select>
+            <button type="submit" className="btn btn-primary">Save Changes</button>
             <button type="button" className="btn btn-outline" onClick={() => setEditingProduct(null)}>Cancel</button>
           </form>
         </div>
@@ -212,6 +243,7 @@ export default function OwnerPanel() {
                 <tr>
                   <th>Name</th>
                   <th>Description</th>
+                  <th>Availability</th>
                   <th>Price</th>
                   <th>Actions</th>
                 </tr>
@@ -221,6 +253,7 @@ export default function OwnerPanel() {
                   <tr key={product.productId}>
                     <td style={{ fontWeight: 500 }}>{product.name}</td>
                     <td>{product.description?.substring(0, 50)}...</td>
+                    <td>{product.availability ?? 'AVAILABLE'}</td>
                     <td style={{ fontWeight: 600, color: 'var(--success)' }}>${product.price?.toFixed(2)}</td>
                     <td>
                       <button 
@@ -228,7 +261,7 @@ export default function OwnerPanel() {
                         style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
                         onClick={() => setEditingProduct(product)}
                       >
-                        <Edit2 size={14} /> Edit Price
+                        <Edit2 size={14} /> Edit Product
                       </button>
                     </td>
                   </tr>

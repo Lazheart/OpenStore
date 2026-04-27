@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import os
+
 from models import Availability, ProductCreateRequest, ProductListItem
 
 from integrations import BadRequestError, NotFoundError, external_service_client, product_repository
+from s3 import s3_uploader
 
 
 class ProductService:
+    def __init__(self) -> None:
+        self.internal_events_token = os.getenv("EVENTS_INTERNAL_TOKEN", "").strip()
+
     async def _ensure_shop_exists(self, shop_id: str) -> None:
         await external_service_client.get_shop(shop_id)
 
@@ -86,6 +92,24 @@ class ProductService:
             availability=availability,
             image_url=image_url,
         )
+
+    async def delete_product(self, shop_id: str, product_id: str, *, authorization: str | None) -> None:
+        await self._ensure_owner(shop_id, authorization)
+        image_url = await product_repository.delete_product(shop_id, product_id)
+        await s3_uploader.delete_image_by_url(image_url)
+
+    async def purge_shop_products(self, shop_id: str, *, internal_token: str | None) -> int:
+        if not self.internal_events_token:
+            raise BadRequestError("EVENTS_INTERNAL_TOKEN no configurado")
+
+        if internal_token != self.internal_events_token:
+            raise BadRequestError("Token interno invalido")
+
+        image_urls = await product_repository.delete_products_by_shop(shop_id)
+        for image_url in image_urls:
+            await s3_uploader.delete_image_by_url(image_url)
+
+        return len(image_urls)
 
 
 product_service = ProductService()

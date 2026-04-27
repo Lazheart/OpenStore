@@ -203,6 +203,24 @@ class ProductRepository:
         except DuplicateKeyError as exc:
             raise BadRequestError("A product with the same name already exists in this shop") from exc
 
+    async def delete_product(self, shop_id: str, product_id: str) -> str:
+        await self.ensure_indexes()
+        current = await self._find_product(shop_id, product_id)
+        await self.collection.delete_one({"_id": current["_id"], "shop_id": current["shop_id"]})
+        return str(current.get("image_url", ""))
+
+    async def delete_products_by_shop(self, shop_id: str) -> list[str]:
+        await self.ensure_indexes()
+        cursor = self.collection.find({"shop_id": shop_id}, {"image_url": 1})
+        image_urls: list[str] = []
+        async for document in cursor:
+            image_url = str(document.get("image_url", "")).strip()
+            if image_url:
+                image_urls.append(image_url)
+
+        await self.collection.delete_many({"shop_id": shop_id})
+        return image_urls
+
 
 external_service_client = ExternalServiceClient()
 product_repository = ProductRepository()
