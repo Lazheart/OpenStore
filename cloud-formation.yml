@@ -306,6 +306,7 @@ Resources:
           cd /home/ubuntu
           git clone https://github.com/Lazheart/OpenStore
           cd OpenStore
+          sudo chmod +x ./SETUP_API.sh
           rm -rf frontend
           cd ..
 
@@ -335,6 +336,7 @@ Resources:
           cd /home/ubuntu
           git clone https://github.com/Lazheart/OpenStore
           cd OpenStore
+          sudo chmod +x ./SETUP_API.sh
           rm -rf frontend
           cd ..
 
@@ -362,6 +364,7 @@ Resources:
           cd /home/ubuntu
           git clone https://github.com/Lazheart/OpenStore
           cd OpenStore
+          sudo chmod +x ./SETUP_DB.sh
           rm -rf frontend
           cd ..
 
