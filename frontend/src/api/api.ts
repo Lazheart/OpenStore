@@ -1,5 +1,11 @@
 import axios from 'axios';
 
+type ApiErrorPayload = {
+  message?: unknown;
+  error?: unknown;
+  detail?: unknown;
+};
+
 const createApiInstance = (baseURL: string) => {
   const instance = axios.create({
     baseURL,
@@ -20,6 +26,35 @@ const createApiInstance = (baseURL: string) => {
 };
 
 export const api = createApiInstance(import.meta.env.VITE_LOAD_BALANCER_API || 'http://localhost:2060');
+
+export const getApiErrorMessage = (error: unknown, fallback = 'An unexpected error occurred'): string => {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+
+    if (typeof data === 'string') {
+      return data;
+    }
+
+    if (data && typeof data === 'object') {
+      const payload = data as ApiErrorPayload;
+      const message = payload.message ?? payload.error ?? payload.detail;
+
+      if (typeof message === 'string' && message.trim().length > 0) {
+        return message;
+      }
+    }
+
+    if (typeof error.message === 'string' && error.message.trim().length > 0) {
+      return error.message;
+    }
+  }
+
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return fallback;
+};
 
 // Deprecated: keep aliases for compatibility until fully migrated
 export const userApi = api;

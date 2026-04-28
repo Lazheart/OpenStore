@@ -3,27 +3,43 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Store, User, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../../config/AuthContext';
 
+import { register as apiRegister } from '../../api/user-service/user-service';
+import { getApiErrorMessage } from '../../api/api';
+
 export default function SignupPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ firstName: '', lastName: '', storeName: '', email: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    login({
-      id: 'usr_new',
-      firstName: formData.firstName || 'New',
-      lastName: formData.lastName || 'User',
-      email: formData.email || 'user@example.com',
-      storeName: formData.storeName || 'My Store',
-      storeUrl: formData.storeName.toLowerCase().replace(/\s+/g, '') || 'mystore'
-    });
-    navigate('/owner');
+    setLoading(true);
+    setError('');
+
+    try {
+      const authRes = await apiRegister({ 
+        name: formData.name.trim(), 
+        email: formData.email, 
+        password: formData.password,
+        role: 'OWNER'
+      });
+      
+      login(authRes); // Actualiza contexto de autenticación
+
+      navigate('/owner');
+    } catch (err: any) {
+      console.error(err);
+      setError(getApiErrorMessage(err, 'Error al crear la cuenta'));
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <div className="animate-fade-in" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-color)' }}>
       {/* Left side - Decoration/Feature */}
-      <div style={{ flex: 1, backgroundColor: '#000', color: '#fff', display: 'none', flexDirection: 'column', justifyContent: 'center', padding: '4rem', '@media (min-width: 1024px)': { display: 'flex' } } as any}>
+      <div className="auth-signup-hero">
         <div style={{ maxWidth: '400px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '3rem', marginBottom: '1.5rem', lineHeight: 1.1 }}>Start your journey with <span style={{ color: 'var(--primary)' }}>OpenStore</span>.</h2>
           <p style={{ fontSize: '1.25rem', color: '#A0A0A0', marginBottom: '3rem', lineHeight: 1.6 }}>
@@ -48,7 +64,7 @@ export default function SignupPage() {
       {/* Right side - Signup Form */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '4rem', maxWidth: '600px', margin: '0 auto', backgroundColor: 'var(--surface-color)' }}>
         <div style={{ marginBottom: '2.5rem' }}>
-          <div className="sidebar-logo" style={{ marginBottom: '1rem', display: 'flex', '@media (min-width: 1024px)': { display: 'none' } } as any}>
+          <div className="sidebar-logo auth-signup-mobile-logo" style={{ marginBottom: '1rem', display: 'flex' }}>
             <Store size={32} />
             <span style={{ fontSize: '1.75rem' }}>Open</span><span style={{ color: 'var(--primary)', fontSize: '1.75rem' }}>Store</span>
           </div>
@@ -56,29 +72,18 @@ export default function SignupPage() {
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Get started and create your store.</p>
         </div>
 
-        <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label>First Name</label>
-              <div style={{ position: 'relative' }}>
-                <User size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                <input type="text" className="input-field" placeholder="John" style={{ paddingLeft: '3rem', height: '45px' }} value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} required />
-              </div>
-            </div>
-            <div className="input-group" style={{ marginBottom: 0 }}>
-              <label>Last Name</label>
-              <div style={{ position: 'relative' }}>
-                <User size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                <input type="text" className="input-field" placeholder="Doe" style={{ paddingLeft: '3rem', height: '45px' }} value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} required />
-              </div>
-            </div>
+        {error && (
+          <div style={{ backgroundColor: 'rgba(255, 77, 79, 0.1)', color: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--border-radius)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+            {error}
           </div>
+        )}
 
+        <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <label>Store Name</label>
+            <label>Full Name</label>
             <div style={{ position: 'relative' }}>
-              <Store size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-              <input type="text" className="input-field" placeholder="My Awesome Store" style={{ paddingLeft: '3rem', height: '45px' }} value={formData.storeName} onChange={e => setFormData({...formData, storeName: e.target.value})} required />
+              <User size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+              <input type="text" className="input-field" placeholder="John Doe" style={{ paddingLeft: '3rem', height: '45px' }} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
             </div>
           </div>
 
@@ -94,12 +99,12 @@ export default function SignupPage() {
             <label>Password</label>
             <div style={{ position: 'relative' }}>
               <Lock size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-              <input type="password" className="input-field" placeholder="••••••••" style={{ paddingLeft: '3rem', height: '45px' }} required />
+              <input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="input-field" placeholder="••••••••" style={{ paddingLeft: '3rem', height: '45px' }} required />
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ height: '50px', fontSize: '1.125rem', marginTop: '1rem' }}>
-            Create Store
+          <button type="submit" disabled={loading} className="btn btn-primary" style={{ height: '50px', fontSize: '1.125rem', marginTop: '1rem' }}>
+            {loading ? 'Creating account...' : 'Create Account'}
           </button>
           
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', textAlign: 'center' }}>

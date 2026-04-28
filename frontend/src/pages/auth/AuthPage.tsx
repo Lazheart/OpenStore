@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Store, User, Lock, Mail } from 'lucide-react';
 import { login, register as registerUser } from '../../api/user-service/user-service';
+import { getApiErrorMessage } from '../../api/api';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -38,7 +39,7 @@ export default function AuthPage() {
         }
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'An error occurred');
+      setError(getApiErrorMessage(err, 'An error occurred'));
     } finally {
       setLoading(false);
     }

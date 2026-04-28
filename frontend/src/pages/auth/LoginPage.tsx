@@ -3,22 +3,39 @@ import { Store, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../../config/AuthContext';
 import React, { useState } from 'react';
 
+import { login as apiLogin } from '../../api/user-service/user-service';
+import { getApiErrorMessage } from '../../api/api';
+
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    login({
-      id: 'usr_123',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      email: email || 'jane@example.com',
-      storeName: 'TechHaven',
-      storeUrl: 'techhaven'
-    });
-    navigate('/owner');
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await apiLogin({ email, password });
+      login(response);
+      
+      if (response.role === 'OWNER') {
+        navigate('/owner');
+      } else if (response.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/shop');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(getApiErrorMessage(err, 'Error al iniciar sesión'));
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <div className="animate-fade-in" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-color)' }}>
@@ -32,6 +49,12 @@ export default function LoginPage() {
           <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Welcome back</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Enter your details to access your store dashboard.</p>
         </div>
+
+        {error && (
+          <div style={{ backgroundColor: 'rgba(255, 77, 79, 0.1)', color: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--border-radius)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="input-group" style={{ marginBottom: 0 }}>
@@ -49,12 +72,12 @@ export default function LoginPage() {
             </div>
             <div style={{ position: 'relative' }}>
               <Lock size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-              <input type="password" className="input-field" placeholder="••••••••" style={{ paddingLeft: '3rem', height: '50px' }} required />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="input-field" placeholder="••••••••" style={{ paddingLeft: '3rem', height: '50px' }} required />
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ height: '50px', fontSize: '1.125rem', marginTop: '1rem' }}>
-            Sign in
+          <button type="submit" disabled={loading} className="btn btn-primary" style={{ height: '50px', fontSize: '1.125rem', marginTop: '1rem' }}>
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
 
@@ -64,7 +87,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right side - Decoration/Feature */}
-      <div style={{ flex: 1, backgroundColor: 'var(--surface-color)', display: 'none', flexDirection: 'column', justifyContent: 'center', padding: '4rem', borderLeft: '1px solid var(--border-color)', backgroundImage: 'linear-gradient(135deg, rgba(154,205,50,0.1) 0%, rgba(0,0,0,0) 100%)', '@media (min-width: 1024px)': { display: 'flex' } } as any}>
+      <div className="auth-login-hero">
         <div style={{ maxWidth: '400px', margin: '0 auto' }}>
           <div style={{ width: '60px', height: '60px', borderRadius: '16px', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2rem' }}>
             <Store size={32} color="#000" />

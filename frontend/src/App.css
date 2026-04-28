@@ -182,3 +182,39 @@
     border-right-color: var(--border);
   }
 }
+
+.auth-login-hero {
+  flex: 1;
+  background-color: var(--surface-color);
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4rem;
+  border-left: 1px solid var(--border-color);
+  background-image: linear-gradient(135deg, rgba(154, 205, 50, 0.1) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.auth-signup-hero {
+  flex: 1;
+  background-color: #000;
+  color: #fff;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4rem;
+}
+
+.auth-signup-mobile-logo {
+  display: flex;
+}
+
+@media (min-width: 1024px) {
+  .auth-login-hero,
+  .auth-signup-hero {
+    display: flex;
+  }
+
+  .auth-signup-mobile-logo {
+    display: none;
+  }
+}
