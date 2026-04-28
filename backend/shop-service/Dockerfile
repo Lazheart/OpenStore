@@ -1,40 +1,47 @@
-FROM node:22-slim AS base
+FROM node:22-alpine AS base
 
 ENV PNPM_HOME=/pnpm \
-	PATH=/pnpm:$PATH \
-	SHOP_SERVICE_PORT=3000
+    PATH=/pnpm:$PATH \
+    SHOP_SERVICE_PORT=3000
 
 WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@10.18.3 --activate
 
+# ---------- deps ----------
 FROM base AS deps
 
 COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma
 
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# Instala TODAS las deps (incluye dev para poder hacer build)
+RUN pnpm install --frozen-lockfile
 
-FROM deps AS build
+# ---------- build ----------
+FROM base AS build
 
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json ./
 COPY tsconfig.json ./
+COPY prisma ./prisma
 COPY src ./src
 
-RUN pnpm exec prisma generate && pnpm build && pnpm prune --prod
-
-FROM node:22-slim AS runtime
+# Prisma + build + eliminar devDependencies
+RUN apk add --no-cache openssl \
+ && pnpm exec prisma generate \
+ && pnpm build \
+ && pnpm prune --prod
+FROM node:22-alpine AS runtime
 
 ENV NODE_ENV=production \
-	SHOP_SERVICE_PORT=3000
+    SHOP_SERVICE_PORT=3000
 
 WORKDIR /app
 
-RUN apt-get update \
-	&& apt-get install -y --no-install-recommends openssl \
-	&& rm -rf /var/lib/apt/lists/* \
-	&& useradd --create-home --uid 10001 nodeapp
+RUN apk add --no-cache openssl \
+ && adduser -D -u 10001 nodeapp
 
-COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
@@ -45,4 +52,4 @@ USER nodeapp
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "./node_modules/.bin/prisma generate --schema=./prisma/schema.prisma && ./node_modules/.bin/prisma db push --schema=./prisma/schema.prisma --accept-data-loss && node dist/index.js"]
+CMD ["node", "dist/index.js"]
