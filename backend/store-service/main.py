@@ -4,6 +4,7 @@ import httpx
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 
 from events import OwnerDeletedEvent, ProductDeletionRequestedEvent, ShopDeletionRequestedEvent, event_bus
 from mapping import (
@@ -61,6 +62,14 @@ app = FastAPI(
 	docs_url="/docs",
 	redoc_url="/redoc",
 	openapi_url="/openapi.json",
+)
+
+app.add_middleware(
+	CORSMiddleware,
+	allow_origins=["*"],
+	allow_credentials=True,
+	allow_methods=["*"],
+	allow_headers=["*"],
 )
 
 # Templates folder (relative to store-service/)
