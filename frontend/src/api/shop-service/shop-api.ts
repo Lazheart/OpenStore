@@ -8,7 +8,11 @@ export interface Shop {
 }
 
 export const createShop = async (name: string): Promise<Shop> => {
-  const response = await shopApi.post<Shop>('/shops', { name });
+  const payload = {
+    shopName: name,
+    phoneNumber: '000000000' // Default if not provided
+  };
+  const response = await shopApi.post<Shop>('/openshop/shop', payload);
   return response.data;
 };
 

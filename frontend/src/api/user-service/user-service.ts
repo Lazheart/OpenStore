@@ -21,7 +21,11 @@ export interface AuthResponse {
 }
 
 export const login = async (data: LoginRequest): Promise<AuthResponse> => {
-  const response = await userApi.post<AuthResponse>('/login', data);
+  const payload = {
+    identifier: data.email,
+    password: data.password || ''
+  };
+  const response = await userApi.post<AuthResponse>('/auth/login', payload);
   if (response.data.token) {
     localStorage.setItem('token', response.data.token);
     localStorage.setItem('user', JSON.stringify(response.data));
@@ -30,7 +34,12 @@ export const login = async (data: LoginRequest): Promise<AuthResponse> => {
 };
 
 export const register = async (data: RegisterRequest): Promise<AuthResponse> => {
-  const response = await userApi.post<AuthResponse>('/register', data);
+  const payload = {
+    name: data.name,
+    email: data.email,
+    password: data.password || '',
+  };
+  const response = await userApi.post<AuthResponse>('/auth/register', payload);
   if (response.data.token) {
     localStorage.setItem('token', response.data.token);
     localStorage.setItem('user', JSON.stringify(response.data));

@@ -19,6 +19,9 @@ const createApiInstance = (baseURL: string) => {
   return instance;
 };
 
-export const userApi = createApiInstance(import.meta.env.VITE_USER_SERVICE_URL || 'http://localhost:8080/api/auth');
-export const shopApi = createApiInstance(import.meta.env.VITE_SHOP_SERVICE_URL || 'http://localhost:8081');
-export const productApi = createApiInstance(import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8082');
+export const api = createApiInstance(import.meta.env.VITE_LOAD_BALANCER_API || 'http://localhost:2060');
+
+// Deprecated: keep aliases for compatibility until fully migrated
+export const userApi = api;
+export const shopApi = api;
+export const productApi = api;

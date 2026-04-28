@@ -53,7 +53,7 @@ export default function SignupPage() {
             <span style={{ fontSize: '1.75rem' }}>Open</span><span style={{ color: 'var(--primary)', fontSize: '1.75rem' }}>Store</span>
           </div>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Create your store</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Get started with a 14-day free trial. No credit card required.</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Get started and create your store.</p>
         </div>
 
         <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
