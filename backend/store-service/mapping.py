@@ -1,24 +1,76 @@
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
 
+def resolved_shop_id(shop_id: Optional[str]) -> Optional[str]:
+	"""Normaliza shopId vacío a None para elegir flujo OWNER vs usuario de tienda."""
+	if shop_id is None:
+		return None
+	stripped = shop_id.strip()
+	return stripped if stripped else None
+
+
 class AuthLoginRequest(BaseModel):
-	identifier: str = Field(min_length=1)
+	identifier: str = Field(min_length=1, description="Email o identificador según user-service")
 	password: str = Field(min_length=1)
-	shopId: Optional[str] = None
+	shopId: Optional[str] = Field(
+		default=None,
+		description="Si se omite, login como OWNER. Si se envía, login en el contexto de esa tienda.",
+	)
 
 
 class AuthRegisterRequest(BaseModel):
 	email: str = Field(min_length=1)
-	phoneNumber: str = Field(min_length=1)
-	name: str = Field(min_length=1)
-	shopId: Optional[str] = None
+	password: str = Field(
+		min_length=8,
+		description="Requisitos del user-service: mayúscula, minúscula y número",
+	)
+	shopId: Optional[str] = Field(
+		default=None,
+		description="Sin shopId: registro como OWNER (crear tienda). Con shopId: usuario de esa tienda.",
+	)
+	name: Optional[str] = Field(
+		default=None,
+		description="Obligatorio si no hay shopId (flujo OWNER)",
+	)
+	phoneNumber: Optional[str] = Field(default=None, description="Opcional en ambos flujos")
+
+	@model_validator(mode="after")
+	def validate_owner_needs_name(self) -> "AuthRegisterRequest":
+		if resolved_shop_id(self.shopId) is None:
+			if not self.name or not self.name.strip():
+				raise ValueError("name es obligatorio cuando no se envía shopId (registro como OWNER)")
+		return self
+
+
+def build_register_payload(request: AuthRegisterRequest) -> dict[str, Any]:
+	"""OWNER → RegisterRequest; usuario de tienda → ShopRegisterRequest (user-service)."""
+	sid = resolved_shop_id(request.shopId)
+	if sid is None:
+		name_val = request.name
+		if not name_val or not name_val.strip():
+			raise ValueError("name es obligatorio para registro OWNER")
+		body: dict[str, Any] = {
+			"email": request.email.strip(),
+			"password": request.password,
+			"name": name_val.strip(),
+		}
+		if request.phoneNumber and request.phoneNumber.strip():
+			body["phoneNumber"] = request.phoneNumber.strip()
+		return body
+	body = {
+		"email": request.email.strip(),
+		"password": request.password,
+	}
+	if request.phoneNumber and request.phoneNumber.strip():
+		body["phone"] = request.phoneNumber.strip()
+	return body
 
 
 class ShopCreateRequest(BaseModel):
 	shopName: str = Field(min_length=1)
-	phoneNumber: str = Field(min_length=1)
+	phoneNumber: str = Field(min_length=1, description="Teléfono de la tienda")
 
 
 class ShopUpdateRequest(BaseModel):

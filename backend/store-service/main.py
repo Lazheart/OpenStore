@@ -12,8 +12,10 @@ from mapping import (
 	ShopCreateRequest,
 	ShopUpdateRequest,
 	UserDeletedEventRequest,
+	build_register_payload,
 	build_shop_create_payload,
 	build_shop_update_payload,
+	resolved_shop_id,
 )
 from services_paths import (
 	DEFAULT_TIMEOUT_SECONDS,
@@ -27,7 +29,39 @@ from services_paths import (
 	user_auth_register_url,
 )
 
-app = FastAPI(title="store-service")
+_OPENAPI_TAGS_METADATA = [
+	{"name": "Salud", "description": "Comprobaciones de vida del servicio."},
+	{
+		"name": "Auth",
+		"description": (
+			"Autenticación centralizada: según `shopId` en el cuerpo se enruta a "
+			"OWNER (`/api/auth/...`) o a usuario de tienda (`/api/auth/{shopId}/...`)."
+		),
+	},
+	{"name": "Tiendas", "description": "Creación, lectura y actualización de tiendas vía shop-service."},
+	{
+		"name": "Productos",
+		"description": "Eliminación orquestada; publica eventos y delega en product-service.",
+	},
+	{"name": "Eventos internos", "description": "Webhooks entre servicios (token interno)."},
+	{"name": "Utilidades", "description": "Resolución owner/tienda y meta documentación."},
+]
+
+app = FastAPI(
+	title="OpenStore Store Service",
+	description=(
+		"**Orquestador del frontend**: un único punto de entrada HTTP que enruta hacia "
+		"user-service, shop-service y product-service; publica eventos asíncronos para "
+		"operaciones que delegan en otros servicios.\n\n"
+		"- **Registro/login**: sin `shopId` se asume rol **OWNER**; con `shopId`, usuario de esa tienda.\n"
+		"- **Swagger del gateway**: ruta `/docs`. Enlaces a la documentación de cada microservicio: `/docs/mappings`."
+	),
+	version="1.0.0",
+	openapi_tags=_OPENAPI_TAGS_METADATA,
+	docs_url="/docs",
+	redoc_url="/redoc",
+	openapi_url="/openapi.json",
+)
 
 # Templates folder (relative to store-service/)
 templates = Jinja2Templates(directory="templates")
@@ -102,17 +136,22 @@ def _validate_internal_token(internal_token: str | None) -> None:
 		raise HTTPException(status_code=403, detail="Token interno invalido")
 
 
-@app.get("/")
+@app.get("/", tags=["Salud"])
 def root() -> dict[str, str]:
-	return {"service": "store-service", "status": "ok"}
+	return {"service": "store-service", "role": "orchestrator", "status": "ok"}
 
 
-@app.get("/health")
+@app.get("/health", tags=["Salud"])
 def health() -> dict[str, str]:
 	return {"status": "ok"}
 
 
-@app.get("/me")
+@app.get(
+	"/me",
+	tags=["Auth"],
+	summary="Perfil del usuario actual",
+	description="Reenvía al user-service (`GET /me`) con el mismo encabezado Authorization.",
+)
 async def me(authorization: str | None = Header(default=None)) -> Any:
 	if not authorization:
 		raise HTTPException(status_code=401, detail="Acceso denegado. Token no proporcionado.")
@@ -120,9 +159,17 @@ async def me(authorization: str | None = Header(default=None)) -> Any:
 	return await _forward("GET", user_me_url(), authorization=authorization)
 
 
-@app.post("/auth/login")
+@app.post(
+	"/auth/login",
+	tags=["Auth"],
+	summary="Inicio de sesión",
+	description=(
+		"Sin `shopId`: login OWNER. Con `shopId`: login como usuario de esa tienda. "
+		"El cuerpo se reenvía al user-service."
+	),
+)
 async def auth_login(payload: AuthLoginRequest) -> Any:
-	target_url = user_auth_login_url(payload.shopId)
+	target_url = user_auth_login_url(resolved_shop_id(payload.shopId))
 	body = {
 		"identifier": payload.identifier,
 		"password": payload.password,
@@ -130,18 +177,28 @@ async def auth_login(payload: AuthLoginRequest) -> Any:
 	return await _forward("POST", target_url, payload=body)
 
 
-@app.post("/auth/register")
+@app.post(
+	"/auth/register",
+	tags=["Auth"],
+	summary="Registro",
+	description=(
+		"Sin `shopId` se enruta a registro **OWNER**. Con `shopId`, a registro de usuario de tienda. "
+		"Los campos del cuerpo se adaptan al DTO esperado por user-service."
+	),
+)
 async def auth_register(payload: AuthRegisterRequest) -> Any:
-	target_url = user_auth_register_url(payload.shopId)
-	body = {
-		"email": payload.email,
-		"phoneNumber": payload.phoneNumber,
-		"name": payload.name,
-	}
+	target_url = user_auth_register_url(resolved_shop_id(payload.shopId))
+	body = build_register_payload(payload)
 	return await _forward("POST", target_url, payload=body)
 
 
-@app.post("/openshop/shop", status_code=201)
+@app.post(
+	"/openshop/shop",
+	status_code=201,
+	tags=["Tiendas"],
+	summary="Crear tienda",
+	description="Proxy a shop-service; validación de rol/plan en el origen.",
+)
 async def create_shop(payload: ShopCreateRequest, authorization: str | None = Header(default=None)) -> Any:
 	# Shop-service aplica las reglas de rol, plan y unicidad del nombre.
 	return await _forward(
@@ -152,12 +209,12 @@ async def create_shop(payload: ShopCreateRequest, authorization: str | None = He
 	)
 
 
-@app.get("/shop/name/{shop_name}")
+@app.get("/shop/name/{shop_name}", tags=["Tiendas"])
 async def get_shop_by_name(shop_name: str) -> Any:
 	return await _forward("GET", shop_get_by_name_url(shop_name))
 
 
-@app.patch("/shop/id/{shop_id}")
+@app.patch("/shop/id/{shop_id}", tags=["Tiendas"])
 async def update_shop(
 	shop_id: str,
 	payload: ShopUpdateRequest,
@@ -171,7 +228,12 @@ async def update_shop(
 	)
 
 
-@app.delete("/shop/id/{shop_id}")
+@app.delete(
+	"/shop/id/{shop_id}",
+	tags=["Tiendas"],
+	summary="Solicitar borrado de tienda",
+	description="Verifica ownership y publica `SHOP_DELETION_REQUESTED` para purgar productos y borrar tienda.",
+)
 async def delete_shop(shop_id: str, authorization: str | None = Header(default=None)) -> Any:
 	user = await _resolve_current_user(authorization)
 	shop = await _forward("GET", shop_get_by_id_url(shop_id))
@@ -194,7 +256,15 @@ async def delete_shop(shop_id: str, authorization: str | None = Header(default=N
 	return {"status": "accepted", "event": "SHOP_DELETION_REQUESTED", "shopId": shop_id}
 
 
-@app.delete("/shops/{shop_id}/products/{product_id}")
+@app.delete(
+	"/shops/{shop_id}/products/{product_id}",
+	tags=["Productos"],
+	summary="Eliminar producto",
+	description=(
+		"Solo necesitas `shop_id` y `product_id` en la ruta y el token Bearer. "
+		"Se publica `PRODUCT_DELETION_REQUESTED` y el worker llama al product-service."
+	),
+)
 async def delete_product(shop_id: str, product_id: str, authorization: str | None = Header(default=None)) -> dict[str, str | int]:
 	if not authorization:
 		raise HTTPException(status_code=401, detail="Acceso denegado. Token no proporcionado.")
@@ -214,7 +284,7 @@ async def delete_product(shop_id: str, product_id: str, authorization: str | Non
 	}
 
 
-@app.post("/events/users/{user_id}/deleted")
+@app.post("/events/users/{user_id}/deleted", tags=["Eventos internos"])
 async def on_user_deleted_event(
 	user_id: str,
 	payload: UserDeletedEventRequest,
@@ -229,7 +299,7 @@ async def on_user_deleted_event(
 	return {"status": "accepted", "event": "OWNER_DELETED", "userId": user_id}
 
 
-@app.get("/shop/id/{shop_id}/owner")
+@app.get("/shop/id/{shop_id}/owner", tags=["Utilidades"])
 async def get_owner_by_shop_id(shop_id: str) -> dict[str, str]:
 	shop_data = await _forward("GET", shop_get_by_id_url(shop_id))
 
@@ -240,14 +310,25 @@ async def get_owner_by_shop_id(shop_id: str) -> dict[str, str]:
 	return {"shopId": shop_id, "ownerId": str(owner_id)}
 
 
-@app.get("/docs", response_class=HTMLResponse)
-async def docs(request: Request) -> HTMLResponse:
+@app.get("/docs/mappings", response_class=HTMLResponse, tags=["Utilidades"], include_in_schema=False)
+async def docs_mappings(request: Request) -> HTMLResponse:
+	"""Página HTML con enlaces a la documentación OpenAPI/Swagger de cada microservicio."""
 	from services_paths import SHOP_SERVICE_URL, PRODUCT_SERVICE_URL, USER_SERVICE_URL
 
+	store_public_url = str(request.base_url).rstrip("/")
 	services = [
-		{"name": "Shop Service", "url": f"{SHOP_SERVICE_URL}/api-docs"},
-		{"name": "Product Service", "url": f"{PRODUCT_SERVICE_URL}/docs"},
-		{"name": "User Service (Swagger UI)", "url": f"{USER_SERVICE_URL}/swagger-ui/index.html"},
+		{
+			"name": "Store Service (este orquestador)",
+			"url": f"{store_public_url}/docs",
+			"note": "Swagger del gateway; el contrato que debe usar el frontend.",
+		},
+		{"name": "Shop Service", "url": f"{SHOP_SERVICE_URL}/api-docs", "note": "API interna de tiendas"},
+		{"name": "Product Service", "url": f"{PRODUCT_SERVICE_URL}/docs", "note": "API interna de productos"},
+		{
+			"name": "User Service",
+			"url": f"{USER_SERVICE_URL}/swagger-ui/index.html",
+			"note": "Usuarios y auth (Spring)",
+		},
 	]
 
 	return templates.TemplateResponse("docs.html", {"request": request, "services": services})
