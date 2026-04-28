@@ -194,6 +194,25 @@ Resources:
         - Id: !Ref AppServer2
           Port: 3060
 
+  StoreTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Name: "os-store-tg"
+      VpcId: !Ref VpcId
+      Protocol: "HTTP"
+      Port: 2060
+      TargetType: "instance"
+      HealthCheckProtocol: "HTTP"
+      HealthCheckPort: "traffic-port"
+      HealthCheckPath: "/health"
+      Matcher:
+        HttpCode: "200-399"
+      Targets:
+        - Id: !Ref AppServer1
+          Port: 2060
+        - Id: !Ref AppServer2
+          Port: 2060
+
   HttpListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
     Properties:
@@ -203,6 +222,23 @@ Resources:
       DefaultActions:
         - Type: "forward"
           TargetGroupArn: !Ref ProductTargetGroup
+
+  StoreListenerRule:
+    Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 5
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - "/auth/*"
+            - "/openshop/*"
+            - "/events/*"
+            - "/me"
+            - "/shop/*"
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref StoreTargetGroup
 
   UserListenerRule:
     Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
