@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
 from models import Availability, ProductCreateRequest, ProductIdResponse, ProductListItem, ProductUpdateRequest
@@ -7,6 +8,14 @@ from services import BadRequestError, NotFoundError, product_service
 from integrations import ForbiddenError
 
 app = FastAPI(title="product-service")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=False,
+)
 
 
 @app.get("/")
