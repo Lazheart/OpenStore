@@ -1,0 +1,455 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "OpenStore: 2 App Servers detrás de ALB, 1 DB Server y bucket S3 (reutiliza AMI/parametros existentes)"
+
+Parameters:
+  InstanceName:
+    Type: String
+    Default: "MV-OpenShop"
+    Description: "Maquina Virtual 1"
+  AMI:
+    Type: String
+    Default: "ami-08d434e92c0cfa0c0"
+    Description: "ID de AMI"
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: "vockey"
+    Description: "KeyPair para acceso SSH (opcional)"
+  InstanceType:
+    Type: String
+    Default: "t3.medium"
+    AllowedValues:
+      - "t2.micro"
+      - "t3.micro"
+      - "t3.small"
+      - "t3.medium"
+    Description: "Tipo de instancia para App Servers"
+  DbInstanceType:
+    Type: String
+    Default: "t3.medium"
+    AllowedValues:
+      - "t3.micro"
+      - "t3.small"
+      - "t3.medium"
+      - "t3.large"
+    Description: "Tipo de instancia para DB Server"
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: "VPC donde desplegar los recursos"
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet::Id
+    Description: "Subnet pública 1 (para ALB y EC2 con IP pública)"
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet::Id
+    Description: "Subnet pública 2 (para ALB y EC2 con IP pública)"
+  FrontendRepoUrl:
+    Type: String
+    Default: "https://github.com/Lazheart/OpenStore"
+    Description: "Repositorio Git para Amplify (publico o privado)"
+  FrontendBranchName:
+    Type: String
+    Default: "main"
+    Description: "Branch del repositorio a desplegar en Amplify"
+  FrontendAmplifyAppName:
+    Type: String
+    Default: "openstore-frontend"
+    Description: "Nombre de la app de Amplify"
+  FrontendAmplifyAccessToken:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: "Token de GitHub (opcional para repos publicos, recomendado para privados)"
+
+Conditions:
+  HasFrontendAmplifyAccessToken: !Not [!Equals [!Ref FrontendAmplifyAccessToken, ""]]
+
+Resources:
+  LoadBalancerSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "ALB: permitir HTTP desde internet"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+
+  AppServerSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "App Servers: HTTP solo desde ALB, SSH opcional"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 3050
+          ToPort: 3050
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: "tcp"
+          FromPort: 3060
+          ToPort: 3060
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: "tcp"
+          FromPort: 3070
+          ToPort: 3070
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: "tcp"
+          FromPort: 2060
+          ToPort: 2060
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: "tcp"
+          FromPort: 22
+          ToPort: 22
+          CidrIp: "0.0.0.0/0"
+
+  DbServerSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "DB Server: PostgreSQL/MySQL/Mongo accesibles publicamente (segun requerimiento)"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 22
+          ToPort: 22
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: "tcp"
+          FromPort: 4050
+          ToPort: 4050
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: "tcp"
+          FromPort: 4060
+          ToPort: 4060
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: "tcp"
+          FromPort: 4070
+          ToPort: 4070
+          CidrIp: "0.0.0.0/0"
+
+  ApplicationLoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      Name: !Sub "openstore-alb-${AWS::StackName}"
+      Scheme: "internet-facing"
+      Type: "application"
+      IpAddressType: "ipv4"
+      SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+
+  ProductTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Name: "os-root-tg"
+      VpcId: !Ref VpcId
+      Protocol: "HTTP"
+      Port: 3070
+      TargetType: "instance"
+      HealthCheckProtocol: "HTTP"
+      HealthCheckPort: "traffic-port"
+      HealthCheckPath: "/"
+      Matcher:
+        HttpCode: "200-399"
+      Targets:
+        - Id: !Ref AppServer1
+          Port: 3070
+        - Id: !Ref AppServer2
+          Port: 3070
+
+  UserTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Name: "os-user-tg"
+      VpcId: !Ref VpcId
+      Protocol: "HTTP"
+      Port: 3050
+      TargetType: "instance"
+      HealthCheckProtocol: "HTTP"
+      HealthCheckPort: "traffic-port"
+      HealthCheckPath: "/api"
+      Matcher:
+        HttpCode: "200-499"
+      Targets:
+        - Id: !Ref AppServer1
+          Port: 3050
+        - Id: !Ref AppServer2
+          Port: 3050
+
+  ShopTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Name: "os-shop-tg"
+      VpcId: !Ref VpcId
+      Protocol: "HTTP"
+      Port: 3060
+      TargetType: "instance"
+      HealthCheckProtocol: "HTTP"
+      HealthCheckPort: "traffic-port"
+      HealthCheckPath: "/health"
+      Matcher:
+        HttpCode: "200-399"
+      Targets:
+        - Id: !Ref AppServer1
+          Port: 3060
+        - Id: !Ref AppServer2
+          Port: 3060
+
+  StoreTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Name: "os-store-tg"
+      VpcId: !Ref VpcId
+      Protocol: "HTTP"
+      Port: 2060
+      TargetType: "instance"
+      HealthCheckProtocol: "HTTP"
+      HealthCheckPort: "traffic-port"
+      HealthCheckPath: "/health"
+      Matcher:
+        HttpCode: "200-399"
+      Targets:
+        - Id: !Ref AppServer1
+          Port: 2060
+        - Id: !Ref AppServer2
+          Port: 2060
+
+  HttpListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: "HTTP"
+      DefaultActions:
+        - Type: "forward"
+          TargetGroupArn: !Ref ProductTargetGroup
+
+  StoreListenerRule:
+    Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 5
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - "/auth/*"
+            - "/openshop/*"
+            - "/events/*"
+            - "/me"
+            - "/shop/*"
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref StoreTargetGroup
+
+  UserListenerRule:
+    Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 10
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - "/api/*"
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref UserTargetGroup
+
+  ProductApiListenerRule:
+    Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 20
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - "/shops/*/products*"
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref ProductTargetGroup
+
+  ShopListenerRule:
+    Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 30
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - "/shops*"
+            - "/health"
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref ShopTargetGroup
+
+  AppServer1:
+    Type: "AWS::EC2::Instance"
+    DependsOn: DbServer
+    Properties:
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${InstanceName}-App-1"
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      IamInstanceProfile: "LabInstanceProfile"
+      SecurityGroupIds:
+        - !Ref AppServerSecurityGroup
+      SubnetId: !Ref PublicSubnet1
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: "30"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          exec > /var/log/user-data.log 2>&1
+          cd /home/ubuntu
+          git clone https://github.com/Lazheart/OpenStore
+          cd OpenStore
+          sudo chmod +x ./SETUP_API.sh
+          rm -rf frontend
+          cd ..
+
+  AppServer2:
+    Type: "AWS::EC2::Instance"
+    DependsOn: DbServer
+    Properties:
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${InstanceName}-App-2"
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      IamInstanceProfile: "LabInstanceProfile"
+      SecurityGroupIds:
+        - !Ref AppServerSecurityGroup
+      SubnetId: !Ref PublicSubnet2
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: "30"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          exec > /var/log/user-data.log 2>&1
+          cd /home/ubuntu
+          git clone https://github.com/Lazheart/OpenStore
+          cd OpenStore
+          sudo chmod +x ./SETUP_API.sh
+          rm -rf frontend
+          cd ..
+
+
+  DbServer:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${InstanceName}-DB"
+      ImageId: !Ref AMI
+      InstanceType: !Ref DbInstanceType
+      KeyName: !Ref KeyName
+      IamInstanceProfile: "LabInstanceProfile"
+      SecurityGroupIds:
+        - !Ref DbServerSecurityGroup
+      SubnetId: !Ref PublicSubnet1
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: "30"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          cd /home/ubuntu
+          git clone https://github.com/Lazheart/OpenStore
+          cd OpenStore
+          sudo chmod +x ./SETUP_DB.sh
+          rm -rf frontend
+          cd ..
+
+  ImagesBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "openstore-images-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+
+  FrontendAmplifyApp:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: !Ref FrontendAmplifyAppName
+      Repository: !Ref FrontendRepoUrl
+      AccessToken: !If [HasFrontendAmplifyAccessToken, !Ref FrontendAmplifyAccessToken, !Ref AWS::NoValue]
+      BuildSpec: |
+        version: 1
+        applications:
+          - appRoot: frontend
+            frontend:
+              phases:
+                preBuild:
+                  commands:
+                    - corepack enable
+                    - pnpm install --frozen-lockfile
+                build:
+                  commands:
+                    - pnpm run build
+              artifacts:
+                baseDirectory: dist
+                files:
+                  - '**/*'
+              cache:
+                paths:
+                  - node_modules/**/*
+      EnvironmentVariables:
+        - Name: LOAD_BALANCER_API
+          Value: !Sub "http://${ApplicationLoadBalancer.DNSName}"
+        - Name: VITE_LOAD_BALANCER_API
+          Value: !Sub "http://${ApplicationLoadBalancer.DNSName}"
+        - Name: AMPLIFY_MONOREPO_APP_ROOT
+          Value: "frontend"
+      CustomRules:
+        - Source: "/<*>"
+          Target: "/index.html"
+          Status: "404-200"
+
+  FrontendAmplifyBranch:
+    Type: "AWS::Amplify::Branch"
+    DependsOn: ApplicationLoadBalancer
+    Properties:
+      AppId: !GetAtt FrontendAmplifyApp.AppId
+      BranchName: !Ref FrontendBranchName
+      EnableAutoBuild: true
+      Stage: PRODUCTION
+      EnvironmentVariables:
+        - Name: AMPLIFY_MONOREPO_APP_ROOT
+          Value: "frontend"
+
+Outputs:
+  LoadBalancerDNS:
+    Description: "DNS del Application Load Balancer"
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+  AppServer1PublicIP:
+    Description: "IP publica del App Server 1"
+    Value: !GetAtt AppServer1.PublicIp
+  AppServer2PublicIP:
+    Description: "IP publica del App Server 2"
+    Value: !GetAtt AppServer2.PublicIp
+  DbServerPublicIP:
+    Description: "IP publica del DB Server"
+    Value: !GetAtt DbServer.PublicIp
+  ImagesBucketName:
+    Description: "Nombre del bucket S3"
+    Value: !Ref ImagesBucket
+  FrontendAmplifyAppId:
+    Description: "AppId de Amplify para frontend"
+    Value: !GetAtt FrontendAmplifyApp.AppId
+  FrontendAmplifyDefaultDomain:
+    Description: "Dominio base de Amplify"
+    Value: !GetAtt FrontendAmplifyApp.DefaultDomain
+  FrontendAmplifyURL:
+    Description: "URL publica del frontend en Amplify"
+    Value: !Sub "https://${FrontendBranchName}.${FrontendAmplifyApp.DefaultDomain}"
