@@ -23,6 +23,11 @@ def read_root() -> dict[str, str]:
     return {"service": "product-service", "status": "ok"}
 
 
+@app.get("/healthcheck")
+def healthcheck() -> dict[str, str]:
+    return {"service": "product-service", "status": "ok"}
+
+
 @app.get("/shops/{shop_id}/products", response_model=list[ProductListItem])
 async def get_products(shop_id: str) -> list[ProductListItem]:
     try:

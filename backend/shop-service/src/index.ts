@@ -99,6 +99,10 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', service: 'shop-service' });
 });
 
+app.get('/healthcheck', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', service: 'shop-service' });
+});
+
 app.get('/shops', async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;

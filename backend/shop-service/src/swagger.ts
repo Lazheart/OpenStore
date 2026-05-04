@@ -28,6 +28,13 @@ const options: swaggerJSDoc.Options = {
           responses: { '200': { description: 'Servicio OK' } }
         }
       },
+      '/healthcheck': {
+        get: {
+          summary: 'Verifica el estado del microservicio',
+          tags: ['Health'],
+          responses: { '200': { description: 'Servicio OK' } }
+        }
+      },
       '/shops': {
         get: {
           summary: 'Lista todas las tiendas (Paginado)',

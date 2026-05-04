@@ -49,6 +49,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.loginShopUser(shopId, request));
     }
 
+    @GetMapping({"/healthcheck", "/health"})
+    public ResponseEntity<Map<String, String>> healthcheck() {
+        return ResponseEntity.ok(Map.of("service", "user-service", "status", "ok"));
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(Authentication authentication) {
         authService.logout(authentication.getName());
