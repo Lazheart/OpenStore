@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "OpenStore: 2 App Servers detrás de ALB, 1 DB Server y bucket S3 (reutiliza AMI/parametros existentes)"
+Description: "OpenStore: 2 App Servers detrás de ALB, 1 DB Server y bucket S3 "
 
 Parameters:
   InstanceName:
@@ -371,7 +371,7 @@ Resources:
   ImagesBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Sub "openstore-images-${AWS::AccountId}"
+      BucketName: !Sub "openstore-products"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         IgnorePublicAcls: true
