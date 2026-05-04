@@ -1,6 +1,8 @@
 import { swaggerDocs } from './swagger';
 import express, { Request, Response } from 'express';
 const { PrismaClient } = require('@prisma/client');
+
+type ShopRecord = { id: string; owner_id: string; name: string; phone_number: string };
 import dotenv from 'dotenv';
 import { authenticateToken, AuthRequest } from './middleware/auth';
 import membershipService from './services/membershipService';
@@ -75,7 +77,7 @@ const getCurrentUserFromMe = async (token: string): Promise<MePayload> => {
   return user;
 };
 
-const toShopResponse = (shop: { id: string; owner_id: string; name: string; phone_number: string }) => ({
+const toShopResponse = (shop: ShopRecord) => ({
   shopId: shop.id,
   ownerId: shop.owner_id,
   shopName: shop.name,
@@ -304,7 +306,7 @@ app.get('/shop/owner/:ownerId', async (req: Request, res: Response) => {
       where: { owner_id: ownerId },
     });
 
-    const response = shops.map(shop => ({
+    const response = shops.map((shop: ShopRecord) => ({
       shopId: shop.id,
       shopName: shop.name,
       shopNumber: shop.id, // using id as shop number
