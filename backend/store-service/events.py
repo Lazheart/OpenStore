@@ -9,7 +9,6 @@ import httpx
 from services_paths import (
 	DEFAULT_TIMEOUT_SECONDS,
 	EVENTS_INTERNAL_TOKEN,
-	product_delete_url,
 	product_purge_by_shop_url,
 	shop_internal_delete_url,
 	shop_list_by_owner_url,
@@ -26,14 +25,7 @@ class OwnerDeletedEvent:
 	owner_id: str
 
 
-@dataclass(frozen=True)
-class ProductDeletionRequestedEvent:
-	shop_id: str
-	product_id: str
-	authorization: str | None
-
-
-EventPayload = ShopDeletionRequestedEvent | OwnerDeletedEvent | ProductDeletionRequestedEvent | None
+EventPayload = ShopDeletionRequestedEvent | OwnerDeletedEvent | None
 
 
 class EventBus:
@@ -75,9 +67,6 @@ class EventBus:
 			await self._handle_owner_deleted(event)
 			return
 
-		if isinstance(event, ProductDeletionRequestedEvent):
-			await self._handle_product_deletion(event)
-
 	async def _handle_shop_deletion(self, event: ShopDeletionRequestedEvent) -> None:
 		if not EVENTS_INTERNAL_TOKEN:
 			raise RuntimeError("EVENTS_INTERNAL_TOKEN no esta configurado")
@@ -118,18 +107,5 @@ class EventBus:
 				if shop_id_raw is None:
 					continue
 				await self._handle_shop_deletion(ShopDeletionRequestedEvent(shop_id=str(shop_id_raw)))
-
-	async def _handle_product_deletion(self, event: ProductDeletionRequestedEvent) -> None:
-		headers = {"Content-Type": "application/json"}
-		if event.authorization:
-			headers["Authorization"] = event.authorization
-
-		async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS) as client:
-			response = await client.delete(product_delete_url(event.shop_id, event.product_id), headers=headers)
-			if response.status_code not in {204, 404}:
-				raise RuntimeError(
-					f"No se pudo eliminar producto {event.product_id} de tienda {event.shop_id}: {response.status_code}"
-				)
-
 
 event_bus = EventBus()

@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
-from events import OwnerDeletedEvent, ProductDeletionRequestedEvent, ShopDeletionRequestedEvent, event_bus
+from events import OwnerDeletedEvent, ShopDeletionRequestedEvent, event_bus
 from mapping import (
 	AuthLoginRequest,
 	AuthRegisterRequest,
@@ -24,6 +24,9 @@ from services_paths import (
 	shop_create_url,
 	shop_get_by_id_url,
 	shop_get_by_name_url,
+	product_delete_url,
+	product_purge_by_shop_url,
+	shop_internal_delete_url,
 	shop_update_url,
 	user_me_url,
 	user_auth_login_url,
@@ -241,7 +244,7 @@ async def update_shop(
 	"/shop/id/{shop_id}",
 	tags=["Tiendas"],
 	summary="Solicitar borrado de tienda",
-	description="Verifica ownership y publica `SHOP_DELETION_REQUESTED` para purgar productos y borrar tienda.",
+	description="Verifica ownership y borra productos y tienda mediante llamadas HTTP síncronas.",
 )
 async def delete_shop(shop_id: str, authorization: str | None = Header(default=None)) -> Any:
 	user = await _resolve_current_user(authorization)
@@ -261,36 +264,40 @@ async def delete_shop(shop_id: str, authorization: str | None = Header(default=N
 	if shop_owner_id != user_id:
 		raise HTTPException(status_code=403, detail="No puedes eliminar una tienda que no te pertenece")
 
-	await event_bus.publish(ShopDeletionRequestedEvent(shop_id=shop_id))
-	return {"status": "accepted", "event": "SHOP_DELETION_REQUESTED", "shopId": shop_id}
+	if not EVENTS_INTERNAL_TOKEN:
+		raise HTTPException(status_code=500, detail="EVENTS_INTERNAL_TOKEN no configurado")
+
+	headers = {"x-internal-token": EVENTS_INTERNAL_TOKEN, "Content-Type": "application/json"}
+	async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS) as client:
+		purge_response = await client.delete(product_purge_by_shop_url(shop_id), headers=headers)
+		if purge_response.status_code not in {200, 404}:
+			raise HTTPException(
+				status_code=purge_response.status_code,
+				detail=f"No se pudieron purgar productos de la tienda {shop_id}",
+			)
+
+		delete_response = await client.delete(shop_internal_delete_url(shop_id), headers=headers)
+		if delete_response.status_code not in {200, 404}:
+			raise HTTPException(
+				status_code=delete_response.status_code,
+				detail=f"No se pudo eliminar la tienda {shop_id}",
+			)
+
+	return {"status": "accepted", "shopId": shop_id}
 
 
 @app.delete(
 	"/shops/{shop_id}/products/{product_id}",
+	status_code=204,
 	tags=["Productos"],
 	summary="Eliminar producto",
-	description=(
-		"Solo necesitas `shop_id` y `product_id` en la ruta y el token Bearer. "
-		"Se publica `PRODUCT_DELETION_REQUESTED` y el worker llama al product-service."
-	),
+	description="Solo necesitas `shop_id` y `product_id` en la ruta y el token Bearer.",
 )
-async def delete_product(shop_id: str, product_id: str, authorization: str | None = Header(default=None)) -> dict[str, str | int]:
+async def delete_product(shop_id: str, product_id: str, authorization: str | None = Header(default=None)) -> None:
 	if not authorization:
 		raise HTTPException(status_code=401, detail="Acceso denegado. Token no proporcionado.")
 
-	await event_bus.publish(
-		ProductDeletionRequestedEvent(
-			shop_id=shop_id,
-			product_id=product_id,
-			authorization=authorization,
-		)
-	)
-	return {
-		"status": "accepted",
-		"event": "PRODUCT_DELETION_REQUESTED",
-		"shopId": shop_id,
-		"productId": product_id,
-	}
+	await _forward("DELETE", product_delete_url(shop_id, product_id), authorization=authorization)
 
 
 @app.post("/events/users/{user_id}/deleted", tags=["Eventos internos"])

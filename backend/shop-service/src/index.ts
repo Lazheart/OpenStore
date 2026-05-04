@@ -126,50 +126,7 @@ app.get('/shops', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/shops/:id', async (req: Request, res: Response) => {
-  const id = String(req.params.id);
-  if (!id) {
-    return res.status(400).json({ error: 'shopId invalido' });
-  }
 
-  try {
-    const shop = await prisma.shop.findUnique({
-      where: { id: id },
-    });
-
-    if (!shop) {
-      return res.status(404).json({ error: 'Tienda no encontrada' });
-    }
-
-    res.json(toShopResponse(shop));
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener la tienda' });
-  }
-});
-
-app.get('/owners/:ownerId/shops', async (req: Request, res: Response) => {
-  const internalToken = req.headers['x-internal-token'];
-  const tokenValue = Array.isArray(internalToken) ? internalToken[0] : internalToken;
-
-  if (!hasValidInternalToken(tokenValue)) {
-    return res.status(403).json({ error: 'Token interno invalido' });
-  }
-
-  const ownerId = String(req.params.ownerId);
-  if (!ownerId) {
-    return res.status(400).json({ error: 'ownerId invalido' });
-  }
-
-  try {
-    const shops = await prisma.shop.findMany({ where: { owner_id: ownerId } });
-    return res.json({
-      ownerId,
-      shops: shops.map(toShopResponse),
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'No se pudieron obtener tiendas del owner' });
-  }
-});
 
 app.post('/openshop/shop', authenticateToken, async (req: AuthRequest, res: Response) => {
   const { shopName, phoneNumber } = req.body ?? {};
@@ -264,70 +221,7 @@ app.get('/shop/name/:shopName', async (req: Request, res: Response) => {
   }
 });
 
-app.patch('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: Response) => {
-  const shopId = String(req.params.shopId);
-  const { shopName, phoneNumber } = req.body ?? {};
 
-  if (!shopId) {
-    return res.status(400).json({ error: 'shopId invalido' });
-  }
-
-  if (!shopName && !phoneNumber) {
-    return res.status(400).json({ error: 'Debes enviar shopName, phoneNumber o ambos' });
-  }
-
-  const token = getBearerToken(req);
-  if (!token) {
-    return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
-  }
-
-  try {
-    const user = await getCurrentUserFromMe(token);
-    const requesterId = String(user.id);
-
-    if (!requesterId) {
-      return res.status(400).json({ error: 'id de usuario invalido en /me' });
-    }
-
-    const existingShop = await prisma.shop.findUnique({
-      where: { id: shopId },
-    });
-
-    if (!existingShop) {
-      return res.status(404).json({ error: 'Tienda no encontrada' });
-    }
-
-    if (existingShop.owner_id !== requesterId) {
-      return res.status(403).json({ error: 'No puedes modificar una tienda que no te pertenece' });
-    }
-
-    if (shopName && typeof shopName === 'string') {
-      const duplicatedName = await prisma.shop.findFirst({
-        where: {
-          name: shopName.trim(),
-          NOT: { id: shopId },
-        },
-      });
-
-      if (duplicatedName) {
-        return res.status(409).json({ error: 'Este nombre ya esta en uso' });
-      }
-    }
-
-    const data: { name?: string; phone_number?: string } = {};
-    if (shopName && typeof shopName === 'string') data.name = shopName.trim();
-    if (phoneNumber && typeof phoneNumber === 'string') data.phone_number = phoneNumber.trim();
-
-    const updatedShop = await prisma.shop.update({
-      where: { id: shopId },
-      data,
-    });
-
-    return res.json(toShopResponse(updatedShop));
-  } catch (error) {
-    return res.status(500).json({ error: 'No se pudo actualizar la tienda' });
-  }
-});
 
 app.delete('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: Response) => {
   const shopId = String(req.params.shopId);
@@ -394,6 +288,130 @@ app.delete('/internal/shops/:shopId', async (req: Request, res: Response) => {
     return res.json({ shopId });
   } catch (error) {
     return res.status(500).json({ error: 'No se pudo eliminar la tienda' });
+  }
+});
+
+// GET /shop/owner/{ownerId} - Get all shops for an owner
+app.get('/shop/owner/:ownerId', async (req: Request, res: Response) => {
+  const ownerId = String(req.params.ownerId);
+
+  if (!ownerId) {
+    return res.status(400).json({ error: 'ownerId invalido' });
+  }
+
+  try {
+    const shops = await prisma.shop.findMany({
+      where: { owner_id: ownerId },
+    });
+
+    const response = shops.map(shop => ({
+      shopId: shop.id,
+      shopName: shop.name,
+      shopNumber: shop.id, // using id as shop number
+    }));
+
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener tiendas del propietario' });
+  }
+});
+
+// GET /shop/{shopId} - Get shop details by ID
+app.get('/shop/:shopId', async (req: Request, res: Response) => {
+  const shopId = String(req.params.shopId);
+
+  if (!shopId) {
+    return res.status(400).json({ error: 'shopId invalido' });
+  }
+
+  try {
+    const shop = await prisma.shop.findUnique({
+      where: { id: shopId },
+    });
+
+    if (!shop) {
+      return res.status(404).json({ error: 'Tienda no encontrada' });
+    }
+
+    res.json({
+      ownerId: shop.owner_id,
+      phoneNumber: shop.phone_number,
+      shopId: shop.id,
+      shopName: shop.name,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener la tienda' });
+  }
+});
+
+// PATCH /shop/{shopId} - Update shop details
+app.patch('/shop/:shopId', authenticateToken, async (req: AuthRequest, res: Response) => {
+  const shopId = String(req.params.shopId);
+  const { shopName, phoneNumber } = req.body ?? {};
+
+  if (!shopId) {
+    return res.status(400).json({ error: 'shopId invalido' });
+  }
+
+  if (!shopName && !phoneNumber) {
+    return res.status(400).json({ error: 'Debes enviar shopName, phoneNumber o ambos' });
+  }
+
+  const token = getBearerToken(req);
+  if (!token) {
+    return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
+  }
+
+  try {
+    const user = await getCurrentUserFromMe(token);
+    const requesterId = String(user.id);
+
+    if (!requesterId) {
+      return res.status(400).json({ error: 'id de usuario invalido en /me' });
+    }
+
+    const existingShop = await prisma.shop.findUnique({
+      where: { id: shopId },
+    });
+
+    if (!existingShop) {
+      return res.status(404).json({ error: 'Tienda no encontrada' });
+    }
+
+    if (existingShop.owner_id !== requesterId) {
+      return res.status(403).json({ error: 'No puedes modificar una tienda que no te pertenece' });
+    }
+
+    if (shopName && typeof shopName === 'string') {
+      const duplicatedName = await prisma.shop.findFirst({
+        where: {
+          name: shopName.trim(),
+          NOT: { id: shopId },
+        },
+      });
+
+      if (duplicatedName) {
+        return res.status(409).json({ error: 'Este nombre ya esta en uso' });
+      }
+    }
+
+    const data: { name?: string; phone_number?: string } = {};
+    if (shopName && typeof shopName === 'string') data.name = shopName.trim();
+    if (phoneNumber && typeof phoneNumber === 'string') data.phone_number = phoneNumber.trim();
+
+    const updatedShop = await prisma.shop.update({
+      where: { id: shopId },
+      data,
+    });
+
+    res.json({
+      ownerId: updatedShop.owner_id,
+      phoneNumber: updatedShop.phone_number,
+      shopId: updatedShop.id,
+      shopName: updatedShop.name,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'No se pudo actualizar la tienda' });
   }
 });
 
