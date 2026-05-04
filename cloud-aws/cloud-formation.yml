@@ -128,16 +128,16 @@ Resources:
           ToPort: 22
           CidrIp: "0.0.0.0/0"
         - IpProtocol: "tcp"
-          FromPort: 4050
-          ToPort: 4050
+          FromPort: 5432
+          ToPort: 5432
           CidrIp: "0.0.0.0/0"
         - IpProtocol: "tcp"
-          FromPort: 4060
-          ToPort: 4060
+          FromPort: 27017
+          ToPort: 27017
           CidrIp: "0.0.0.0/0"
         - IpProtocol: "tcp"
-          FromPort: 4070
-          ToPort: 4070
+          FromPort: 3307
+          ToPort: 3307
           CidrIp: "0.0.0.0/0"
 
   ApplicationLoadBalancer:
