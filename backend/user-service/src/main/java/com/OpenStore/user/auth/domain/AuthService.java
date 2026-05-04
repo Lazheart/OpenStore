@@ -38,11 +38,8 @@ public class AuthService {
     private final PasswordResetTokenRepository resetTokenRepository;
     private final EmailService emailService;
 
-    @Value("${app.verification.token-expiration-hours:24}")
-    private int verificationTokenExpirationHours;
-
-    @Value("${app.password-reset.token-expiration-minutes:15}")
-    private int resetTokenExpirationMinutes;
+    private static final int verificationTokenExpirationHours = 24;
+    private static final int resetTokenExpirationMinutes = 30;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
