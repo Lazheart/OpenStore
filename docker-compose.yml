@@ -1,0 +1,47 @@
+services:
+  product-service:
+    image: lazheart/product-service:latest
+    container_name: product-service
+    ports:
+      - "8000:8000"
+    environment:
+      - AWS_REGION=${AWS_REGION}
+      - BUCKET_NAME=${BUCKET_NAME}
+      - PRODUCT_DATABASE_URL=${PRODUCT_DATABASE_URL}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+  shop-service:
+    image: lazheart/shop-service:latest
+    container_name: shop-service
+    ports:
+      - "3000:3000"
+    environment:
+      - SHOP_DATABASE_URL=${SHOP_DATABASE_URL}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+  user-service:
+    image: lazheart/user-service:latest
+    container_name: user-service
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - JPA_DDL_AUTO=${JPA_DDL_AUTO}
+  store-service:
+    image: lazheart/store-service:latest
+    container_name: store-service
+    ports:
+      - "8004:8004"
+    environment:
+      - name=value
