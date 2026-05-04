@@ -66,35 +66,51 @@ Resources:
   LoadBalancerSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
-      GroupDescription: "ALB: permitir HTTP desde internet"
+      GroupDescription: "ALB: permitir HTTP y puertos convencionales desde internet"
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: "tcp"
           FromPort: 80
           ToPort: 80
           CidrIp: "0.0.0.0/0"
+        - IpProtocol: "tcp"
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: "tcp"
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: "tcp"
+          FromPort: 8000
+          ToPort: 8000
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: "tcp"
+          FromPort: 8004
+          ToPort: 8004
+          CidrIp: "0.0.0.0/0"
 
   AppServerSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
-      GroupDescription: "App Servers: HTTP solo desde ALB, SSH opcional"
+      GroupDescription: "App Servers: HTTP de servicios convencionales solo desde ALB, SSH opcional"
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: "tcp"
-          FromPort: 3050
-          ToPort: 3050
+          FromPort: 8080
+          ToPort: 8080
           SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
         - IpProtocol: "tcp"
-          FromPort: 3060
-          ToPort: 3060
+          FromPort: 3000
+          ToPort: 3000
           SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
         - IpProtocol: "tcp"
-          FromPort: 3070
-          ToPort: 3070
+          FromPort: 8000
+          ToPort: 8000
           SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
         - IpProtocol: "tcp"
-          FromPort: 2060
-          ToPort: 2060
+          FromPort: 8004
+          ToPort: 8004
           SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
         - IpProtocol: "tcp"
           FromPort: 22
@@ -143,7 +159,7 @@ Resources:
       Name: "os-root-tg"
       VpcId: !Ref VpcId
       Protocol: "HTTP"
-      Port: 3070
+      Port: 8000
       TargetType: "instance"
       HealthCheckProtocol: "HTTP"
       HealthCheckPort: "traffic-port"
@@ -152,9 +168,9 @@ Resources:
         HttpCode: "200-399"
       Targets:
         - Id: !Ref AppServer1
-          Port: 3070
+          Port: 8000
         - Id: !Ref AppServer2
-          Port: 3070
+          Port: 8000
 
   UserTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
@@ -162,7 +178,7 @@ Resources:
       Name: "os-user-tg"
       VpcId: !Ref VpcId
       Protocol: "HTTP"
-      Port: 3050
+      Port: 8080
       TargetType: "instance"
       HealthCheckProtocol: "HTTP"
       HealthCheckPort: "traffic-port"
@@ -171,9 +187,9 @@ Resources:
         HttpCode: "200-499"
       Targets:
         - Id: !Ref AppServer1
-          Port: 3050
+          Port: 8080
         - Id: !Ref AppServer2
-          Port: 3050
+          Port: 8080
 
   ShopTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
@@ -181,7 +197,7 @@ Resources:
       Name: "os-shop-tg"
       VpcId: !Ref VpcId
       Protocol: "HTTP"
-      Port: 3060
+      Port: 3000
       TargetType: "instance"
       HealthCheckProtocol: "HTTP"
       HealthCheckPort: "traffic-port"
@@ -190,9 +206,9 @@ Resources:
         HttpCode: "200-399"
       Targets:
         - Id: !Ref AppServer1
-          Port: 3060
+          Port: 3000
         - Id: !Ref AppServer2
-          Port: 3060
+          Port: 3000
 
   StoreTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
@@ -200,7 +216,7 @@ Resources:
       Name: "os-store-tg"
       VpcId: !Ref VpcId
       Protocol: "HTTP"
-      Port: 2060
+      Port: 8004
       TargetType: "instance"
       HealthCheckProtocol: "HTTP"
       HealthCheckPort: "traffic-port"
@@ -209,9 +225,9 @@ Resources:
         HttpCode: "200-399"
       Targets:
         - Id: !Ref AppServer1
-          Port: 2060
+          Port: 8004
         - Id: !Ref AppServer2
-          Port: 2060
+          Port: 8004
 
   HttpListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
@@ -222,6 +238,46 @@ Resources:
       DefaultActions:
         - Type: "forward"
           TargetGroupArn: !Ref ProductTargetGroup
+
+  ProductPortListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 8000
+      Protocol: "HTTP"
+      DefaultActions:
+        - Type: "forward"
+          TargetGroupArn: !Ref ProductTargetGroup
+
+  UserPortListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 8080
+      Protocol: "HTTP"
+      DefaultActions:
+        - Type: "forward"
+          TargetGroupArn: !Ref UserTargetGroup
+
+  ShopPortListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 3000
+      Protocol: "HTTP"
+      DefaultActions:
+        - Type: "forward"
+          TargetGroupArn: !Ref ShopTargetGroup
+
+  StorePortListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 8004
+      Protocol: "HTTP"
+      DefaultActions:
+        - Type: "forward"
+          TargetGroupArn: !Ref StoreTargetGroup
 
   StoreListenerRule:
     Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
