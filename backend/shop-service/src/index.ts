@@ -97,6 +97,10 @@ const hasValidInternalToken = (token: string | undefined): boolean => {
   return token === EVENTS_INTERNAL_TOKEN;
 };
 
+app.get('/', (req: Request, res: Response) => {
+  res.redirect('/healthcheck');
+});
+
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', service: 'shop-service' });
 });
