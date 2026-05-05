@@ -50,8 +50,9 @@ services:
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_PASSWORD=${MAIL_PASSWORD}
       - JPA_DDL_AUTO=${JPA_DDL_AUTO}
+      - APP_BASE_URL=${APP_BASE_URL}
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/healthcheck > /dev/null"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/api/healt > /dev/null"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -17,7 +17,7 @@ public class EmailService {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
     private final JavaMailSender mailSender;
 
-    @Value("${app.base-url}")
+    @Value("${spring.app_base-url}")
     private String baseUrl;
 
     @Value("${spring.mail.username}")
