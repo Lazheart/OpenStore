@@ -1,4 +1,4 @@
-package main.java.com.OpenStore.user.health.controller;
+package com.OpenStore.user.health.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,7 +9,7 @@ import java.util.Map;
 @RestController
 public class HealthController {
 
-    @GetMapping({"/healt", "/api/healt", "/health", "/api/health", "/healthcheck", "/api/healthcheck"})
+    @GetMapping("/health")
     public ResponseEntity<Map<String, String>> healthcheck() {
         return ResponseEntity.ok(Map.of("service", "user-service", "status", "ok"));
     }

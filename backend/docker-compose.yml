@@ -45,14 +45,9 @@ services:
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
-      - MAIL_HOST=${MAIL_HOST}
-      - MAIL_PORT=${MAIL_PORT}
-      - MAIL_USERNAME=${MAIL_USERNAME}
-      - MAIL_PASSWORD=${MAIL_PASSWORD}
       - JPA_DDL_AUTO=${JPA_DDL_AUTO}
-      - APP_BASE_URL=${APP_BASE_URL}
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/api/healt > /dev/null"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health > /dev/null"]
       interval: 10s
       timeout: 5s
       retries: 5
