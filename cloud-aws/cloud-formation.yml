@@ -422,8 +422,9 @@ Resources:
           cd OpenStore
           sudo rm -rf frontend
           sudo rm -rf backend
+          cd database
           sudo cp .env.example .env
-          docker-compose up -d
+          docker compose up -d
           cd ..
 
   ImagesBucket:
