@@ -362,8 +362,8 @@ Resources:
           cd /home/ubuntu
           git clone https://github.com/Lazheart/OpenStore
           cd OpenStore
-          sudo chmod +x ./SETUP_API.sh
-          rm -rf frontend
+          sudo rm -rf frontend
+          sudo rm -rf database
           cd ..
 
   AppServer2:
@@ -392,8 +392,8 @@ Resources:
           cd /home/ubuntu
           git clone https://github.com/Lazheart/OpenStore
           cd OpenStore
-          sudo chmod +x ./SETUP_API.sh
-          rm -rf frontend
+          sudo rm -rf frontend
+          sudo rm -rf database
           cd ..
 
 
@@ -420,8 +420,10 @@ Resources:
           cd /home/ubuntu
           git clone https://github.com/Lazheart/OpenStore
           cd OpenStore
-          sudo chmod +x ./SETUP_DB.sh
-          rm -rf frontend
+          sudo rm -rf frontend
+          sudo rm -rf backend
+          sudo cp .env.example .env
+          docker-compose up -d
           cd ..
 
   ImagesBucket:
