@@ -1,9 +1,9 @@
 import os
 
-USER_SERVICE_URL = "http://localhost:8080"
+USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://user-service:8080")
 USER_AUTH_BASE_PATH = "/auth"
-SHOP_SERVICE_URL = "http://localhost:3000"
-PRODUCT_SERVICE_URL = "http://localhost:8000"
+SHOP_SERVICE_URL = os.getenv("SHOP_SERVICE_URL", "http://shop-service:3000")
+PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL", "http://product-service:8000")
 
 
 def user_auth_login_url(shop_id: str | None = None) -> str:
