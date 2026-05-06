@@ -13,7 +13,7 @@ export default function HomePage() {
           The most customizable, high-performance e-commerce platform for modern entrepreneurs. Start selling globally today.
         </p>
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-          <Link to="/owner" className="btn btn-primary">
+          <Link to="/signup" className="btn btn-primary">
             Start free trial <ArrowRight size={18} />
           </Link>
           <a href="https://lazheart.github.io/OpenStore/" target="_blank" rel="noopener noreferrer" className="btn btn-outline">
@@ -62,7 +62,8 @@ export default function HomePage() {
             Join thousands of successful merchants who trust OpenStore to power their businesses.
           </p>
           <button className="btn btn-primary" style={{ width: '100%' }}>
-            Create Your Store
+            
+            <Link to="/signup" style={{ color: 'black' }}>Create Your Store</Link>
           </button>
         </div>
       </section>
