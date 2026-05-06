@@ -84,10 +84,6 @@ class ShopUpdateRequest(BaseModel):
 		return self
 
 
-class UserDeletedEventRequest(BaseModel):
-	role: Optional[str] = None
-
-
 def build_shop_create_payload(request: ShopCreateRequest) -> dict[str, str]:
 	return {
 		"shopName": request.shopName.strip(),

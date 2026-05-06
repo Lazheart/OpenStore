@@ -6,13 +6,11 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
-from events import OwnerDeletedEvent, ShopDeletionRequestedEvent, event_bus
 from mapping import (
 	AuthLoginRequest,
 	AuthRegisterRequest,
 	ShopCreateRequest,
 	ShopUpdateRequest,
-	UserDeletedEventRequest,
 	build_register_payload,
 	build_shop_create_payload,
 	build_shop_update_payload,
@@ -20,7 +18,7 @@ from mapping import (
 )
 from services_paths import (
 	DEFAULT_TIMEOUT_SECONDS,
-	EVENTS_INTERNAL_TOKEN,
+	INTERNAL_TOKEN,
 	shop_create_url,
 	shop_get_by_id_url,
 	shop_get_by_name_url,
@@ -45,9 +43,8 @@ _OPENAPI_TAGS_METADATA = [
 	{"name": "Tiendas", "description": "Creación, lectura y actualización de tiendas vía shop-service."},
 	{
 		"name": "Productos",
-		"description": "Eliminación orquestada; publica eventos y delega en product-service.",
+		"description": "Eliminación orquestada; delega en product-service.",
 	},
-	{"name": "Eventos internos", "description": "Webhooks entre servicios (token interno)."},
 	{"name": "Utilidades", "description": "Resolución owner/tienda y meta documentación."},
 ]
 
@@ -55,8 +52,8 @@ app = FastAPI(
 	title="OpenStore Store Service",
 	description=(
 		"**Orquestador del frontend**: un único punto de entrada HTTP que enruta hacia "
-		"user-service, shop-service y product-service; publica eventos asíncronos para "
-		"operaciones que delegan en otros servicios.\n\n"
+		"user-service, shop-service y product-service; coordina "
+		"operaciones que delegan en otros servicios de forma secuencial.\n\n"
 		"- **Registro/login**: sin `shopId` se asume rol **OWNER**; con `shopId`, usuario de esa tienda.\n"
 		"- **Swagger del gateway**: ruta `/docs`. Enlaces a la documentación de cada microservicio: `/docs/mappings`."
 	),
@@ -77,16 +74,6 @@ app.add_middleware(
 
 # Templates folder (relative to store-service/)
 templates = Jinja2Templates(directory="templates")
-
-
-@app.on_event("startup")
-async def _startup_events() -> None:
-	await event_bus.start()
-
-
-@app.on_event("shutdown")
-async def _shutdown_events() -> None:
-	await event_bus.shutdown()
 
 
 def _build_auth_headers(authorization: str | None = None) -> dict[str, str]:
@@ -138,14 +125,6 @@ async def _resolve_current_user(authorization: str | None) -> dict[str, Any]:
 		raise HTTPException(status_code=400, detail="No se pudo obtener el usuario autenticado")
 
 	return user
-
-
-def _validate_internal_token(internal_token: str | None) -> None:
-	if not EVENTS_INTERNAL_TOKEN:
-		raise HTTPException(status_code=500, detail="EVENTS_INTERNAL_TOKEN no configurado")
-
-	if internal_token != EVENTS_INTERNAL_TOKEN:
-		raise HTTPException(status_code=403, detail="Token interno invalido")
 
 
 @app.get("/", tags=["Salud"])
@@ -264,10 +243,10 @@ async def delete_shop(shop_id: str, authorization: str | None = Header(default=N
 	if shop_owner_id != user_id:
 		raise HTTPException(status_code=403, detail="No puedes eliminar una tienda que no te pertenece")
 
-	if not EVENTS_INTERNAL_TOKEN:
-		raise HTTPException(status_code=500, detail="EVENTS_INTERNAL_TOKEN no configurado")
+	if not INTERNAL_TOKEN:
+		raise HTTPException(status_code=500, detail="INTERNAL_TOKEN no configurado")
 
-	headers = {"x-internal-token": EVENTS_INTERNAL_TOKEN, "Content-Type": "application/json"}
+	headers = {"x-internal-token": INTERNAL_TOKEN, "Content-Type": "application/json"}
 	async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS) as client:
 		purge_response = await client.delete(product_purge_by_shop_url(shop_id), headers=headers)
 		if purge_response.status_code not in {200, 404}:
@@ -298,21 +277,6 @@ async def delete_product(shop_id: str, product_id: str, authorization: str | Non
 		raise HTTPException(status_code=401, detail="Acceso denegado. Token no proporcionado.")
 
 	await _forward("DELETE", product_delete_url(shop_id, product_id), authorization=authorization)
-
-
-@app.post("/events/users/{user_id}/deleted", tags=["Eventos internos"])
-async def on_user_deleted_event(
-	user_id: str,
-	payload: UserDeletedEventRequest,
-	x_internal_token: str | None = Header(default=None),
-) -> dict[str, str | int]:
-	_validate_internal_token(x_internal_token)
-
-	if payload.role is not None and payload.role.upper() != "OWNER":
-		return {"status": "ignored", "event": "USER_DELETED", "userId": user_id}
-
-	await event_bus.publish(OwnerDeletedEvent(owner_id=user_id))
-	return {"status": "accepted", "event": "OWNER_DELETED", "userId": user_id}
 
 
 @app.get("/shop/id/{shop_id}/owner", tags=["Utilidades"])

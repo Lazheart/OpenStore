@@ -5,7 +5,7 @@ USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://user-service:8080")
 USER_AUTH_BASE_PATH = os.getenv("USER_AUTH_BASE_PATH", "/api/auth")
 SHOP_SERVICE_URL = os.getenv("SHOP_SERVICE_URL", "http://shop-service:3000")
 PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL", "http://product-service:8000")
-EVENTS_INTERNAL_TOKEN = os.getenv("EVENTS_INTERNAL_TOKEN", "").strip()
+INTERNAL_TOKEN = os.getenv("INTERNAL_TOKEN", os.getenv("EVENTS_INTERNAL_TOKEN", "")).strip()
 DEFAULT_TIMEOUT_SECONDS = float(os.getenv("STORE_SERVICE_TIMEOUT", "15"))
 
 
