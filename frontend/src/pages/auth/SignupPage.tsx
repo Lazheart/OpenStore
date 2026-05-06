@@ -19,17 +19,17 @@ export default function SignupPage() {
     setError('');
 
     try {
-      const authRes = await apiRegister({ 
-        name: formData.name.trim(), 
-        email: formData.email, 
+      const authRes = await apiRegister({
+        name: formData.name.trim(),
+        email: formData.email,
         password: formData.password,
-        role: 'OWNER'
+        role: 'OWNER',
       });
       
       login(authRes); // Actualiza contexto de autenticación
 
       navigate('/owner');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError(getApiErrorMessage(err, 'Error al crear la cuenta'));
     } finally {
@@ -39,14 +39,20 @@ export default function SignupPage() {
   return (
     <div className="animate-fade-in" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-color)' }}>
       {/* Left side - Decoration/Feature */}
-      <div className="auth-signup-hero">
-        <div style={{ maxWidth: '400px', margin: '0 auto' }}>
+      <div className="auth-signup-hero" style={{ flex: '0 0 50%', display: 'flex', alignItems: 'center', paddingLeft: '4rem' }}>
+        <div style={{ maxWidth: '400px', margin: '0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
+          
+          <Link to="/" className="sidebar-logo" style={{ marginBottom: '3rem', textDecoration: 'none', color: 'inherit', display: 'inline-flex', alignItems: 'center' }}>
+            <Store size={32} />
+            <span style={{ fontSize: '1.75rem', marginLeft: '0.5rem' }}>Open</span><span style={{ color: 'var(--primary)', fontSize: '1.75rem' }}>Store</span>
+          </Link>
+
           <h2 style={{ fontSize: '3rem', marginBottom: '1.5rem', lineHeight: 1.1 }}>Start your journey with <span style={{ color: 'var(--primary)' }}>OpenStore</span>.</h2>
           <p style={{ fontSize: '1.25rem', color: '#A0A0A0', marginBottom: '3rem', lineHeight: 1.6 }}>
             Join thousands of merchants who are building their dream businesses on our high-performance platform.
           </p>
           
-          <div className="card" style={{ backgroundColor: '#121212', border: '1px solid #2C2C2C', color: '#fff' }}>
+          <div className="card" style={{ backgroundColor: '#121212', border: '1px solid #2C2C2C', color: '#fff', textAlign: 'left', width: '100%' }}>
             <p style={{ fontSize: '1.125rem', fontStyle: 'italic', marginBottom: '1.5rem' }}>
               "OpenStore completely transformed how we sell online. The setup was instant, and the design tools are incredibly powerful."
             </p>
@@ -62,12 +68,13 @@ export default function SignupPage() {
       </div>
 
       {/* Right side - Signup Form */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '4rem', maxWidth: '600px', margin: '0 auto', backgroundColor: 'var(--surface-color)' }}>
+      <div style={{ flex: '0 0 50%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '4rem', backgroundColor: 'var(--surface-color)' }}>
+        <div style={{ maxWidth: '450px', width: '100%', margin: '0 0 0 auto' }}>
         <div style={{ marginBottom: '2.5rem' }}>
-          <div className="sidebar-logo auth-signup-mobile-logo" style={{ marginBottom: '1rem', display: 'flex' }}>
+          <Link to="/" className="sidebar-logo auth-signup-mobile-logo" style={{ marginBottom: '1rem', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
             <Store size={32} />
-            <span style={{ fontSize: '1.75rem' }}>Open</span><span style={{ color: 'var(--primary)', fontSize: '1.75rem' }}>Store</span>
-          </div>
+            <span style={{ fontSize: '1.75rem', marginLeft: '0.5rem' }}>Open</span><span style={{ color: 'var(--primary)', fontSize: '1.75rem' }}>Store</span>
+          </Link>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Create your store</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Get started and create your store.</p>
         </div>
@@ -115,6 +122,7 @@ export default function SignupPage() {
         <p style={{ textAlign: 'center', marginTop: '2rem', color: 'var(--text-secondary)' }}>
           Already have a store? <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 600 }}>Log in</Link>
         </p>
+        </div>
       </div>
     </div>
   );
