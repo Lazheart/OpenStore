@@ -57,10 +57,10 @@ export default function SignupPage() {
               "OpenStore completely transformed how we sell online. The setup was instant, and the design tools are incredibly powerful."
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary)' }}></div>
+              <img src="https://raw.githubusercontent.com/D3Ext/aesthetic-wallpapers/refs/heads/main/images/android-sakura.jpg" alt="Profile" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
               <div>
-                <p style={{ fontWeight: 600, margin: 0 }}>Sarah Jenkins</p>
-                <p style={{ color: '#A0A0A0', fontSize: '0.875rem', margin: 0 }}>Founder, TechHaven</p>
+                <p style={{ fontWeight: 600, margin: 0 }}>Robot Anime</p>
+                <p style={{ color: '#A0A0A0', fontSize: '0.875rem', margin: 0 }}>Cargo Importante</p>
               </div>
             </div>
           </div>
@@ -71,10 +71,6 @@ export default function SignupPage() {
       <div style={{ flex: '0 0 50%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '4rem', backgroundColor: 'var(--surface-color)' }}>
         <div style={{ maxWidth: '450px', width: '100%', margin: '0 0 0 auto' }}>
         <div style={{ marginBottom: '2.5rem' }}>
-          <Link to="/" className="sidebar-logo auth-signup-mobile-logo" style={{ marginBottom: '1rem', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
-            <Store size={32} />
-            <span style={{ fontSize: '1.75rem', marginLeft: '0.5rem' }}>Open</span><span style={{ color: 'var(--primary)', fontSize: '1.75rem' }}>Store</span>
-          </Link>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Create your store</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Get started and create your store.</p>
         </div>

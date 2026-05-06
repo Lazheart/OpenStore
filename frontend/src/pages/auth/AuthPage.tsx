@@ -38,7 +38,7 @@ export default function AuthPage() {
           navigate('/shop');
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'An error occurred'));
     } finally {
       setLoading(false);
