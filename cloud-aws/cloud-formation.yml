@@ -278,7 +278,7 @@ Resources:
   ImagesBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Sub "openstore-products"
+      BucketName: !Sub "openstore-products-${AWS::AccountId}"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         IgnorePublicAcls: true
