@@ -1,4 +1,4 @@
-import { userApi } from '../api';
+import { api } from '../api';
 
 export interface LoginRequest {
   email: string;
@@ -25,7 +25,7 @@ export const login = async (data: LoginRequest): Promise<AuthResponse> => {
     identifier: data.email,
     password: data.password || ''
   };
-  const response = await userApi.post<AuthResponse>('/auth/login', payload);
+  const response = await api.post<AuthResponse>('/auth/login', payload);
   if (response.data.token) {
     localStorage.setItem('token', response.data.token);
     localStorage.setItem('user', JSON.stringify(response.data));
@@ -39,7 +39,7 @@ export const register = async (data: RegisterRequest): Promise<AuthResponse> => 
     email: data.email,
     password: data.password || '',
   };
-  const response = await userApi.post<AuthResponse>('/auth/register', payload);
+  const response = await api.post<AuthResponse>('/auth/register', payload);
   if (response.data.token) {
     localStorage.setItem('token', response.data.token);
     localStorage.setItem('user', JSON.stringify(response.data));

@@ -1,4 +1,4 @@
-import { shopApi } from '../api';
+import { api } from '../api';
 
 export interface Shop {
   id: number;
@@ -12,16 +12,16 @@ export const createShop = async (name: string): Promise<Shop> => {
     shopName: name,
     phoneNumber: '000000000' // Default if not provided
   };
-  const response = await shopApi.post<Shop>('/openshop/shop', payload);
+  const response = await api.post<Shop>('/openshop/shop', payload);
   return response.data;
 };
 
 export const getShops = async (page = 1, limit = 10) => {
-  const response = await shopApi.get(`/shops?page=${page}&limit=${limit}`);
+  const response = await api.get(`/shops?page=${page}&limit=${limit}`);
   return response.data;
 };
 
 export const getShopById = async (id: number): Promise<Shop> => {
-  const response = await shopApi.get<Shop>(`/shops/${id}`);
+  const response = await api.get<Shop>(`/shops/${id}`);
   return response.data;
 };

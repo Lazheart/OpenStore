@@ -29,6 +29,10 @@ from services_paths import (
 	user_me_url,
 	user_auth_login_url,
 	user_auth_register_url,
+	shop_list_url,
+	product_list_by_shop_url,
+	product_create_url,
+	product_update_url,
 )
 
 _OPENAPI_TAGS_METADATA = [
@@ -263,6 +267,95 @@ async def delete_shop(shop_id: str, authorization: str | None = Header(default=N
 			)
 
 	return {"status": "accepted", "shopId": shop_id}
+
+
+@app.get("/shops", tags=["Tiendas"])
+async def get_shops(page: int = 1, limit: int = 10, authorization: str | None = Header(default=None)) -> Any:
+	return await _forward("GET", shop_list_url(page, limit), authorization=authorization)
+
+
+@app.get("/shops/{shop_id}", tags=["Tiendas"])
+async def get_shop(shop_id: str, authorization: str | None = Header(default=None)) -> Any:
+	return await _forward("GET", shop_get_by_id_url(shop_id), authorization=authorization)
+
+
+@app.get("/shops/{shop_id}/products", tags=["Productos"])
+async def get_products_by_shop(shop_id: str, authorization: str | None = Header(default=None)) -> Any:
+	return await _forward("GET", product_list_by_shop_url(shop_id), authorization=authorization)
+
+
+@app.post("/shops/{shop_id}/products", status_code=201, tags=["Productos"])
+async def create_product_route(shop_id: str, request: Request, authorization: str | None = Header(default=None)) -> Any:
+	body = await request.body()
+	headers = {}
+	if authorization:
+		headers["Authorization"] = authorization
+	content_type = request.headers.get("content-type")
+	if content_type:
+		headers["Content-Type"] = content_type
+
+	try:
+		async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS) as client:
+			response = await client.request(
+				method="POST",
+				url=product_create_url(shop_id),
+				headers=headers,
+				content=body,
+			)
+	except httpx.RequestError as exc:
+		raise HTTPException(status_code=502, detail=f"Error de conexion con servicio externo: {exc}") from exc
+
+	if response.status_code >= 400:
+		try:
+			detail = response.json()
+		except ValueError:
+			detail = {"error": response.text}
+		raise HTTPException(status_code=response.status_code, detail=detail)
+
+	if not response.text:
+		return None
+
+	try:
+		return response.json()
+	except ValueError:
+		return {"message": response.text}
+
+
+@app.patch("/shops/{shop_id}/products/{product_id}", tags=["Productos"])
+async def update_product_route(shop_id: str, product_id: str, request: Request, authorization: str | None = Header(default=None)) -> Any:
+	body = await request.body()
+	headers = {}
+	if authorization:
+		headers["Authorization"] = authorization
+	content_type = request.headers.get("content-type")
+	if content_type:
+		headers["Content-Type"] = content_type
+
+	try:
+		async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS) as client:
+			response = await client.request(
+				method="PATCH",
+				url=product_update_url(shop_id, product_id),
+				headers=headers,
+				content=body,
+			)
+	except httpx.RequestError as exc:
+		raise HTTPException(status_code=502, detail=f"Error de conexion con servicio externo: {exc}") from exc
+
+	if response.status_code >= 400:
+		try:
+			detail = response.json()
+		except ValueError:
+			detail = {"error": response.text}
+		raise HTTPException(status_code=response.status_code, detail=detail)
+
+	if not response.text:
+		return None
+
+	try:
+		return response.json()
+	except ValueError:
+		return {"message": response.text}
 
 
 @app.delete(

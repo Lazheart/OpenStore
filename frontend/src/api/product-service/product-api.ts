@@ -1,4 +1,4 @@
-import { productApi } from '../api';
+import { api } from '../api';
 
 export interface Product {
   productId: string;
@@ -10,7 +10,7 @@ export interface Product {
 }
 
 export const getProductsByShop = async (shopId: string): Promise<Product[]> => {
-  const response = await productApi.get<Product[]>(`/shops/${shopId}/products`);
+  const response = await api.get<Product[]>(`/shops/${shopId}/products`);
   return response.data;
 };
 
@@ -29,7 +29,7 @@ export const createProduct = async (
     formData.append('file', file);
   }
 
-  const response = await productApi.post<{ productId: string }>(`/shops/${shopId}/products`, formData, {
+  const response = await api.post<{ productId: string }>(`/shops/${shopId}/products`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -51,7 +51,7 @@ export const updateProduct = async (
   if (availability !== undefined) formData.append('availability', availability);
   if (file) formData.append('file', file);
 
-  await productApi.patch(`/shops/${shopId}/products/${productId}`, formData, {
+  await api.patch(`/shops/${shopId}/products/${productId}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

@@ -59,3 +59,19 @@ def shop_internal_delete_url(shop_id: str) -> str:
 
 def shop_list_by_owner_url(owner_id: str) -> str:
 	return f"{SHOP_SERVICE_URL}/owners/{owner_id}/shops"
+
+
+def shop_list_url(page: int = 1, limit: int = 10) -> str:
+	return f"{SHOP_SERVICE_URL}/shops?page={page}&limit={limit}"
+
+
+def product_list_by_shop_url(shop_id: str) -> str:
+	return f"{PRODUCT_SERVICE_URL}/shops/{shop_id}/products"
+
+
+def product_create_url(shop_id: str) -> str:
+	return f"{PRODUCT_SERVICE_URL}/shops/{shop_id}/products"
+
+
+def product_update_url(shop_id: str, product_id: str) -> str:
+	return f"{PRODUCT_SERVICE_URL}/shops/{shop_id}/products/{product_id}"

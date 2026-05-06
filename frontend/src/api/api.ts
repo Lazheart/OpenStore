@@ -25,7 +25,7 @@ const createApiInstance = (baseURL: string) => {
   return instance;
 };
 
-export const api = createApiInstance(import.meta.env.VITE_LOAD_BALANCER_API || 'http://localhost:2060');
+export const api = createApiInstance(import.meta.env.VITE_LOAD_BALANCER_API || 'http://localhost:8004');
 
 export const getApiErrorMessage = (error: unknown, fallback = 'An unexpected error occurred'): string => {
   if (axios.isAxiosError(error)) {
@@ -56,7 +56,4 @@ export const getApiErrorMessage = (error: unknown, fallback = 'An unexpected err
   return fallback;
 };
 
-// Deprecated: keep aliases for compatibility until fully migrated
-export const userApi = api;
-export const shopApi = api;
-export const productApi = api;
+
