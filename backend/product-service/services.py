@@ -99,11 +99,6 @@ class ProductService:
         await s3_uploader.delete_image_by_url(image_url)
 
     async def purge_shop_products(self, shop_id: str, *, internal_token: str | None) -> int:
-        if not self.internal_events_token:
-            raise BadRequestError("EVENTS_INTERNAL_TOKEN no configurado")
-
-        if internal_token != self.internal_events_token:
-            raise BadRequestError("Token interno invalido")
 
         image_urls = await product_repository.delete_products_by_shop(shop_id)
         for image_url in image_urls:

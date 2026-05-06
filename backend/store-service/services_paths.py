@@ -1,12 +1,9 @@
 import os
 
-
-USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://user-service:8080")
-USER_AUTH_BASE_PATH = os.getenv("USER_AUTH_BASE_PATH", "/api/auth")
-SHOP_SERVICE_URL = os.getenv("SHOP_SERVICE_URL", "http://shop-service:3000")
-PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL", "http://product-service:8000")
-INTERNAL_TOKEN = os.getenv("INTERNAL_TOKEN", os.getenv("EVENTS_INTERNAL_TOKEN", "")).strip()
-DEFAULT_TIMEOUT_SECONDS = float(os.getenv("STORE_SERVICE_TIMEOUT", "15"))
+USER_SERVICE_URL = "http://localhost:8080"
+USER_AUTH_BASE_PATH = "/auth"
+SHOP_SERVICE_URL = "http://localhost:3000"
+PRODUCT_SERVICE_URL = "http://localhost:8000"
 
 
 def user_auth_login_url(shop_id: str | None = None) -> str:
@@ -30,7 +27,7 @@ def shop_get_by_name_url(shop_name: str) -> str:
 
 
 def shop_update_url(shop_id: str) -> str:
-	return f"{SHOP_SERVICE_URL}/shop/id/{shop_id}"
+	return f"{SHOP_SERVICE_URL}/shop/{shop_id}"
 
 
 def shop_delete_url(shop_id: str) -> str:
@@ -38,7 +35,7 @@ def shop_delete_url(shop_id: str) -> str:
 
 
 def shop_get_by_id_url(shop_id: str) -> str:
-	return f"{SHOP_SERVICE_URL}/shops/{shop_id}"
+	return f"{SHOP_SERVICE_URL}/shop/{shop_id}"
 
 
 def user_me_url() -> str:

@@ -89,13 +89,6 @@ const getPlanLimit = (plan: string): number | null => {
   return PLAN_LIMITS[normalized] ?? null;
 };
 
-const hasValidInternalToken = (token: string | undefined): boolean => {
-  if (!EVENTS_INTERNAL_TOKEN) {
-    return false;
-  }
-
-  return token === EVENTS_INTERNAL_TOKEN;
-};
 
 app.get('/', (req: Request, res: Response) => {
   res.redirect('/healthcheck');
@@ -272,12 +265,6 @@ app.delete('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: 
 });
 
 app.delete('/internal/shops/:shopId', async (req: Request, res: Response) => {
-  const internalToken = req.headers['x-internal-token'];
-  const tokenValue = Array.isArray(internalToken) ? internalToken[0] : internalToken;
-
-  if (!hasValidInternalToken(tokenValue)) {
-    return res.status(403).json({ error: 'Token interno invalido' });
-  }
 
   const shopId = String(req.params.shopId);
   if (!shopId) {

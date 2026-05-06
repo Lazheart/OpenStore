@@ -17,8 +17,6 @@ from mapping import (
 	resolved_shop_id,
 )
 from services_paths import (
-	DEFAULT_TIMEOUT_SECONDS,
-	INTERNAL_TOKEN,
 	shop_create_url,
 	shop_get_by_id_url,
 	shop_get_by_name_url,
@@ -94,7 +92,7 @@ async def _forward(
 	authorization: str | None = None,
 ) -> Any:
 	try:
-		async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS) as client:
+		async with httpx.AsyncClient() as client:
 			response = await client.request(
 				method=method,
 				url=url,
@@ -247,11 +245,8 @@ async def delete_shop(shop_id: str, authorization: str | None = Header(default=N
 	if shop_owner_id != user_id:
 		raise HTTPException(status_code=403, detail="No puedes eliminar una tienda que no te pertenece")
 
-	if not INTERNAL_TOKEN:
-		raise HTTPException(status_code=500, detail="INTERNAL_TOKEN no configurado")
-
-	headers = {"x-internal-token": INTERNAL_TOKEN, "Content-Type": "application/json"}
-	async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS) as client:
+	headers = {"Content-Type": "application/json"}
+	async with httpx.AsyncClient() as client:
 		purge_response = await client.delete(product_purge_by_shop_url(shop_id), headers=headers)
 		if purge_response.status_code not in {200, 404}:
 			raise HTTPException(
@@ -295,7 +290,7 @@ async def create_product_route(shop_id: str, request: Request, authorization: st
 		headers["Content-Type"] = content_type
 
 	try:
-		async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS) as client:
+		async with httpx.AsyncClient() as client:
 			response = await client.request(
 				method="POST",
 				url=product_create_url(shop_id),
@@ -332,7 +327,7 @@ async def update_product_route(shop_id: str, product_id: str, request: Request, 
 		headers["Content-Type"] = content_type
 
 	try:
-		async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS) as client:
+		async with httpx.AsyncClient() as client:
 			response = await client.request(
 				method="PATCH",
 				url=product_update_url(shop_id, product_id),
