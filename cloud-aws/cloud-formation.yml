@@ -285,6 +285,16 @@ Resources:
         BlockPublicPolicy: true
         RestrictPublicBuckets: true
 
+  ProfilePictureBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "openstore-profile-pictures-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+
   FrontendAmplifyApp:
     Type: AWS::Amplify::App
     Properties:
