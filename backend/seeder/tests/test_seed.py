@@ -259,13 +259,42 @@ async def test_seed_shop_returns_zero_when_login_fails():
 
 
 @pytest.mark.asyncio
+async def test_seed_shop_returns_zero_when_create_shop_fails():
+    with (
+        patch("seed.register_owner", new=AsyncMock(return_value={"id": "uid-1"})),
+        patch("seed.login", new=AsyncMock(return_value="jwt-abc")),
+        patch("seed.create_shop", new=AsyncMock(side_effect=Exception("Shop creation failed"))),
+    ):
+        sem = asyncio.Semaphore(5)
+        async with httpx.AsyncClient() as client:
+            from seed import seed_shop
+            result = await seed_shop(client, 1, sem)
+    assert result["shop"] is False
+    assert result["products"] == 0
+    assert result["users"] == 0
+
+
+@pytest.mark.asyncio
 async def test_seed_shop_returns_counts_on_full_success():
+    # Use side_effect lists so products return True and users return False
+    # This makes the slice split verifiable: products=PRODUCTS_PER_SHOP, users=0
+    product_results = [True] * PRODUCTS_PER_SHOP
+    user_results = [False] * USERS_PER_SHOP
+    all_results = product_results + user_results
+
+    call_count = {"n": 0}
+
+    async def mock_create(*args, **kwargs):
+        result = all_results[call_count["n"]]
+        call_count["n"] += 1
+        return result
+
     with (
         patch("seed.register_owner", new=AsyncMock(return_value={"id": "uid-1"})),
         patch("seed.login", new=AsyncMock(return_value="jwt-abc")),
         patch("seed.create_shop", new=AsyncMock(return_value={"id": "shop-uuid", "name": "Tienda"})),
-        patch("seed.create_product", new=AsyncMock(return_value=True)),
-        patch("seed.create_shop_user", new=AsyncMock(return_value=True)),
+        patch("seed.create_product", new=AsyncMock(side_effect=[True] * PRODUCTS_PER_SHOP)),
+        patch("seed.create_shop_user", new=AsyncMock(side_effect=[False] * USERS_PER_SHOP)),
     ):
         sem = asyncio.Semaphore(5)
         async with httpx.AsyncClient() as client:
@@ -273,4 +302,4 @@ async def test_seed_shop_returns_counts_on_full_success():
             result = await seed_shop(client, 1, sem)
     assert result["shop"] is True
     assert result["products"] == PRODUCTS_PER_SHOP
-    assert result["users"] == USERS_PER_SHOP
+    assert result["users"] == 0
