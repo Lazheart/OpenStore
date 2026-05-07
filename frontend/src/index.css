@@ -159,6 +159,11 @@ a:hover {
   padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
 }
 
 .sidebar-logo {
