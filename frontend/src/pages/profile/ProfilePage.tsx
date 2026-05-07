@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, Bell, CreditCard, Eye, EyeOff, LogOut, Mail, Shield, User, Edit2 } from 'lucide-react';
+import { AlertCircle, CreditCard, Eye, EyeOff, LogOut, Mail, Shield, User, Edit2 } from 'lucide-react';
 import { useAuth } from '../../config/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/api';
@@ -243,9 +243,6 @@ export default function ProfilePage() {
           <button onClick={() => setActiveTab('billing')} className="btn" style={{ justifyContent: 'flex-start', backgroundColor: activeTab === 'billing' ? 'var(--primary)' : 'transparent', color: activeTab === 'billing' ? '#000' : 'var(--text-secondary)' }}>
             <CreditCard size={18} /> Billing
           </button>
-          <button onClick={() => setActiveTab('notifications')} className="btn" style={{ justifyContent: 'flex-start', backgroundColor: activeTab === 'notifications' ? 'var(--primary)' : 'transparent', color: activeTab === 'notifications' ? '#000' : 'var(--text-secondary)' }}>
-            <Bell size={18} /> Notifications
-          </button>
           <div style={{ margin: '1rem 0', borderBottom: '1px solid var(--border-color)' }}></div>
           <button onClick={handleLogout} className="btn" style={{ justifyContent: 'flex-start', background: 'transparent', color: 'var(--danger)' }}>
             <LogOut size={18} /> Sign Out
@@ -414,7 +411,7 @@ export default function ProfilePage() {
           {activeTab === 'billing' && (
             <div className="card">
               <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Billing Information</h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>You are currently on the <strong>Pro Plan</strong> ($29/month).</p>
+              
               <button className="btn btn-outline" style={{ marginBottom: '1rem' }}>Change Plan</button>
               <h4 style={{ marginTop: '2rem', marginBottom: '1rem' }}>Payment Method</h4>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius)' }}>
@@ -423,27 +420,6 @@ export default function ProfilePage() {
                   <p style={{ fontWeight: 600, margin: 0 }}>Visa ending in 4242</p>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>Expires 12/28</p>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'notifications' && (
-            <div className="card">
-              <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Notification Preferences</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <input type="checkbox" defaultChecked />
-                  <span>Email me when a new order is placed</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <input type="checkbox" defaultChecked />
-                  <span>Email me when a product is low on stock</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <input type="checkbox" />
-                  <span>Send me weekly performance reports</span>
-                </label>
-                <button className="btn btn-primary" style={{ marginTop: '1rem', alignSelf: 'flex-start' }}>Save Preferences</button>
               </div>
             </div>
           )}
