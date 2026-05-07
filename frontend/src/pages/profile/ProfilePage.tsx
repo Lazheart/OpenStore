@@ -1,21 +1,151 @@
-import { useState } from 'react';
-import { User, Mail, Shield, CreditCard, Bell, LogOut, Check } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AlertCircle, Bell, CreditCard, Eye, EyeOff, LogOut, Mail, Shield, User } from 'lucide-react';
 import { useAuth } from '../../config/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { getApiErrorMessage } from '../../api/api';
+import { getMe, type MeResponse, updateProfile, verifyPassword } from '../../api/user-service/user-service';
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('general');
+  const [profile, setProfile] = useState<MeResponse | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [generalSaving, setGeneralSaving] = useState(false);
+  const [securitySaving, setSecuritySaving] = useState(false);
+  const [generalError, setGeneralError] = useState('');
+  const [securityError, setSecurityError] = useState('');
+  const [generalSuccess, setGeneralSuccess] = useState('');
+  const [securitySuccess, setSecuritySuccess] = useState('');
+  const [verifyPasswordInput, setVerifyPasswordInput] = useState('');
+  const [showVerifyPassword, setShowVerifyPassword] = useState(false);
+  const [showGeneralVerifyModal, setShowGeneralVerifyModal] = useState(false);
+  const [showSecurityVerifyModal, setShowSecurityVerifyModal] = useState(false);
+  const [generalForm, setGeneralForm] = useState({ name: '', email: '', phoneNumber: '' });
+  const [securityForm, setSecurityForm] = useState({ newPassword: '', confirmPassword: '' });
+
+  const authEmail = user?.email || '';
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setLoadingProfile(true);
+        const data = await getMe();
+        setProfile(data);
+        setGeneralForm({
+          name: data.name || user?.name || '',
+          email: data.email || user?.email || '',
+          phoneNumber: data.phoneNumber || '',
+        });
+      } catch (error) {
+        setGeneralError(getApiErrorMessage(error, 'No se pudo cargar el perfil'));
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+  }, [user?.email, user?.name]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`;
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part.charAt(0))
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'U';
   };
+
+  const handleSaveGeneral = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGeneralError('');
+    setGeneralSuccess('');
+    setShowGeneralVerifyModal(true);
+  };
+
+  const handleSaveSecurity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSecurityError('');
+    setSecuritySuccess('');
+
+    if (!securityForm.newPassword || securityForm.newPassword.length < 8) {
+      setSecurityError('La nueva contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
+    if (securityForm.newPassword !== securityForm.confirmPassword) {
+      setSecurityError('Las contraseñas no coinciden');
+      return;
+    }
+
+    setShowSecurityVerifyModal(true);
+  };
+
+  const submitGeneralUpdate = async () => {
+    if (!verifyPasswordInput) {
+      setGeneralError('Debes ingresar tu contraseña actual');
+      return;
+    }
+
+    try {
+      setGeneralSaving(true);
+      const verifyResponse = await verifyPassword({ email: authEmail, password: verifyPasswordInput });
+      await updateProfile({
+        name: generalForm.name,
+        email: generalForm.email,
+        phoneNumber: generalForm.phoneNumber || undefined,
+        code: verifyResponse.code,
+      });
+
+      const updated = await getMe();
+      setProfile(updated);
+      setGeneralForm({
+        name: updated.name || '',
+        email: updated.email || '',
+        phoneNumber: updated.phoneNumber || '',
+      });
+      setGeneralSuccess('Perfil actualizado correctamente');
+      setShowGeneralVerifyModal(false);
+      setVerifyPasswordInput('');
+    } catch (error) {
+      setGeneralError(getApiErrorMessage(error, 'No se pudo actualizar el perfil'));
+    } finally {
+      setGeneralSaving(false);
+    }
+  };
+
+  const submitSecurityUpdate = async () => {
+    if (!verifyPasswordInput) {
+      setSecurityError('Debes ingresar tu contraseña actual');
+      return;
+    }
+
+    try {
+      setSecuritySaving(true);
+      const verifyResponse = await verifyPassword({ email: authEmail, password: verifyPasswordInput });
+      await updateProfile({ password: securityForm.newPassword, code: verifyResponse.code });
+
+      setSecuritySuccess('Contraseña actualizada correctamente');
+      setSecurityForm({ newPassword: '', confirmPassword: '' });
+      setShowSecurityVerifyModal(false);
+      setVerifyPasswordInput('');
+    } catch (error) {
+      setSecurityError(getApiErrorMessage(error, 'No se pudo actualizar la contraseña'));
+    } finally {
+      setSecuritySaving(false);
+    }
+  };
+
+  if (loadingProfile) {
+    return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading profile...</div>;
+  }
+
   return (
     <div className="animate-fade-in" style={{ maxWidth: '900px', margin: '0 auto', paddingBottom: '3rem' }}>
       <div style={{ marginBottom: '2rem' }}>
@@ -24,7 +154,6 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: '1fr 3fr', gap: '2rem' }}>
-        {/* Navigation Sidebar for Profile */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <button onClick={() => setActiveTab('general')} className="btn" style={{ justifyContent: 'flex-start', backgroundColor: activeTab === 'general' ? 'var(--primary)' : 'transparent', color: activeTab === 'general' ? '#000' : 'var(--text-secondary)', fontWeight: activeTab === 'general' ? 600 : 400 }}>
             <User size={18} /> General
@@ -44,77 +173,100 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Profile Content */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          
           {activeTab === 'general' && (
-          <>
-          <div className="card">
-            <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Personal Information</h3>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem' }}>
-              <div style={{ 
-                width: '80px', 
-                height: '80px', 
-                borderRadius: '50%', 
-                backgroundColor: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#000',
-                fontSize: '2rem',
-                fontWeight: 700
-              }}>
-                {user ? getInitials(user.firstName, user.lastName) : 'U'}
-              </div>
-              <div>
-                <button className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>Change Avatar</button>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>JPG, GIF or PNG. Max size of 800K</p>
-              </div>
-            </div>
+            <>
+              <div className="card">
+                <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Personal Information</h3>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="input-group">
-                <label>First Name</label>
-                <input type="text" className="input-field" defaultValue={user?.firstName || ''} />
-              </div>
-              <div className="input-group">
-                <label>Last Name</label>
-                <input type="text" className="input-field" defaultValue={user?.lastName || ''} />
-              </div>
-              <div className="input-group" style={{ gridColumn: 'span 2' }}>
-                <label>Email Address</label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                  <input type="email" className="input-field" defaultValue={user?.email || ''} style={{ paddingLeft: '2.5rem' }} disabled />
+                {generalError && (
+                  <div style={{ backgroundColor: 'rgba(255, 77, 79, 0.1)', color: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--border-radius)', marginBottom: '1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <AlertCircle size={18} />
+                    {generalError}
+                  </div>
+                )}
+
+                {generalSuccess && (
+                  <div style={{ backgroundColor: 'rgba(82, 196, 26, 0.12)', color: 'var(--success)', padding: '0.75rem', borderRadius: 'var(--border-radius)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                    {generalSuccess}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem' }}>
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#000',
+                    fontSize: '2rem',
+                    fontWeight: 700,
+                  }}>
+                    {getInitials(profile?.name || user?.name || 'U')}
+                  </div>
+                  <div>
+                    <button className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>Change Avatar</button>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>JPG, GIF or PNG. Max size of 800K</p>
+                  </div>
                 </div>
+
+                <form onSubmit={handleSaveGeneral} className="grid grid-cols-2 gap-4">
+                  <div className="input-group">
+                    <label>Name</label>
+                    <input type="text" className="input-field" value={generalForm.name} onChange={(e) => setGeneralForm({ ...generalForm, name: e.target.value })} />
+                  </div>
+                  <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                    <label>Email Address</label>
+                    <div style={{ position: 'relative' }}>
+                      <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                      <input type="email" className="input-field" value={generalForm.email} style={{ paddingLeft: '2.5rem' }} onChange={(e) => setGeneralForm({ ...generalForm, email: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                    <label>Phone Number</label>
+                    <input type="tel" className="input-field" value={generalForm.phoneNumber} onChange={(e) => setGeneralForm({ ...generalForm, phoneNumber: e.target.value })} />
+                  </div>
+
+                  <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                    <button type="button" className="btn btn-outline" onClick={() => setGeneralForm({ name: profile?.name || user?.name || '', email: profile?.email || user?.email || '', phoneNumber: profile?.phoneNumber || '' })}>Cancel</button>
+                    <button type="submit" className="btn btn-primary">Save Changes</button>
+                  </div>
+                </form>
               </div>
-            </div>
-          </div>
-
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-            <button className="btn btn-outline">Cancel</button>
-            <button className="btn btn-primary">Save Changes</button>
-          </div>
-          </>)}
+            </>
+          )}
 
           {activeTab === 'security' && (
             <div className="card">
               <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Security Settings</h3>
-              <div className="input-group">
-                <label>Current Password</label>
-                <input type="password" className="input-field" placeholder="••••••••" />
-              </div>
-              <div className="input-group">
-                <label>New Password</label>
-                <input type="password" className="input-field" placeholder="••••••••" />
-              </div>
-              <div className="input-group" style={{ marginBottom: '2rem' }}>
-                <label>Confirm New Password</label>
-                <input type="password" className="input-field" placeholder="••••••••" />
-              </div>
-              <button className="btn btn-primary">Update Password</button>
+
+              {securityError && (
+                <div style={{ backgroundColor: 'rgba(255, 77, 79, 0.1)', color: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--border-radius)', marginBottom: '1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <AlertCircle size={18} />
+                  {securityError}
+                </div>
+              )}
+
+              {securitySuccess && (
+                <div style={{ backgroundColor: 'rgba(82, 196, 26, 0.12)', color: 'var(--success)', padding: '0.75rem', borderRadius: 'var(--border-radius)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                  {securitySuccess}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveSecurity}>
+                <div className="input-group">
+                  <label>New Password</label>
+                  <input type="password" className="input-field" value={securityForm.newPassword} onChange={(e) => setSecurityForm({ ...securityForm, newPassword: e.target.value })} placeholder="••••••••" />
+                </div>
+                <div className="input-group" style={{ marginBottom: '2rem' }}>
+                  <label>Confirm New Password</label>
+                  <input type="password" className="input-field" value={securityForm.confirmPassword} onChange={(e) => setSecurityForm({ ...securityForm, confirmPassword: e.target.value })} placeholder="••••••••" />
+                </div>
+                <button className="btn btn-primary" type="submit" disabled={securitySaving}>Update Password</button>
+              </form>
             </div>
           )}
 
@@ -157,6 +309,50 @@ export default function ProfilePage() {
 
         </div>
       </div>
+
+      {showGeneralVerifyModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="card" style={{ width: '100%', maxWidth: '420px' }}>
+            <h3 style={{ marginTop: 0 }}>Confirmar cambios</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>Ingresa tu contraseña actual para generar el código temporal y aplicar los cambios.</p>
+            <div className="input-group">
+              <label>Current Password</label>
+              <div style={{ position: 'relative' }}>
+                <input type={showVerifyPassword ? 'text' : 'password'} className="input-field" value={verifyPasswordInput} onChange={(e) => setVerifyPasswordInput(e.target.value)} placeholder="••••••••" />
+                <button type="button" onClick={() => setShowVerifyPassword(!showVerifyPassword)} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-secondary)' }}>
+                  {showVerifyPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+              <button className="btn btn-outline" onClick={() => { setShowGeneralVerifyModal(false); setVerifyPasswordInput(''); }} type="button">Cancel</button>
+              <button className="btn btn-primary" onClick={submitGeneralUpdate} disabled={generalSaving}>Verify & Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSecurityVerifyModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="card" style={{ width: '100%', maxWidth: '420px' }}>
+            <h3 style={{ marginTop: 0 }}>Confirmar contraseña</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>Ingresa tu contraseña actual para cambiar la contraseña.</p>
+            <div className="input-group">
+              <label>Current Password</label>
+              <div style={{ position: 'relative' }}>
+                <input type={showVerifyPassword ? 'text' : 'password'} className="input-field" value={verifyPasswordInput} onChange={(e) => setVerifyPasswordInput(e.target.value)} placeholder="••••••••" />
+                <button type="button" onClick={() => setShowVerifyPassword(!showVerifyPassword)} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-secondary)' }}>
+                  {showVerifyPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+              <button className="btn btn-outline" onClick={() => { setShowSecurityVerifyModal(false); setVerifyPasswordInput(''); }} type="button">Cancel</button>
+              <button className="btn btn-primary" onClick={submitSecurityUpdate} disabled={securitySaving}>Verify & Update</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

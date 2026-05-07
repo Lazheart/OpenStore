@@ -11,6 +11,8 @@ from mapping import (
 	AuthRegisterRequest,
 	ShopCreateRequest,
 	ShopUpdateRequest,
+	UpdateMeRequest,
+	VerifyPasswordRequest,
 	build_register_payload,
 	build_shop_create_payload,
 	build_shop_update_payload,
@@ -25,6 +27,7 @@ from services_paths import (
 	shop_internal_delete_url,
 	shop_update_url,
 	user_me_url,
+	user_verify_url,
 	user_get_by_id_url,
 	user_auth_login_url,
 	user_auth_register_url,
@@ -177,6 +180,30 @@ async def me(authorization: str | None = Header(default=None)) -> Any:
 		result["shopId"] = shop_id
 
 	return result
+
+
+@app.post(
+	"/verify",
+	tags=["Auth"],
+	summary="Verificar contraseña",
+	description="Proxy a user-service para validar la contraseña actual y generar un código temporal.",
+)
+async def verify_password(payload: VerifyPasswordRequest) -> Any:
+	return await _forward("POST", user_verify_url(), payload=payload.model_dump())
+
+
+@app.patch(
+	"/me",
+	tags=["Auth"],
+	summary="Actualizar perfil",
+	description="Proxy a user-service para actualizar el perfil usando el código temporal generado por /verify.",
+)
+async def update_me(payload: UpdateMeRequest, authorization: str | None = Header(default=None)) -> Any:
+	if not authorization:
+		raise HTTPException(status_code=401, detail="Acceso denegado. Token no proporcionado.")
+
+	body = payload.model_dump(exclude_none=True)
+	return await _forward("PATCH", user_me_url(), payload=body, authorization=authorization)
 
 
 @app.post(

@@ -42,6 +42,10 @@ def user_me_url() -> str:
 	return f"{USER_SERVICE_URL}/me"
 
 
+def user_verify_url() -> str:
+	return f"{USER_SERVICE_URL}/verify"
+
+
 def user_get_by_id_url(user_id: str) -> str:
 	return f"{USER_SERVICE_URL}/users/{user_id}"
 

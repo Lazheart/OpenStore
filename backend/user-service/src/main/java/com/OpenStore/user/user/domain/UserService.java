@@ -1,9 +1,5 @@
 package com.OpenStore.user.user.domain;
 
-import com.OpenStore.user.user.domain.User;
-import com.OpenStore.user.user.domain.UserRole;
-import com.OpenStore.user.user.domain.SubscriptionPlan;
-
 import com.OpenStore.user.user.dto.UpdateUserRequest;
 import com.OpenStore.user.user.dto.UpdateMeRequest;
 import com.OpenStore.user.user.dto.MeResponse;
@@ -39,6 +35,11 @@ public class UserService implements UserDetailsService {
         this.userRepository = userRepository;
         this.resetTokenRepository = resetTokenRepository;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    private String generateRandomCode() {
+        int code = (int) (Math.random() * 900000) + 100000;
+        return String.valueOf(code);
     }
 
     @Override
@@ -122,6 +123,27 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
+    public String verifyPassword(String email, String password) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException("Invalid password");
+        }
+
+        String code = generateRandomCode();
+        PasswordResetToken token = PasswordResetToken.builder()
+                .code(code)
+                .user(user)
+                .expiresAt(LocalDateTime.now().plusMinutes(15))
+                .used(false)
+                .build();
+
+        resetTokenRepository.save(token);
+        return code;
+    }
+
+    @Transactional
     public void updateMe(String email, UpdateMeRequest request) {
         User currentUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
@@ -162,6 +184,10 @@ public class UserService implements UserDetailsService {
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             currentUser.setPassword(passwordEncoder.encode(request.getPassword()));
             currentUser.setTokenVersion(currentUser.getTokenVersion() + 1);
+        }
+
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+            currentUser.setPhoneNumber(request.getPhoneNumber());
         }
 
         token.setUsed(true);

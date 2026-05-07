@@ -44,6 +44,19 @@ class AuthRegisterRequest(BaseModel):
 		return self
 
 
+class VerifyPasswordRequest(BaseModel):
+	email: str = Field(min_length=1)
+	password: str = Field(min_length=1)
+
+
+class UpdateMeRequest(BaseModel):
+	name: Optional[str] = None
+	email: Optional[str] = None
+	phoneNumber: Optional[str] = None
+	password: Optional[str] = None
+	code: str = Field(min_length=1)
+
+
 def build_register_payload(request: AuthRegisterRequest) -> dict[str, Any]:
 	"""OWNER → RegisterRequest; usuario de tienda → ShopRegisterRequest (user-service)."""
 	sid = resolved_shop_id(request.shopId)

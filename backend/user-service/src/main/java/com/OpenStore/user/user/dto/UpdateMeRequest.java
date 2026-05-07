@@ -12,6 +12,8 @@ public class UpdateMeRequest {
 
     private String email;
 
+    private String phoneNumber;
+
     @Size(min = 8, max = 100)
     @Pattern(
         regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$",
