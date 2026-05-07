@@ -1,9 +1,20 @@
-import { useEffect, useState } from 'react';
-import { AlertCircle, CreditCard, Eye, EyeOff, LogOut, Mail, Shield, User, Edit2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, Eye, EyeOff, LogOut, Mail, Shield, User, Edit2, CircleDollarSign, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../config/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/api';
 import { getMe, type MeResponse, updateProfile, verifyPassword } from '../../api/user-service/user-service';
+import qrBaseImage from '../../assets/qrbase.jpeg';
+
+type BillingPlan = 'FREE' | 'PRO' | 'MAX';
+
+const billingPlanOrder: BillingPlan[] = ['FREE', 'PRO', 'MAX'];
+
+const billingPlanLabels: Record<BillingPlan, string> = {
+  FREE: 'Free',
+  PRO: 'Pro',
+  MAX: 'Max',
+};
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -31,8 +42,20 @@ export default function ProfilePage() {
   const [showSecurityVerifyPassword, setShowSecurityVerifyPassword] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [verifyError, setVerifyError] = useState('');
+  const [showBillingModal, setShowBillingModal] = useState(false);
+  const [billingModalStep, setBillingModalStep] = useState<'form' | 'qr-loading' | 'qr-visible' | 'processing' | 'done'>('form');
+  const [billingTargetPlan, setBillingTargetPlan] = useState<BillingPlan>('PRO');
+  const [billingForm, setBillingForm] = useState({ name: '', email: '' });
+  const [billingError, setBillingError] = useState('');
+  const [billingSuccess, setBillingSuccess] = useState('');
+  const [billingRequestNote, setBillingRequestNote] = useState('');
 
   const authEmail = user?.email || '';
+  const currentPlan = useMemo(() => {
+    const subscription = String(profile?.subscription || '').toUpperCase();
+    return billingPlanOrder.includes(subscription as BillingPlan) ? (subscription as BillingPlan) : 'FREE';
+  }, [profile?.subscription]);
+  const billingPlanOptions = billingPlanOrder.filter((plan) => billingPlanOrder.indexOf(plan) > billingPlanOrder.indexOf(currentPlan));
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -221,6 +244,89 @@ export default function ProfilePage() {
     });
   };
 
+  const resetBillingModal = () => {
+    setShowBillingModal(false);
+    setBillingModalStep('form');
+    setBillingError('');
+    setBillingSuccess('');
+    setBillingRequestNote('');
+    setBillingTargetPlan('PRO');
+    setBillingForm({
+      name: profile?.name || user?.name || '',
+      email: profile?.email || user?.email || '',
+    });
+  };
+
+  const startBillingUpgrade = () => {
+    if (billingPlanOptions.length === 0) {
+      setBillingError('Ya tienes el plan más alto disponible');
+      return;
+    }
+
+    setBillingError('');
+    setBillingSuccess('');
+    setBillingTargetPlan(billingPlanOptions[0]);
+    setBillingForm({
+      name: profile?.name || user?.name || '',
+      email: profile?.email || user?.email || '',
+    });
+    setShowBillingModal(true);
+    setBillingModalStep('form');
+  };
+
+  useEffect(() => {
+    if (!showBillingModal) {
+      return;
+    }
+
+    if (billingModalStep === 'qr-loading') {
+      const timer = window.setTimeout(() => {
+        setBillingModalStep('qr-visible');
+      }, 3400);
+
+      return () => window.clearTimeout(timer);
+    }
+
+    if (billingModalStep === 'qr-visible') {
+      const timer = window.setTimeout(() => {
+        setBillingRequestNote('Pago procesado');
+        setBillingModalStep('processing');
+      }, 5000);
+
+      return () => window.clearTimeout(timer);
+    }
+
+    if (billingModalStep === 'processing') {
+      const timer = window.setTimeout(() => {
+        setProfile((current) => ({
+          ...current,
+          subscription: billingTargetPlan,
+        }));
+        setBillingSuccess(`Plan actualizado a ${billingPlanLabels[billingTargetPlan]}`);
+        setBillingModalStep('done');
+      }, 1400);
+
+      return () => window.clearTimeout(timer);
+    }
+
+    return undefined;
+  }, [billingModalStep, billingTargetPlan, showBillingModal]);
+
+  const handleBillingContinue = () => {
+    if (!billingForm.name.trim() || !billingForm.email.trim()) {
+      setBillingError('Completa nombre y correo para continuar');
+      return;
+    }
+
+    if (billingTargetPlan === currentPlan) {
+      setBillingError('Selecciona un plan superior');
+      return;
+    }
+
+    setBillingError('');
+    setBillingModalStep('qr-loading');
+  };
+
   if (loadingProfile) {
     return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading profile...</div>;
   }
@@ -241,7 +347,7 @@ export default function ProfilePage() {
             <Shield size={18} /> Security
           </button>
           <button onClick={() => setActiveTab('billing')} className="btn" style={{ justifyContent: 'flex-start', backgroundColor: activeTab === 'billing' ? 'var(--primary)' : 'transparent', color: activeTab === 'billing' ? '#000' : 'var(--text-secondary)' }}>
-            <CreditCard size={18} /> Billing
+            <CircleDollarSign size={18} /> Billing
           </button>
           <div style={{ margin: '1rem 0', borderBottom: '1px solid var(--border-color)' }}></div>
           <button onClick={handleLogout} className="btn" style={{ justifyContent: 'flex-start', background: 'transparent', color: 'var(--danger)' }}>
@@ -411,14 +517,45 @@ export default function ProfilePage() {
           {activeTab === 'billing' && (
             <div className="card">
               <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Billing Information</h3>
-              
-              <button className="btn btn-outline" style={{ marginBottom: '1rem' }}>Change Plan</button>
-              <h4 style={{ marginTop: '2rem', marginBottom: '1rem' }}>Payment Method</h4>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius)' }}>
-                <CreditCard size={24} color="var(--primary)" />
-                <div>
-                  <p style={{ fontWeight: 600, margin: 0 }}>Visa ending in 4242</p>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>Expires 12/28</p>
+
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                <div style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius)', background: 'rgba(255,255,255,0.02)' }}>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Current plan</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginTop: '0.35rem' }}>
+                    <div>
+                      <h4 style={{ margin: 0 }}>{billingPlanLabels[currentPlan]}</h4>
+                      <p style={{ margin: '0.25rem 0 0', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{profile?.subscription || 'FREE'}</p>
+                    </div>
+                    <span style={{ padding: '0.4rem 0.75rem', borderRadius: '999px', background: 'rgba(255,255,255,0.08)', color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>
+                      Active
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+                  <button className="btn btn-outline" onClick={startBillingUpgrade} type="button" disabled={billingPlanOptions.length === 0} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                    Change Plan <ArrowRight size={16} />
+                  </button>
+                  {billingSuccess && (
+                    <div style={{ color: 'var(--success)', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <CheckCircle2 size={16} />
+                      {billingSuccess}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                  <h4 style={{ margin: '0.5rem 0 0' }}>Available upgrades</h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    {billingPlanOptions.length > 0 ? billingPlanOptions.map((plan) => (
+                      <div key={plan} style={{ padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius)', minWidth: '120px' }}>
+                        <p style={{ margin: 0, fontWeight: 700 }}>{billingPlanLabels[plan]}</p>
+                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Upgrade available</p>
+                      </div>
+                    )) : (
+                      <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>You already have the highest available plan.</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -480,6 +617,114 @@ export default function ProfilePage() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
               <button className="btn btn-outline" onClick={() => { setShowSecurityVerifyModal(false); setSecurityVerifyPassword(''); setSecurityVerifyError(''); }} type="button">Cancel</button>
               <button className="btn btn-primary" onClick={handleVerifySecurityPassword} disabled={securitySaving}>Verify & Edit</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBillingModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '1rem' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '560px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at top left, rgba(255,255,255,0.06), transparent 40%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
+                <div>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Plan upgrade</p>
+                  <h3 style={{ margin: '0.25rem 0 0' }}>{billingModalStep === 'done' ? 'Payment complete' : 'Change plan'}</h3>
+                </div>
+                <button type="button" className="btn btn-outline" onClick={resetBillingModal} style={{ padding: '0.5rem 0.75rem' }}>
+                  Close
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                {billingPlanOptions.map((plan) => (
+                  <button
+                    key={plan}
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => setBillingTargetPlan(plan)}
+                    style={{
+                      backgroundColor: billingTargetPlan === plan ? 'var(--primary)' : 'transparent',
+                      color: billingTargetPlan === plan ? '#000' : 'var(--text-secondary)',
+                    }}
+                  >
+                    {billingPlanLabels[plan]}
+                  </button>
+                ))}
+              </div>
+
+              {billingError && (
+                <div style={{ backgroundColor: 'rgba(255, 77, 79, 0.1)', color: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--border-radius)', marginTop: '1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <AlertCircle size={18} />
+                  {billingError}
+                </div>
+              )}
+
+              {billingModalStep === 'form' && (
+                <div style={{ display: 'grid', gap: '1rem', marginTop: '1.25rem' }}>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)' }}>We will validate the upgrade, then generate a payment QR before processing the change.</p>
+                  <div className="input-group">
+                    <label>Name</label>
+                    <input className="input-field" type="text" value={billingForm.name} onChange={(e) => setBillingForm({ ...billingForm, name: e.target.value })} />
+                  </div>
+                  <div className="input-group">
+                    <label>Email</label>
+                    <input className="input-field" type="email" value={billingForm.email} onChange={(e) => setBillingForm({ ...billingForm, email: e.target.value })} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                    <button type="button" className="btn btn-outline" onClick={resetBillingModal}>Cancel</button>
+                    <button type="button" className="btn btn-primary" onClick={handleBillingContinue}>Continue</button>
+                  </div>
+                </div>
+              )}
+
+              {billingModalStep === 'qr-loading' && (
+                <div style={{ display: 'grid', placeItems: 'center', gap: '1rem', minHeight: '320px', textAlign: 'center', marginTop: '1rem' }}>
+                  <Loader2 size={42} className="animate-spin" color="var(--primary)" />
+                  <div>
+                    <h4 style={{ margin: 0 }}>Generating payment QR</h4>
+                    <p style={{ margin: '0.4rem 0 0', color: 'var(--text-secondary)' }}>Almost ready, preparing your payment details.</p>
+                  </div>
+                </div>
+              )}
+
+              {billingModalStep === 'qr-visible' && (
+                <div style={{ display: 'grid', gap: '1rem', justifyItems: 'center', marginTop: '1.25rem' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <h4 style={{ margin: 0 }}>Your payment QR is ready</h4>
+                    <p style={{ margin: '0.35rem 0 0', color: 'var(--text-secondary)' }}>Scan it to confirm the upgrade to {billingPlanLabels[billingTargetPlan]}.</p>
+                  </div>
+                  <div style={{ width: '100%', maxWidth: '300px', padding: '1rem', borderRadius: '1.25rem', background: '#fff', boxShadow: '0 18px 48px rgba(0,0,0,0.25)' }}>
+                    <img src={qrBaseImage} alt="QR base for payment" style={{ display: 'block', width: '100%', height: 'auto', borderRadius: '0.75rem' }} />
+                  </div>
+                  <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                    <span>Preparing charge</span>
+                    <span>QR visible</span>
+                  </div>
+                </div>
+              )}
+
+              {billingModalStep === 'processing' && (
+                <div style={{ display: 'grid', placeItems: 'center', gap: '1rem', minHeight: '320px', textAlign: 'center', marginTop: '1rem' }}>
+                  <Loader2 size={42} className="animate-spin" color="var(--primary)" />
+                  <div>
+                    <h4 style={{ margin: 0 }}>{billingRequestNote || 'Processing payment'}</h4>
+                    <p style={{ margin: '0.4rem 0 0', color: 'var(--text-secondary)' }}>Simulating backend request to update the plan.</p>
+                  </div>
+                </div>
+              )}
+
+              {billingModalStep === 'done' && (
+                <div style={{ display: 'grid', placeItems: 'center', gap: '1rem', minHeight: '280px', textAlign: 'center', marginTop: '1rem' }}>
+                  <CheckCircle2 size={52} color="var(--success)" />
+                  <div>
+                    <h4 style={{ margin: 0 }}>Plan updated to {billingPlanLabels[billingTargetPlan]}</h4>
+                    <p style={{ margin: '0.4rem 0 0', color: 'var(--text-secondary)' }}>The upgrade was applied locally for now. Backend integration can be connected later.</p>
+                  </div>
+                  <button type="button" className="btn btn-primary" onClick={resetBillingModal}>Done</button>
+                </div>
+              )}
             </div>
           </div>
         </div>
