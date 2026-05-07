@@ -133,6 +133,7 @@ public class UserService implements UserDetailsService {
 
         String code = generateRandomCode();
         PasswordResetToken token = PasswordResetToken.builder()
+            .token(UUID.randomUUID())
                 .code(code)
                 .user(user)
                 .expiresAt(LocalDateTime.now().plusMinutes(15))
