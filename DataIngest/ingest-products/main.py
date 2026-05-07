@@ -27,8 +27,10 @@ def extract_products(collection) -> list:
 
 
 def write_json(records: list, filepath: str) -> None:
+    # JSON Lines format (one object per line) — required by Athena
     with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(records, f, ensure_ascii=False, indent=2)
+        for record in records:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
 def upload_to_s3(filepath: str, bucket: str, key: str) -> None:
