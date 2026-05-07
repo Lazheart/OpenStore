@@ -56,6 +56,7 @@ def gen_product(i: int, shop_i: int) -> dict:
 
 
 def gen_shop_user(i: int, shop_id: str) -> dict:
+    # name omitted: server auto-generates it from email prefix (ShopRegisterRequest has no name field)
     return {
         "email": f"user{i}_{fake.uuid4()[:8]}@seed.dev",
         "password": f"Seed1234!{i}",
