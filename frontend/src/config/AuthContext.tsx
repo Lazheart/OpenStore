@@ -26,6 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   const login = (userData: AuthResponse) => {
+    localStorage.setItem('token', userData.token);
     setUser(userData);
   };
 

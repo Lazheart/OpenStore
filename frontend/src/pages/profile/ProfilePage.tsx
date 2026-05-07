@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, Bell, CreditCard, Eye, EyeOff, LogOut, Mail, Shield, User } from 'lucide-react';
+import { AlertCircle, Bell, CreditCard, Eye, EyeOff, LogOut, Mail, Shield, User, Edit2 } from 'lucide-react';
 import { useAuth } from '../../config/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/api';
@@ -23,6 +23,9 @@ export default function ProfilePage() {
   const [showSecurityVerifyModal, setShowSecurityVerifyModal] = useState(false);
   const [generalForm, setGeneralForm] = useState({ name: '', email: '', phoneNumber: '' });
   const [securityForm, setSecurityForm] = useState({ newPassword: '', confirmPassword: '' });
+  const [isEditingGeneral, setIsEditingGeneral] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verifyError, setVerifyError] = useState('');
 
   const authEmail = user?.email || '';
 
@@ -62,11 +65,25 @@ export default function ProfilePage() {
       .toUpperCase() || 'U';
   };
 
-  const handleSaveGeneral = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setGeneralError('');
-    setGeneralSuccess('');
-    setShowGeneralVerifyModal(true);
+  const handleVerifyPasswordForEdit = async () => {
+    if (!verifyPasswordInput) {
+      setVerifyError('Debes ingresar tu contraseña actual');
+      return;
+    }
+
+    try {
+      setGeneralSaving(true);
+      setVerifyError('');
+      const verifyResponse = await verifyPassword({ email: authEmail, password: verifyPasswordInput });
+      setVerificationCode(verifyResponse.code);
+      setIsEditingGeneral(true);
+      setShowGeneralVerifyModal(false);
+      setVerifyPasswordInput('');
+    } catch (error) {
+      setVerifyError(getApiErrorMessage(error, 'Contraseña incorrecta'));
+    } finally {
+      setGeneralSaving(false);
+    }
   };
 
   const handleSaveSecurity = async (e: React.FormEvent) => {
@@ -87,20 +104,21 @@ export default function ProfilePage() {
     setShowSecurityVerifyModal(true);
   };
 
-  const submitGeneralUpdate = async () => {
-    if (!verifyPasswordInput) {
-      setGeneralError('Debes ingresar tu contraseña actual');
+  const submitGeneralUpdate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!verificationCode) {
+      setGeneralError('No tienes permisos para editar (falta código)');
       return;
     }
 
     try {
       setGeneralSaving(true);
-      const verifyResponse = await verifyPassword({ email: authEmail, password: verifyPasswordInput });
+      setGeneralError('');
       await updateProfile({
         name: generalForm.name,
         email: generalForm.email,
         phoneNumber: generalForm.phoneNumber || undefined,
-        code: verifyResponse.code,
+        code: verificationCode,
       });
 
       const updated = await getMe();
@@ -111,13 +129,24 @@ export default function ProfilePage() {
         phoneNumber: updated.phoneNumber || '',
       });
       setGeneralSuccess('Perfil actualizado correctamente');
-      setShowGeneralVerifyModal(false);
-      setVerifyPasswordInput('');
+      setIsEditingGeneral(false);
+      setVerificationCode('');
     } catch (error) {
       setGeneralError(getApiErrorMessage(error, 'No se pudo actualizar el perfil'));
     } finally {
       setGeneralSaving(false);
     }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingGeneral(false);
+    setVerificationCode('');
+    setGeneralError('');
+    setGeneralForm({
+      name: profile?.name || user?.name || '',
+      email: profile?.email || user?.email || '',
+      phoneNumber: profile?.phoneNumber || '',
+    });
   };
 
   const submitSecurityUpdate = async () => {
@@ -177,7 +206,14 @@ export default function ProfilePage() {
           {activeTab === 'general' && (
             <>
               <div className="card">
-                <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Personal Information</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+                  <h3 style={{ margin: 0 }}>Personal Information</h3>
+                  {!isEditingGeneral && (
+                    <button className="btn btn-outline" onClick={() => { setVerifyError(''); setShowGeneralVerifyModal(true); }} style={{ padding: '0.5rem', borderRadius: '50%' }} title="Edit Profile">
+                      <Edit2 size={16} />
+                    </button>
+                  )}
+                </div>
 
                 {generalError && (
                   <div style={{ backgroundColor: 'rgba(255, 77, 79, 0.1)', color: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--border-radius)', marginBottom: '1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -213,27 +249,29 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <form onSubmit={handleSaveGeneral} className="grid grid-cols-2 gap-4">
+                <form onSubmit={submitGeneralUpdate} className="grid grid-cols-2 gap-4">
                   <div className="input-group">
                     <label>Name</label>
-                    <input type="text" className="input-field" value={generalForm.name} onChange={(e) => setGeneralForm({ ...generalForm, name: e.target.value })} />
+                    <input type="text" className="input-field" disabled={!isEditingGeneral} value={generalForm.name} onChange={(e) => setGeneralForm({ ...generalForm, name: e.target.value })} />
                   </div>
                   <div className="input-group" style={{ gridColumn: 'span 2' }}>
                     <label>Email Address</label>
                     <div style={{ position: 'relative' }}>
                       <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                      <input type="email" className="input-field" value={generalForm.email} style={{ paddingLeft: '2.5rem' }} onChange={(e) => setGeneralForm({ ...generalForm, email: e.target.value })} />
+                      <input type="email" className="input-field" disabled={!isEditingGeneral} value={generalForm.email} style={{ paddingLeft: '2.5rem' }} onChange={(e) => setGeneralForm({ ...generalForm, email: e.target.value })} />
                     </div>
                   </div>
                   <div className="input-group" style={{ gridColumn: 'span 2' }}>
                     <label>Phone Number</label>
-                    <input type="tel" className="input-field" value={generalForm.phoneNumber} onChange={(e) => setGeneralForm({ ...generalForm, phoneNumber: e.target.value })} />
+                    <input type="tel" className="input-field" disabled={!isEditingGeneral} value={generalForm.phoneNumber} onChange={(e) => setGeneralForm({ ...generalForm, phoneNumber: e.target.value })} />
                   </div>
 
-                  <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                    <button type="button" className="btn btn-outline" onClick={() => setGeneralForm({ name: profile?.name || user?.name || '', email: profile?.email || user?.email || '', phoneNumber: profile?.phoneNumber || '' })}>Cancel</button>
-                    <button type="submit" className="btn btn-primary">Save Changes</button>
-                  </div>
+                  {isEditingGeneral && (
+                    <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                      <button type="button" className="btn btn-outline" onClick={handleCancelEdit}>Cancel</button>
+                      <button type="submit" className="btn btn-primary" disabled={generalSaving}>Save Changes</button>
+                    </div>
+                  )}
                 </form>
               </div>
             </>
@@ -313,8 +351,16 @@ export default function ProfilePage() {
       {showGeneralVerifyModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div className="card" style={{ width: '100%', maxWidth: '420px' }}>
-            <h3 style={{ marginTop: 0 }}>Confirmar cambios</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>Ingresa tu contraseña actual para generar el código temporal y aplicar los cambios.</p>
+            <h3 style={{ marginTop: 0 }}>Habilitar Edición</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>Ingresa tu contraseña actual para poder editar tu perfil.</p>
+            
+            {verifyError && (
+              <div style={{ backgroundColor: 'rgba(255, 77, 79, 0.1)', color: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--border-radius)', marginBottom: '1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <AlertCircle size={18} />
+                {verifyError}
+              </div>
+            )}
+
             <div className="input-group">
               <label>Current Password</label>
               <div style={{ position: 'relative' }}>
@@ -325,8 +371,8 @@ export default function ProfilePage() {
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-              <button className="btn btn-outline" onClick={() => { setShowGeneralVerifyModal(false); setVerifyPasswordInput(''); }} type="button">Cancel</button>
-              <button className="btn btn-primary" onClick={submitGeneralUpdate} disabled={generalSaving}>Verify & Save</button>
+              <button className="btn btn-outline" onClick={() => { setShowGeneralVerifyModal(false); setVerifyPasswordInput(''); setVerifyError(''); }} type="button">Cancel</button>
+              <button className="btn btn-primary" onClick={handleVerifyPasswordForEdit} disabled={generalSaving}>Verify & Edit</button>
             </div>
           </div>
         </div>
