@@ -25,6 +25,7 @@ from services_paths import (
 	shop_internal_delete_url,
 	shop_update_url,
 	user_me_url,
+	user_get_by_id_url,
 	user_auth_login_url,
 	user_auth_register_url,
 	shop_list_url,
@@ -143,13 +144,39 @@ def health() -> dict[str, str]:
 	"/me",
 	tags=["Auth"],
 	summary="Perfil del usuario actual",
-	description="Reenvía al user-service (`GET /me`) con el mismo encabezado Authorization.",
+	description="Obtiene el ID del usuario (`GET /me`) y luego consulta sus detalles completos (`GET /users/{id}`).",
 )
 async def me(authorization: str | None = Header(default=None)) -> Any:
 	if not authorization:
 		raise HTTPException(status_code=401, detail="Acceso denegado. Token no proporcionado.")
 
-	return await _forward("GET", user_me_url(), authorization=authorization)
+	me_response = await _forward("GET", user_me_url(), authorization=authorization)
+	if not isinstance(me_response, dict) or me_response.get("id") is None:
+		return me_response
+
+	user_id = me_response["id"]
+	user_details = await _forward("GET", user_get_by_id_url(user_id), authorization=authorization)
+
+	if not isinstance(user_details, dict):
+		return user_details
+
+	result = {
+		"id": user_details.get("id"),
+		"name": user_details.get("name"),
+		"email": user_details.get("email"),
+		"phoneNumber": user_details.get("phoneNumber"),
+		"role": user_details.get("role", me_response.get("role")),
+	}
+
+	subscription = user_details.get("subscription") or me_response.get("subscriptions")
+	if subscription:
+		result["subscription"] = subscription
+
+	shop_id = user_details.get("shopId")
+	if shop_id:
+		result["shopId"] = shop_id
+
+	return result
 
 
 @app.post(
