@@ -61,3 +61,67 @@ def gen_shop_user(i: int, shop_id: str) -> dict:
         "password": f"Seed1234!{i}",
         "shopId": shop_id,
     }
+
+# ---------------------------------------------------------------------------
+# API clients
+# ---------------------------------------------------------------------------
+
+async def register_owner(client: httpx.AsyncClient, data: dict) -> dict:
+    r = await client.post(f"{STORE_SERVICE_URL}/auth/register", json=data)
+    r.raise_for_status()
+    return r.json()
+
+
+async def login(client: httpx.AsyncClient, email: str, password: str) -> str:
+    r = await client.post(
+        f"{STORE_SERVICE_URL}/auth/login",
+        json={"identifier": email, "password": password},
+    )
+    r.raise_for_status()
+    return r.json()["token"]
+
+
+async def create_shop(client: httpx.AsyncClient, data: dict, token: str) -> dict:
+    r = await client.post(
+        f"{STORE_SERVICE_URL}/openshop/shop",
+        json=data,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+async def create_product(
+    client: httpx.AsyncClient,
+    shop_id: str,
+    data: dict,
+    token: str,
+    sem: asyncio.Semaphore,
+) -> bool:
+    async with sem:
+        try:
+            r = await client.post(
+                f"{STORE_SERVICE_URL}/shops/{shop_id}/products",
+                json=data,
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            r.raise_for_status()
+            return True
+        except Exception as e:
+            print(f"  [!] Producto fallido: {e}")
+            return False
+
+
+async def create_shop_user(
+    client: httpx.AsyncClient,
+    data: dict,
+    sem: asyncio.Semaphore,
+) -> bool:
+    async with sem:
+        try:
+            r = await client.post(f"{STORE_SERVICE_URL}/auth/register", json=data)
+            r.raise_for_status()
+            return True
+        except Exception as e:
+            print(f"  [!] Usuario fallido: {e}")
+            return False

@@ -21,6 +21,11 @@ from seed import (
     gen_shop,
     gen_product,
     gen_shop_user,
+    register_owner,
+    login,
+    create_shop,
+    create_product,
+    create_shop_user,
 )
 
 
@@ -107,3 +112,116 @@ def test_gen_shop_user_password_meets_requirements():
     assert any(c.isupper() for c in pw)
     assert any(c.islower() for c in pw)
     assert any(c.isdigit() for c in pw)
+
+
+# --- API clients ---
+import asyncio
+import respx
+import httpx
+
+BASE = "http://test-store:8004"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_register_owner_posts_to_auth_register():
+    respx.post(f"{BASE}/auth/register").mock(
+        return_value=httpx.Response(200, json={"id": "uid-1", "token": "tok"})
+    )
+    async with httpx.AsyncClient() as client:
+        result = await register_owner(client, {"email": "a@b.com", "password": "Pass123!", "name": "A"})
+    assert result == {"id": "uid-1", "token": "tok"}
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_register_owner_raises_on_error():
+    respx.post(f"{BASE}/auth/register").mock(
+        return_value=httpx.Response(400, json={"error": "Email already in use"})
+    )
+    async with httpx.AsyncClient() as client:
+        with pytest.raises(httpx.HTTPStatusError):
+            await register_owner(client, {"email": "dup@b.com", "password": "Pass123!", "name": "A"})
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_login_returns_token():
+    respx.post(f"{BASE}/auth/login").mock(
+        return_value=httpx.Response(200, json={"token": "jwt-abc", "id": "uid-1"})
+    )
+    async with httpx.AsyncClient() as client:
+        token = await login(client, "a@b.com", "Pass123!")
+    assert token == "jwt-abc"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_create_shop_sends_auth_header():
+    route = respx.post(f"{BASE}/openshop/shop").mock(
+        return_value=httpx.Response(201, json={"id": "shop-uuid", "name": "Mi Tienda"})
+    )
+    async with httpx.AsyncClient() as client:
+        result = await create_shop(client, {"shopName": "Mi Tienda", "phoneNumber": "123"}, "jwt-abc")
+    assert result["id"] == "shop-uuid"
+    assert route.calls[0].request.headers["authorization"] == "Bearer jwt-abc"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_create_product_returns_true_on_success():
+    respx.post(f"{BASE}/shops/shop-uuid/products").mock(
+        return_value=httpx.Response(201, json={"productId": "prod-1"})
+    )
+    sem = asyncio.Semaphore(5)
+    async with httpx.AsyncClient() as client:
+        ok = await create_product(
+            client, "shop-uuid",
+            {"name": "P", "imageUrl": "https://picsum.photos/seed/1/400/400", "price": 9.99, "description": "desc"},
+            "jwt-abc", sem
+        )
+    assert ok is True
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_create_product_returns_false_on_error():
+    respx.post(f"{BASE}/shops/shop-uuid/products").mock(
+        return_value=httpx.Response(500)
+    )
+    sem = asyncio.Semaphore(5)
+    async with httpx.AsyncClient() as client:
+        ok = await create_product(
+            client, "shop-uuid",
+            {"name": "P", "imageUrl": "https://picsum.photos/seed/1/400/400", "price": 9.99, "description": "desc"},
+            "jwt-abc", sem
+        )
+    assert ok is False
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_create_shop_user_returns_true_on_success():
+    respx.post(f"{BASE}/auth/register").mock(
+        return_value=httpx.Response(200, json={"id": "user-1"})
+    )
+    sem = asyncio.Semaphore(5)
+    async with httpx.AsyncClient() as client:
+        ok = await create_shop_user(
+            client, {"email": "u@b.com", "password": "Pass123!", "shopId": "shop-uuid"}, sem
+        )
+    assert ok is True
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_create_shop_user_returns_false_on_error():
+    respx.post(f"{BASE}/auth/register").mock(
+        return_value=httpx.Response(400, json={"error": "Email already in use"})
+    )
+    sem = asyncio.Semaphore(5)
+    async with httpx.AsyncClient() as client:
+        ok = await create_shop_user(
+            client, {"email": "dup@b.com", "password": "Pass123!", "shopId": "shop-uuid"}, sem
+        )
+    assert ok is False
