@@ -19,7 +19,7 @@ random.seed(42)
 PG_HOST    = os.getenv("POSTGRES_HOST", "172.31.11.149")
 MY_HOST    = os.getenv("MYSQL_HOST", "172.31.11.149")
 MG_URI     = os.getenv("MONGO_URI", "mongodb://admin:admin123@172.31.11.149:27017/productdb")
-N_SHOPS    = int(os.getenv("NUM_SHOPS", "10"))
+N_SHOPS    = int(os.getenv("NUM_SHOPS", "100"))
 N_USERS    = int(os.getenv("USERS_PER_SHOP", "100"))
 N_PRODUCTS = int(os.getenv("PRODUCTS_PER_SHOP", "200"))
 
