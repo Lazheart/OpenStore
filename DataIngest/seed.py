@@ -95,6 +95,25 @@ my = pymysql.connect(
 )
 cur = my.cursor()
 
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS Shop (
+        id VARCHAR(36) PRIMARY KEY,
+        name VARCHAR(191) UNIQUE NOT NULL,
+        owner_id VARCHAR(36) NOT NULL,
+        phone_number VARCHAR(191) NOT NULL
+    )
+""")
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS Membership (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id VARCHAR(36) NOT NULL,
+        role VARCHAR(191) NOT NULL,
+        shop_id VARCHAR(36) NOT NULL,
+        FOREIGN KEY (shop_id) REFERENCES Shop(id)
+    )
+""")
+my.commit()
+
 shop_rows = [
     (str(shop_ids[i]), f.company()[:80] + f" #{i + 1}", str(owner_ids[i]), f.numerify("3#########"))
     for i in range(N_SHOPS)
