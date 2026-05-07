@@ -88,36 +88,10 @@ export default function ProfilePage() {
                   <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                   <input type="email" className="input-field" defaultValue={user?.email || ''} style={{ paddingLeft: '2.5rem' }} disabled />
                 </div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Check size={14} color="var(--success)" /> Email verified
-                </p>
               </div>
             </div>
           </div>
 
-          <div className="card">
-            <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Store Details</h3>
-            <div className="input-group">
-              <label>Store Name</label>
-              <input type="text" className="input-field" defaultValue={user?.storeName || ''} />
-            </div>
-            <div className="input-group">
-              <label>Store URL</label>
-              <div style={{ display: 'flex' }}>
-                <span style={{ 
-                  padding: '0.75rem 1rem', 
-                  backgroundColor: 'rgba(0,0,0,0.05)', 
-                  border: '1px solid var(--border-color)', 
-                  borderRight: 'none',
-                  borderRadius: 'var(--border-radius) 0 0 var(--border-radius)',
-                  color: 'var(--text-secondary)'
-                }}>
-                  openstore.com/
-                </span>
-                <input type="text" className="input-field" defaultValue={user?.storeUrl || ''} style={{ borderRadius: '0 var(--border-radius) var(--border-radius) 0' }} />
-              </div>
-            </div>
-          </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
             <button className="btn btn-outline">Cancel</button>

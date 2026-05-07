@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Store, User, Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { Store, User, Lock, Mail, Eye, EyeOff, Phone } from 'lucide-react';
 import { useAuth } from '../../config/AuthContext';
 
 import { register as apiRegister } from '../../api/user-service/user-service';
@@ -9,7 +9,7 @@ import { getApiErrorMessage } from '../../api/api';
 export default function SignupPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', phoneNumber: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -25,6 +25,7 @@ export default function SignupPage() {
         email: formData.email,
         password: formData.password,
         role: 'OWNER',
+        phoneNumber: formData.phoneNumber.trim() || undefined,
       });
       
       login(authRes); // Actualiza contexto de autenticación
@@ -96,6 +97,14 @@ export default function SignupPage() {
             <div style={{ position: 'relative' }}>
               <Mail size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input type="email" className="input-field" placeholder="you@example.com" style={{ paddingLeft: '3rem', height: '45px' }} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
+            </div>
+          </div>
+
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label>Phone Number <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>(optional)</span></label>
+            <div style={{ position: 'relative' }}>
+              <Phone size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+              <input type="tel" className="input-field" placeholder="+1 (555) 000-0000" style={{ paddingLeft: '3rem', height: '45px' }} value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: e.target.value})} />
             </div>
           </div>
           

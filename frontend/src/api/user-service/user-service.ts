@@ -10,6 +10,7 @@ export interface RegisterRequest {
   email: string;
   password?: string;
   role: 'ADMIN' | 'OWNER' | 'CLIENT';
+  phoneNumber?: string;
 }
 
 export interface AuthResponse {
@@ -34,11 +35,14 @@ export const login = async (data: LoginRequest): Promise<AuthResponse> => {
 };
 
 export const register = async (data: RegisterRequest): Promise<AuthResponse> => {
-  const payload = {
+  const payload: Record<string, string> = {
     name: data.name,
     email: data.email,
     password: data.password || '',
   };
+  if (data.phoneNumber) {
+    payload.phoneNumber = data.phoneNumber;
+  }
   const response = await api.post<AuthResponse>('/auth/register', payload);
   if (response.data.token) {
     localStorage.setItem('token', response.data.token);
