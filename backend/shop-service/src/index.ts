@@ -121,6 +121,7 @@ app.get('/shops', async (req: Request, res: Response) => {
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     });
   } catch (error) {
+    console.error('Error in /shops:', error);
     res.status(500).json({ error: 'Error al obtener tiendas' });
   }
 });

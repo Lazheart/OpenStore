@@ -188,8 +188,8 @@ async def me(authorization: str | None = Header(default=None)) -> Any:
 	summary="Verificar contraseña",
 	description="Proxy a user-service para validar la contraseña actual y generar un código temporal.",
 )
-async def verify_password(payload: VerifyPasswordRequest) -> Any:
-	return await _forward("POST", user_verify_url(), payload=payload.model_dump())
+async def verify_password(payload: VerifyPasswordRequest, authorization: str | None = Header(default=None)) -> Any:
+	return await _forward("POST", user_verify_url(), payload=payload.model_dump(), authorization=authorization)
 
 
 @app.patch(
