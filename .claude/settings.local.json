@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_claude-mem_mcp-search__get_observations",
+      "mcp__plugin_claude-mem_mcp-search__smart_outline",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(pip install *)",
+      "Bash(pytest tests/test_seed.py -v)",
+      "Bash(python -m pytest tests/test_seed.py -v)",
+      "Bash(Get-Content -Path \"C:\\\\Users\\\\cefd2\\\\Downloads\\\\OpenStore\\\\backend\\\\seeder\\\\seed.py\")",
+      "Bash(Get-Content -Path \"C:\\\\Users\\\\cefd2\\\\Downloads\\\\OpenStore\\\\backend\\\\seeder\\\\tests\\\\test_seed.py\")",
+      "PowerShell(\\(Get-Content -Path \"C:\\\\Users\\\\cefd2\\\\Downloads\\\\OpenStore\\\\backend\\\\seeder\\\\tests\\\\test_seed.py\" | Select-String \"^def test_\" | Measure-Object\\).Count)",
+      "Bash(Get-Content *)",
+      "Bash(python -m pytest tests/test_seed.py -v -k \"register_owner or login or create_shop or create_product or create_shop_user\")",
+      "Bash(Select-Object -Skip 0 -First 50)",
+      "Bash(Select-String *)",
+      "Bash(pytest tests/test_seed.py -v -k \"seed_shop\")",
+      "mcp__plugin_claude-mem_mcp-search__search",
+      "Bash(python -m pytest tests/test_seed.py --collect-only -q)",
+      "Bash(python -m py_compile seed.py)"
+    ]
+  }
+}
