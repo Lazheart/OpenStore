@@ -433,6 +433,39 @@ sudo curl -SL "https://github.com/docker/compose/releases/download/v2.27.0/docke
 sudo chmod +x /usr/local/bin/docker-compose
 ```
 
+### 11. `docker-compose` Python falla con `ssl_version` o `http+docker` en MV-Ingesta
+La versión de `docker-compose` instalada vía pip tiene incompatibilidades con versiones nuevas de `requests` y `urllib3`. La solución es instalar el binario oficial de Docker Compose v2 con un nombre distinto para evitar conflicto:
+```bash
+sudo curl -L https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-linux-x86_64 \
+  -o /usr/local/bin/docker-compose2
+sudo chmod +x /usr/local/bin/docker-compose2
+```
+Usar siempre `docker-compose2` en lugar de `docker-compose` en MV-Ingesta.
+
+### 12. Tablas `shops_csv` y `memberships_csv` devuelven 0 filas en Athena
+El crawler de Glue apunta a una carpeta con múltiples archivos CSV y genera tablas cuya `Location` apunta al archivo específico en vez de a una carpeta. Athena no puede leer datos cuando la `Location` de la tabla es un archivo y no un prefijo S3.
+
+**Solución**: mover cada archivo a su propia subcarpeta y volver a correr el crawler:
+```bash
+aws s3 cp s3://openstore-ingest-637423414138/shops/shops.csv \
+  s3://openstore-ingest-637423414138/shops_data/shops.csv
+
+aws s3 cp s3://openstore-ingest-637423414138/shops/memberships.csv \
+  s3://openstore-ingest-637423414138/memberships_data/memberships.csv
+```
+Luego en Glue: eliminar las tablas `shops_csv` y `memberships_csv`, apuntar el crawler a `s3://openstore-ingest-637423414138/` y volver a correrlo. Las nuevas tablas se llamarán `shops_data` y `memberships_data`.
+
+> **Importante**: actualizar todas las queries de Athena para usar `shops_data` y `memberships_data` en lugar de `shops_csv` y `memberships_csv`.
+
+### 13. `Unable to locate credentials` al usar AWS CLI en MV-Ingesta
+El archivo `.env` solo lo leen los contenedores Docker. La terminal necesita las credenciales exportadas como variables de entorno de la sesión:
+```bash
+export AWS_ACCESS_KEY_ID=ASIA...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_SESSION_TOKEN=...
+```
+Estas variables se pierden al cerrar la terminal — deben exportarse en cada nueva sesión.
+
 ---
 
 ## Checklist de ejecución completa
@@ -443,7 +476,7 @@ sudo chmod +x /usr/local/bin/docker-compose
 [ ] MV-Ingesta: actualizar .env con credenciales AWS de la sesión
 [ ] MV-Ingesta: pip3 install -r requirements.txt
 [ ] MV-Ingesta: python3 seed.py
-[ ] MV-Ingesta: /usr/local/bin/docker-compose up --build
+[ ] MV-Ingesta: /usr/local/bin/docker-compose2 up --build
 [ ] AWS Glue: crear DB openstore_catalog
 [ ] AWS Glue: crear crawlers (users, shops, products)
 [ ] AWS Glue: correr los 3 crawlers → estado Ready

@@ -1,5 +1,8 @@
 from typing import Any
+import os
+import time
 
+import boto3
 import httpx
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -33,8 +36,51 @@ from services_paths import (
 	product_update_url,
 )
 
+ATHENA_DATABASE = os.getenv("ATHENA_DATABASE", "openstore_catalog")
+ATHENA_RESULTS_BUCKET = os.getenv("ATHENA_RESULTS_BUCKET", "s3://openstore-ingest-637423414138/athena-results/")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+
+
+def _run_athena_query(sql: str) -> list[dict]:
+	client = boto3.client(
+		"athena",
+		region_name=AWS_REGION,
+		aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+		aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+		aws_session_token=os.getenv("AWS_SESSION_TOKEN"),
+	)
+	response = client.start_query_execution(
+		QueryString=sql,
+		QueryExecutionContext={"Database": ATHENA_DATABASE},
+		ResultConfiguration={"OutputLocation": ATHENA_RESULTS_BUCKET},
+	)
+	execution_id = response["QueryExecutionId"]
+	for _ in range(30):
+		status = client.get_query_execution(QueryExecutionId=execution_id)
+		state = status["QueryExecution"]["Status"]["State"]
+		if state == "SUCCEEDED":
+			break
+		if state in ("FAILED", "CANCELLED"):
+			reason = status["QueryExecution"]["Status"].get("StateChangeReason", "")
+			raise HTTPException(status_code=500, detail=f"Athena query failed: {reason}")
+		time.sleep(1)
+	else:
+		raise HTTPException(status_code=504, detail="Athena query timeout")
+
+	results = client.get_query_results(QueryExecutionId=execution_id)
+	rows = results["ResultSet"]["Rows"]
+	if len(rows) < 2:
+		return []
+	headers = [col["VarCharValue"] for col in rows[0]["Data"]]
+	return [
+		{headers[i]: col.get("VarCharValue", "") for i, col in enumerate(row["Data"])}
+		for row in rows[1:]
+	]
+
+
 _OPENAPI_TAGS_METADATA = [
 	{"name": "Salud", "description": "Comprobaciones de vida del servicio."},
+	{"name": "Analytics", "description": "Consultas analíticas sobre el Data Lake en AWS Athena."},
 	{
 		"name": "Auth",
 		"description": (
@@ -376,6 +422,59 @@ async def get_owner_by_shop_id(shop_id: str) -> dict[str, str]:
 		raise HTTPException(status_code=404, detail="No se pudo resolver ownerId para la tienda")
 
 	return {"shopId": shop_id, "ownerId": str(owner_id)}
+
+
+@app.get("/analytics/productos-por-tienda", tags=["Analytics"], summary="Top tiendas por número de productos")
+async def analytics_productos_por_tienda():
+	sql = """
+		SELECT s.name AS shop_name,
+		       COUNT(DISTINCT p.id) AS total_products
+		FROM shops_data s
+		LEFT JOIN products p ON p.shopid = s.id
+		GROUP BY s.name
+		ORDER BY total_products DESC
+		LIMIT 20
+	"""
+	return _run_athena_query(sql)
+
+
+@app.get("/analytics/usuarios-por-tienda", tags=["Analytics"], summary="Usuarios asignados por tienda")
+async def analytics_usuarios_por_tienda():
+	sql = """
+		SELECT s.name AS shop_name,
+		       COUNT(DISTINCT u.id) AS total_users
+		FROM shops_data s
+		LEFT JOIN users u ON u.shop_id = s.id
+		GROUP BY s.name
+		ORDER BY total_users DESC
+		LIMIT 20
+	"""
+	return _run_athena_query(sql)
+
+
+@app.get("/analytics/membresias-por-tienda", tags=["Analytics"], summary="Membresías por tienda")
+async def analytics_membresias_por_tienda():
+	sql = """
+		SELECT s.name AS shop_name,
+		       COUNT(m.id) AS total_memberships
+		FROM shops_data s
+		LEFT JOIN memberships_data m ON m.shop_id = s.id
+		GROUP BY s.name
+		ORDER BY total_memberships DESC
+		LIMIT 20
+	"""
+	return _run_athena_query(sql)
+
+
+@app.get("/analytics/resumen-tiendas", tags=["Analytics"], summary="Resumen completo por tienda")
+async def analytics_resumen_tiendas():
+	sql = """
+		SELECT shop_name, total_products, total_users
+		FROM v_tienda_resumen
+		ORDER BY total_products DESC
+		LIMIT 20
+	"""
+	return _run_athena_query(sql)
 
 
 @app.get("/docs/mappings", response_class=HTMLResponse, tags=["Utilidades"], include_in_schema=False)
