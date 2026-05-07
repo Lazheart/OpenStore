@@ -225,3 +225,52 @@ async def test_create_shop_user_returns_false_on_error():
             client, {"email": "dup@b.com", "password": "Pass123!", "shopId": "shop-uuid"}, sem
         )
     assert ok is False
+
+
+# --- Orchestrator ---
+from unittest.mock import AsyncMock, patch
+
+
+@pytest.mark.asyncio
+async def test_seed_shop_returns_zero_when_register_fails():
+    with patch("seed.register_owner", new=AsyncMock(side_effect=Exception("Network error"))):
+        sem = asyncio.Semaphore(5)
+        async with httpx.AsyncClient() as client:
+            from seed import seed_shop
+            result = await seed_shop(client, 1, sem)
+    assert result["shop"] is False
+    assert result["products"] == 0
+    assert result["users"] == 0
+
+
+@pytest.mark.asyncio
+async def test_seed_shop_returns_zero_when_login_fails():
+    with (
+        patch("seed.register_owner", new=AsyncMock(return_value={"id": "uid-1"})),
+        patch("seed.login", new=AsyncMock(side_effect=Exception("Login error"))),
+    ):
+        sem = asyncio.Semaphore(5)
+        async with httpx.AsyncClient() as client:
+            from seed import seed_shop
+            result = await seed_shop(client, 1, sem)
+    assert result["shop"] is False
+    assert result["products"] == 0
+    assert result["users"] == 0
+
+
+@pytest.mark.asyncio
+async def test_seed_shop_returns_counts_on_full_success():
+    with (
+        patch("seed.register_owner", new=AsyncMock(return_value={"id": "uid-1"})),
+        patch("seed.login", new=AsyncMock(return_value="jwt-abc")),
+        patch("seed.create_shop", new=AsyncMock(return_value={"id": "shop-uuid", "name": "Tienda"})),
+        patch("seed.create_product", new=AsyncMock(return_value=True)),
+        patch("seed.create_shop_user", new=AsyncMock(return_value=True)),
+    ):
+        sem = asyncio.Semaphore(5)
+        async with httpx.AsyncClient() as client:
+            from seed import seed_shop
+            result = await seed_shop(client, 1, sem)
+    assert result["shop"] is True
+    assert result["products"] == PRODUCTS_PER_SHOP
+    assert result["users"] == USERS_PER_SHOP
