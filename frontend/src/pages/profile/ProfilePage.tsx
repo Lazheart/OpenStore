@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Eye, EyeOff, LogOut, Mail, Shield, User, Edit2, CircleDollarSign, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../config/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/api';
 import { getMe, type MeResponse, updateProfile, verifyPassword, updateSubscription } from '../../api/user-service/user-service';
 import qrBaseImage from '../../assets/qrbase.jpeg';
@@ -40,6 +40,7 @@ const billingPlanDetails: Record<BillingPlan, { title: string; price: string; de
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('general');
   const [profile, setProfile] = useState<MeResponse | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -107,6 +108,13 @@ export default function ProfilePage() {
 
     loadProfile();
   }, [authEmail, user?.email, user?.name]);
+
+  useEffect(() => {
+    const targetTab = (location.state as { tab?: string } | null)?.tab;
+    if (targetTab === 'general' || targetTab === 'security' || targetTab === 'billing') {
+      setActiveTab(targetTab);
+    }
+  }, [location.state]);
 
   const handleLogout = () => {
     logout();

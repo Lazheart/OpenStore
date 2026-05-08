@@ -1,10 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Package, Plus, Edit2, Store, ArrowLeft, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getShops, createShop } from '../../api/shop-service/shop-api';
 import type { Shop } from '../../api/shop-service/shop-api';
 import { getProductsByShop, createProduct, updateProduct } from '../../api/product-service/product-api';
 import type { Product } from '../../api/product-service/product-api';
-import { getCurrentUser } from '../../api/user-service/user-service';
+import { getCurrentUser, getMe } from '../../api/user-service/user-service';
+
+type BillingPlan = 'FREE' | 'PRO' | 'MAX';
+
+const shopLimits: Record<BillingPlan, number> = {
+  FREE: 1,
+  PRO: 5,
+  MAX: Number.POSITIVE_INFINITY,
+};
+
+const formatShopLimit = (limit: number): string =>
+  limit === Number.POSITIVE_INFINITY ? 'Unlimited' : String(limit);
 
 /* ─────────────────────────────────────────
    Helpers
@@ -25,7 +37,7 @@ const getInitials = (name: string): string =>
 /* Deterministic gradient from name */
 const getBannerGradient = (name: string): string => {
   const gradients = [
-    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    'linear-gradient(135deg, #d29431 0%, #5ccb9f 100%)',
     'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
     'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
     'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
@@ -117,14 +129,153 @@ function ShopCard({ shop, onClick }: ShopCardProps) {
   );
 }
 
+interface StoreActionCardProps {
+  canCreateShop: boolean;
+  shopCount: number;
+  shopLimit: number;
+  isCreatingShop: boolean;
+  shopName: string;
+  shopPhone: string;
+  onStartCreate: () => void;
+  onCancelCreate: () => void;
+  onShopNameChange: (value: string) => void;
+  onShopPhoneChange: (value: string) => void;
+  onCreateShop: (e: React.FormEvent) => void;
+  onUpgrade: () => void;
+}
+
+function StoreActionCard({
+  canCreateShop,
+  shopCount,
+  shopLimit,
+  isCreatingShop,
+  shopName,
+  shopPhone,
+  onStartCreate,
+  onCancelCreate,
+  onShopNameChange,
+  onShopPhoneChange,
+  onCreateShop,
+  onUpgrade,
+}: StoreActionCardProps) {
+  if (!canCreateShop) {
+    return (
+      <div
+        className="card"
+        style={{
+          minHeight: '280px',
+          border: '1px dashed var(--border-color)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          textAlign: 'center',
+          gap: '1rem',
+        }}
+      >
+        <Store size={44} color="var(--primary)" />
+        <div>
+          <h3 style={{ margin: 0 }}>Store limit reached</h3>
+          <p style={{ margin: '0.5rem 0 0', color: 'var(--text-secondary)', maxWidth: '260px' }}>
+            Your current plan allows {formatShopLimit(shopLimit)} store{shopLimit === 1 ? '' : 's'}. You have {shopCount}.
+          </p>
+        </div>
+        <button className="btn btn-primary" type="button" onClick={onUpgrade}>
+          Upgrade plan
+        </button>
+      </div>
+    );
+  }
+
+  if (isCreatingShop) {
+    return (
+      <div className="card" style={{ minHeight: '280px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Create New Store</h3>
+          </div>
+          <button className="btn btn-outline" type="button" onClick={onCancelCreate}>
+            Cancel
+          </button>
+        </div>
+
+        <form onSubmit={onCreateShop} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <input
+            type="text"
+            placeholder="Store Name"
+            className="input-field"
+            value={shopName}
+            onChange={(e) => onShopNameChange(e.target.value)}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Phone Number"
+            className="input-field"
+            value={shopPhone}
+            onChange={(e) => onShopPhoneChange(e.target.value)}
+            required
+          />
+          <button type="submit" className="btn btn-primary">
+            Create Store
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="card"
+      onClick={onStartCreate}
+      style={{
+        minHeight: '280px',
+        border: '1px dashed var(--border-color)',
+        background: 'linear-gradient(180deg, rgba(92,203,159,0.12) 0%, rgba(255,255,255,0.02) 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        textAlign: 'center',
+        gap: '1rem',
+        cursor: 'pointer',
+      }}
+    >
+      <div
+        style={{
+          width: '64px',
+          height: '64px',
+          borderRadius: '18px',
+          display: 'grid',
+          placeItems: 'center',
+          background: 'var(--primary)',
+          color: '#000',
+          boxShadow: '0 18px 32px rgba(0,0,0,0.18)',
+        }}
+      >
+        <Plus size={30} />
+      </div>
+      <div>
+        <h3 style={{ margin: 0 }}>Create New Store</h3>
+        <p style={{ margin: '0.5rem 0 0', color: 'var(--text-secondary)', maxWidth: '260px' }}>
+           Start another storefront from here.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* ─────────────────────────────────────────
    Main Component
 ───────────────────────────────────────── */
 
 export default function OwnerPanel() {
+  const navigate = useNavigate();
   const [shops, setShops] = useState<Shop[]>([]);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [billingPlan, setBillingPlan] = useState<BillingPlan>('FREE');
 
   const [loading, setLoading] = useState(true);
   const [productsLoading, setProductsLoading] = useState(false);
@@ -132,6 +283,7 @@ export default function OwnerPanel() {
   /* Create shop form */
   const [shopName, setShopName] = useState('');
   const [shopPhone, setShopPhone] = useState('');
+  const [showCreateShopForm, setShowCreateShopForm] = useState(false);
 
   /* Add product form */
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -143,12 +295,24 @@ export default function OwnerPanel() {
 
   const user = getCurrentUser();
 
+  const shopLimit = shopLimits[billingPlan];
+  const canCreateShop = shops.length < shopLimit;
+
+  const goToSubscriptionPlan = () => {
+    navigate('/profile', { state: { tab: 'billing' } });
+  };
+
   /* ── Load all owner shops ── */
   const loadShops = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getShops(1, 100);
+      const [data, profile] = await Promise.all([
+        getShops(1, 100),
+        getMe().catch(() => null),
+      ]);
       const allShops: Shop[] = data.data || [];
+      const subscription = String(profile?.subscription || '').toUpperCase();
+      setBillingPlan(subscription === 'PRO' || subscription === 'MAX' ? subscription : 'FREE');
       // Filter by owner if uid available, otherwise show all
       const ownerShops = user?.uid
         ? allShops.filter((s) => String(s.owner_id ?? s.ownerId) === String(user.uid))
@@ -195,10 +359,15 @@ export default function OwnerPanel() {
   /* ── Create shop ── */
   const handleCreateShop = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreateShop) {
+      goToSubscriptionPlan();
+      return;
+    }
     try {
       const created = await createShop(shopName, shopPhone);
       setShopName('');
       setShopPhone('');
+      setShowCreateShopForm(false);
       await loadShops();
       // Auto-select the newly created shop
       if (created) handleSelectShop(created);
@@ -481,60 +650,42 @@ export default function OwnerPanel() {
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ margin: 0 }}>My Stores</h1>
         <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-          Select a store to manage its products.
+          Select a store to manage its products. Plan: {billingPlan}.
         </p>
       </div>
 
-      {shops.length === 0 ? (
-        /* ── No shops: create one ── */
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
-          <div className="card" style={{ maxWidth: '500px', width: '100%', textAlign: 'center' }}>
-            <Store size={48} color="var(--primary)" style={{ margin: '0 auto 1.5rem' }} />
-            <h2 style={{ marginBottom: '1rem' }}>Create Your Store</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-              You don't have a store yet. Create one to start selling products.
-            </p>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+          gap: '1.5rem',
+        }}
+      >
+        {shops.map((shop) => (
+          <ShopCard key={getShopId(shop) || getShopName(shop)} shop={shop} onClick={handleSelectShop} />
+        ))}
 
-            <form
-              onSubmit={handleCreateShop}
-              style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
-            >
-              <input
-                type="text"
-                placeholder="Store Name"
-                className="input-field"
-                value={shopName}
-                onChange={(e) => setShopName(e.target.value)}
-                required
-              />
-              <input
-                type="text"
-                placeholder="Phone Number"
-                className="input-field"
-                value={shopPhone}
-                onChange={(e) => setShopPhone(e.target.value)}
-                required
-              />
-              <button type="submit" className="btn btn-primary">
-                Create Store
-              </button>
-            </form>
-          </div>
-        </div>
-      ) : (
-        /* ── Shop cards grid ── */
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-            gap: '1.5rem',
+        <StoreActionCard
+          canCreateShop={canCreateShop}
+          shopCount={shops.length}
+          shopLimit={shopLimit}
+          isCreatingShop={showCreateShopForm}
+          shopName={shopName}
+          shopPhone={shopPhone}
+          onStartCreate={() => {
+            if (!canCreateShop) {
+              goToSubscriptionPlan();
+              return;
+            }
+            setShowCreateShopForm(true);
           }}
-        >
-          {shops.map((shop) => (
-            <ShopCard key={getShopId(shop) || getShopName(shop)} shop={shop} onClick={handleSelectShop} />
-          ))}
-        </div>
-      )}
+          onCancelCreate={() => setShowCreateShopForm(false)}
+          onShopNameChange={setShopName}
+          onShopPhoneChange={setShopPhone}
+          onCreateShop={handleCreateShop}
+          onUpgrade={goToSubscriptionPlan}
+        />
+      </div>
     </div>
   );
 }
