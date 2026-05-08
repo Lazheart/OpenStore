@@ -38,7 +38,15 @@ export const getApiErrorMessage = (error: unknown, fallback = 'An unexpected err
 
     if (data && typeof data === 'object') {
       const payload = data as ApiErrorPayload;
-      const message = payload.message ?? payload.error ?? payload.detail;
+      
+      // Intentar obtener el mensaje de várias propiedades
+      let message = payload.message ?? payload.error;
+      
+      // Si no hay mensaje directo, revisar si está en un objeto detail
+      if (!message && payload.detail && typeof payload.detail === 'object') {
+        const detailObj = payload.detail as Record<string, unknown>;
+        message = detailObj.message ?? detailObj.error;
+      }
 
       if (typeof message === 'string' && message.trim().length > 0) {
         return message;

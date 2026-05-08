@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Store, User, Lock, Mail, Eye, EyeOff, Phone } from 'lucide-react';
+import { Store, User, Lock, Mail, Eye, EyeOff, Phone, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../config/AuthContext';
 
 import { register as apiRegister } from '../../api/user-service/user-service';
@@ -33,7 +33,65 @@ export default function SignupPage() {
       navigate('/owner');
     } catch (err: unknown) {
       console.error(err);
-      setError(getApiErrorMessage(err, 'Error al crear la cuenta'));
+      
+type ApiErrorDetail = {
+  message?: string;
+  error?: string;
+};
+
+type ApiErrorResponse = {
+  detail?: string | ApiErrorDetail;
+};
+
+
+// Extraer detalles del error si están disponibles
+let errorMessage = '';
+let errorInfo: { title?: string; message?: string } | null = null;
+
+if (
+  err &&
+  typeof err === 'object' &&
+  'response' in err &&
+  err.response &&
+  typeof err.response === 'object' &&
+  'data' in err.response
+) {
+  const response = err.response.data as ApiErrorResponse;
+
+  if (typeof response.detail === 'string') {
+    errorMessage = response.detail;
+
+    errorInfo = {
+      title: 'Error en el registro',
+      message: response.detail,
+    };
+  } else if (response.detail && typeof response.detail === 'object') {
+    const detail = response.detail;
+
+    errorMessage =
+      detail.message ||
+      detail.error ||
+      'Error al crear la cuenta';
+
+    errorInfo = {
+      title: detail.error || 'Error en el registro',
+      message: detail.message || errorMessage,
+    };
+  } else {
+    errorMessage = getApiErrorMessage(
+      err,
+      'Error al crear la cuenta'
+    );
+  }
+} else {
+  errorMessage = getApiErrorMessage(
+    err,
+    'Error al crear la cuenta'
+  );
+}
+      
+      setError(errorMessage);
+      if (errorInfo) setErrorDetail(errorInfo);
     } finally {
       setLoading(false);
     }
@@ -78,8 +136,12 @@ export default function SignupPage() {
         </div>
 
         {error && (
-          <div style={{ backgroundColor: 'rgba(255, 77, 79, 0.1)', color: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--border-radius)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-            {error}
+          <div style={{ backgroundColor: 'rgba(255, 77, 79, 0.15)', border: '1px solid rgba(255, 77, 79, 0.3)', color: 'var(--danger)', padding: '1rem', borderRadius: 'var(--border-radius)', marginBottom: '1.5rem', fontSize: '0.875rem', display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+            <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '0.125rem' }} />
+            <div>
+              <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Error en el registro</p>
+              <p style={{ margin: 0, color: 'var(--danger)' }}>{error}</p>
+            </div>
           </div>
         )}
 
@@ -161,3 +223,8 @@ export default function SignupPage() {
     </div>
   );
 }
+function setErrorDetail(errorInfo: { title?: string; message?: string; }) {
+  throw new Error('Function not implemented.');
+  console.log(errorInfo);
+}
+
