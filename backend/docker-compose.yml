@@ -8,10 +8,9 @@ services:
       - STORE_SERVICE_URL=http://store-service:8004
       - AWS_REGION=${AWS_REGION}
       - BUCKET_NAME=${BUCKET_NAME}
-      - MONGO_URI=${PRODUCT_DATABASE_URL}
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
-      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+      - MONGO_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@${DB_HOST}:27017/productdb?authSource=admin
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthcheck').read()\""]
       interval: 10s
