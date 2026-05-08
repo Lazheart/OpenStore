@@ -1,9 +1,9 @@
 import { api } from '../api';
 
 export interface Shop {
-  id: number;
+  id: string;
   name: string;
-  owner_id: number;
+  owner_id: string;
   created_at?: string;
 }
 
@@ -21,7 +21,7 @@ export const getShops = async (page = 1, limit = 10) => {
   return response.data;
 };
 
-export const getShopById = async (id: number): Promise<Shop> => {
+export const getShopById = async (id: string): Promise<Shop> => {
   const response = await api.get<Shop>(`/shops/${id}`);
   return response.data;
 };

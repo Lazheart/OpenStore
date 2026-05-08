@@ -52,4 +52,4 @@ USER nodeapp
 
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma db push --skip-generate && node dist/index.js"]

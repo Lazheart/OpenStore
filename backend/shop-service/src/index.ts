@@ -238,7 +238,7 @@ app.delete('/shop/id/:shopId', authenticateToken, async (req: AuthRequest, res: 
     }
 
     const existingShop = await prisma.shop.findUnique({
-      where: { id: Number(shopId) },
+      where: { id: shopId },
     });
 
     if (!existingShop) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ShoppingCart, Search, Star, Heart, ArrowLeft } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { getShopById, getShops } from '../../api/shop-service/shop-api';
@@ -13,11 +13,7 @@ export default function ShopLanding() {
   const [loading, setLoading] = useState(true);
 
   // If no ID is provided, we can either list shops or pick the first one. Let's just try loading one.
-  useEffect(() => {
-    loadShop();
-  }, [id]);
-
-  const loadShop = async () => {
+  const loadShop = useCallback(async () => {
     try {
       setLoading(true);
       let targetId = id;
@@ -31,7 +27,7 @@ export default function ShopLanding() {
 
       if (targetId) {
         const [shopData, productsData] = await Promise.all([
-          getShopById(Number(targetId)),
+          getShopById(targetId),
           getProductsByShop(targetId)
         ]);
         setShop(shopData);
@@ -42,7 +38,11 @@ export default function ShopLanding() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadShop();
+  }, [loadShop]);
 
   if (loading) {
     return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading Shop...</div>;
@@ -68,7 +68,7 @@ export default function ShopLanding() {
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <div style={{ position: 'relative', display: 'none', '@media (min-width: 768px)': { display: 'block' } } as any}>
+            <div className="shop-landing-search-wrapper" style={{ position: 'relative' }}>
               <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input type="text" placeholder="Search products..." className="input-field" style={{ paddingLeft: '2.5rem', width: '300px', borderRadius: '999px', backgroundColor: 'var(--bg-color)' }} />
             </div>

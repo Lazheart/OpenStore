@@ -11,7 +11,7 @@ class ShopService {
    * @param ownerId - The UID of the user from Auth Service.
     * @param phoneNumber - Contact phone number associated with the shop.
    */
-  async createShop(name: string, ownerId: number, phoneNumber: string): Promise<ShopRecord> {
+  async createShop(name: string, ownerId: string, phoneNumber: string): Promise<ShopRecord> {
     
 
     // Mocked check:
@@ -28,7 +28,7 @@ class ShopService {
     return newShop;
   }
 
-  async getShopsByOwner(ownerId: number): Promise<ShopList> {
+  async getShopsByOwner(ownerId: string): Promise<ShopList> {
     return prisma.shop.findMany({
       where: { owner_id: ownerId },
     });
