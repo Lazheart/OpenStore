@@ -50,6 +50,14 @@ def user_get_by_id_url(user_id: str) -> str:
 	return f"{USER_SERVICE_URL}/users/{user_id}"
 
 
+def user_update_subscription_url(user_id: str) -> str:
+	return f"{USER_SERVICE_URL}/users/{user_id}/subscription"
+
+
+def user_me_update_subscription_url() -> str:
+	return f"{USER_SERVICE_URL}/user/me/subscription"
+
+
 def product_delete_url(shop_id: str, product_id: str) -> str:
 	return f"{PRODUCT_SERVICE_URL}/shops/{shop_id}/products/{product_id}"
 

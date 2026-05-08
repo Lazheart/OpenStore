@@ -12,6 +12,7 @@ from mapping import (
 	ShopCreateRequest,
 	ShopUpdateRequest,
 	UpdateMeRequest,
+	UpdateSubscriptionRequest,
 	VerifyPasswordRequest,
 	build_register_payload,
 	build_shop_create_payload,
@@ -27,8 +28,10 @@ from services_paths import (
 	shop_internal_delete_url,
 	shop_update_url,
 	user_me_url,
+	user_me_update_subscription_url,
 	user_verify_url,
 	user_get_by_id_url,
+	user_update_subscription_url,
 	user_auth_login_url,
 	user_auth_register_url,
 	shop_list_url,
@@ -43,7 +46,8 @@ _OPENAPI_TAGS_METADATA = [
 		"name": "Auth",
 		"description": (
 			"Autenticación centralizada: según `shopId` en el cuerpo se enruta a "
-			"OWNER (`/api/auth/...`) o a usuario de tienda (`/api/auth/{shopId}/...`)."
+			"OWNER (`/api/auth/...`) o a usuario de tienda (`/api/auth/{shopId}/...`). "
+			"Incluye gestión de perfiles y suscripciones."
 		),
 	},
 	{"name": "Tiendas", "description": "Creación, lectura y actualización de tiendas vía shop-service."},
@@ -204,6 +208,38 @@ async def update_me(payload: UpdateMeRequest, authorization: str | None = Header
 
 	body = payload.model_dump(exclude_none=True)
 	return await _forward("PATCH", user_me_url(), payload=body, authorization=authorization)
+
+
+@app.patch(
+	"/user/me/subscription",
+	tags=["Auth"],
+	summary="Actualizar su propia suscripción",
+	description="Usuario actualiza su propio plan de suscripción.",
+)
+async def update_my_subscription(payload: UpdateSubscriptionRequest, authorization: str | None = Header(default=None)) -> Any:
+	if not authorization:
+		raise HTTPException(status_code=401, detail="Acceso denegado. Token no proporcionado.")
+
+	body = payload.model_dump()
+	return await _forward("PATCH", user_me_update_subscription_url(), payload=body, authorization=authorization)
+
+
+@app.patch(
+	"/user/{user_id}/subscription",
+	tags=["Auth"],
+	summary="Actualizar suscripción de un usuario",
+	description="Admin u Owner actualiza el plan de suscripción de un usuario específico. Requiere token de autorización.",
+)
+async def update_user_subscription(
+	user_id: str,
+	payload: UpdateSubscriptionRequest,
+	authorization: str | None = Header(default=None),
+) -> Any:
+	if not authorization:
+		raise HTTPException(status_code=401, detail="Acceso denegado. Token no proporcionado.")
+
+	body = payload.model_dump()
+	return await _forward("PATCH", user_update_subscription_url(user_id), payload=body, authorization=authorization)
 
 
 @app.post(

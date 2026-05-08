@@ -57,6 +57,10 @@ class UpdateMeRequest(BaseModel):
 	code: str = Field(min_length=1)
 
 
+class UpdateSubscriptionRequest(BaseModel):
+	subscription: str = Field(min_length=1, description="Plan de suscripción (ej: FREE, PREMIUM, MAX)")
+
+
 def build_register_payload(request: AuthRegisterRequest) -> dict[str, Any]:
 	"""OWNER → RegisterRequest; usuario de tienda → ShopRegisterRequest (user-service)."""
 	sid = resolved_shop_id(request.shopId)
