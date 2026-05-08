@@ -14,7 +14,6 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.SHOP_SERVICE_PORT;
 const STORE_SERVICE_URL = process.env.STORE_SERVICE_URL;
-const EVENTS_INTERNAL_TOKEN = process.env.EVENTS_INTERNAL_TOKEN;
 
 // Configuración CORS mejorada
 app.use(cors({
@@ -48,9 +47,6 @@ const getBearerToken = (req: Request): string | null => {
 };
 
 const buildMeUrl = (): string => {
-  if (!STORE_SERVICE_URL) {
-    throw new Error('STORE_SERVICE_URL no esta definido en las variables de entorno');
-  }
   return `${STORE_SERVICE_URL}/me`;
 }
 

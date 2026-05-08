@@ -41,7 +41,7 @@ class UserPayload:
 
 class ExternalServiceClient:
     def __init__(self) -> None:
-        self.store_service_url = os.getenv("STORE_SERVICE_URL", "http://store-service:8000").rstrip("/")
+        self.store_service_url = os.getenv("STORE_SERVICE_URL", "http://store-service:8004").rstrip("/")
 
     async def get_current_user(self, authorization: str | None) -> UserPayload:
         if not authorization:

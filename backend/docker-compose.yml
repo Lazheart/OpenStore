@@ -5,6 +5,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - STORE_SERVICE_URL=http://store-service:8004
       - AWS_REGION=${AWS_REGION}
       - BUCKET_NAME=${BUCKET_NAME}
       - PRODUCT_DATABASE_URL=${PRODUCT_DATABASE_URL}
@@ -23,6 +24,7 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - STORE_SERVICE_URL=http://store-service:8004
       - SHOP_DATABASE_URL_PRISMA=mysql://${SHOP_DB_USERNAME}:${SHOP_DB_PASSWORD}@${DB_HOST}:3307/${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
