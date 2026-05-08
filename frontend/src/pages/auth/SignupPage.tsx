@@ -108,7 +108,6 @@ if (
       {/* Left side - Decoration/Feature */}
       <div className="auth-signup-hero" style={{ flex: '0 0 50%', display: 'flex', alignItems: 'center', paddingLeft: '4rem' }}>
         <div style={{ maxWidth: '400px', margin: '0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
-          DetailErr
           <Link to="/" className="sidebar-logo" style={{ marginBottom: '3rem', textDecoration: 'none', color: 'inherit', display: 'inline-flex', alignItems: 'center' }}>
             <Store size={32} />
             <span style={{ fontSize: '1.75rem', marginLeft: '0.5rem' }}>Open</span><span style={{ color: 'var(--primary)', fontSize: '1.75rem' }}>Store</span>

@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppLayout } from './components/AppLayout';
 import { PublicLayout } from './components/PublicLayout';
 import HomePage from './pages/home/HomePage';
-import AdminPanel from './pages/admin/AdminPanel';
+import AdminPanel from './pages/client/AdminPanel';
 import OwnerPanel from './pages/owner/OwnerPanel';
 import ProfilePage from './pages/profile/ProfilePage';
 import ShopLanding from './pages/shop/ShopLanding';
