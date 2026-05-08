@@ -9,7 +9,8 @@ import { getApiErrorMessage } from '../../api/api';
 export default function SignupPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', phoneNumber: '' });
+  const [formData, setFormData] = useState<{ name: string; email: string; password: string; phoneNumber: string }>({ name: '', email: '', password: '', phoneNumber: '' });
+  const [, setErrorDetail] = useState<{ title?: string; message?: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,16 +21,21 @@ export default function SignupPage() {
     setError('');
 
     try {
+      const phoneToSend =
+        !formData.phoneNumber || formData.phoneNumber.trim() === ''
+          ? undefined
+          : formData.phoneNumber.trim();
+
       const authRes = await apiRegister({
         name: formData.name.trim(),
         email: formData.email,
         password: formData.password,
         role: 'OWNER',
-        phoneNumber: formData.phoneNumber.trim() || undefined,
+        phoneNumber: phoneToSend,
       });
       
       login(authRes); // Actualiza contexto de autenticación
-
+      setErrorDetail(null);
       navigate('/owner');
     } catch (err: unknown) {
       console.error(err);
@@ -47,6 +53,7 @@ type ApiErrorResponse = {
 // Extraer detalles del error si están disponibles
 let errorMessage = '';
 let errorInfo: { title?: string; message?: string } | null = null;
+
 
 if (
   err &&
@@ -101,7 +108,7 @@ if (
       {/* Left side - Decoration/Feature */}
       <div className="auth-signup-hero" style={{ flex: '0 0 50%', display: 'flex', alignItems: 'center', paddingLeft: '4rem' }}>
         <div style={{ maxWidth: '400px', margin: '0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
-          
+          DetailErr
           <Link to="/" className="sidebar-logo" style={{ marginBottom: '3rem', textDecoration: 'none', color: 'inherit', display: 'inline-flex', alignItems: 'center' }}>
             <Store size={32} />
             <span style={{ fontSize: '1.75rem', marginLeft: '0.5rem' }}>Open</span><span style={{ color: 'var(--primary)', fontSize: '1.75rem' }}>Store</span>
@@ -163,11 +170,20 @@ if (
           </div>
 
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <label>Phone Number <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>(optional)</span></label>
-            <div style={{ position: 'relative' }}>
-              <Phone size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-              <input type="tel" className="input-field" placeholder="+1 (555) 000-0000" style={{ paddingLeft: '3rem', height: '45px' }} value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: e.target.value})} />
-            </div>
+            <label>Phone Number</label>
+              <div style={{ position: 'relative' }}>
+                <Phone size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  className="input-field"
+                  placeholder="5550000000"
+                  style={{ paddingLeft: '3rem', height: '45px' }}
+                  value={formData.phoneNumber}
+                  onChange={e => setFormData({ ...formData, phoneNumber: e.target.value.replace(/\D/g, '') })}
+                />
+              </div>
           </div>
           
           <div className="input-group" style={{ marginBottom: 0 }}>
@@ -223,8 +239,5 @@ if (
     </div>
   );
 }
-function setErrorDetail(errorInfo: { title?: string; message?: string; }) {
-  throw new Error('Function not implemented.');
-  console.log(errorInfo);
-}
+
 
