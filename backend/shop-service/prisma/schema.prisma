@@ -5,9 +5,6 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  // Use a Prisma-compatible URL (protocol `mysql://`). The compose file
-  // provides `SHOP_DATABASE_URL_PRISMA` which converts the existing
-  // JDBC-style `SHOP_DATABASE_URL` into a `mysql://` URL for Prisma.
   url      = env("SHOP_DATABASE_URL_PRISMA")
 }
 
