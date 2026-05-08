@@ -259,7 +259,7 @@ function StoreActionCard({
       <div>
         <h3 style={{ margin: 0 }}>Create New Store</h3>
         <p style={{ margin: '0.5rem 0 0', color: 'var(--text-secondary)', maxWidth: '260px' }}>
-           Start another storefront from here.
+           Start another store from here.
         </p>
       </div>
     </div>
