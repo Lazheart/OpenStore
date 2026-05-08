@@ -24,6 +24,9 @@ services:
       - "3000:3000"
     environment:
       - SHOP_DATABASE_URL=${SHOP_DATABASE_URL}
+      # Prisma expects a mysql:// URL (not JDBC). Provide a Prisma-specific
+      # env var constructed from existing DB vars.
+      - SHOP_DATABASE_URL_PRISMA=mysql://${SHOP_DB_USERNAME}:${SHOP_DB_PASSWORD}@${DB_HOST}:3307/${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
