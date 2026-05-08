@@ -27,6 +27,7 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - JWT_SECRET=${JWT_SECRET}
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/healthcheck').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1));\""]
       interval: 10s
