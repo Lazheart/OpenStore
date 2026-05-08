@@ -1,16 +1,20 @@
 import { api } from '../api';
 
 export interface Shop {
-  id: string;
-  name: string;
-  owner_id: string;
+  shopId?: string;
+  id?: string;
+  shopName?: string;
+  name?: string;
+  owner_id?: string;
+  ownerId?: string;
+  phoneNumber?: string;
   created_at?: string;
 }
 
-export const createShop = async (name: string): Promise<Shop> => {
+export const createShop = async (name: string, phoneNumber: string): Promise<Shop> => {
   const payload = {
     shopName: name,
-    phoneNumber: '000000000' // Default if not provided
+    phoneNumber,
   };
   const response = await api.post<Shop>('/openshop/shop', payload);
   return response.data;

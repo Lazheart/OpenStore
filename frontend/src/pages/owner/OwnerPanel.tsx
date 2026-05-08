@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Package, Plus, Edit2, Store } from 'lucide-react';
 import { getShops, createShop } from '../../api/shop-service/shop-api';
 import type { Shop } from '../../api/shop-service/shop-api';
@@ -12,6 +12,7 @@ export default function OwnerPanel() {
   
   const [loading, setLoading] = useState(true);
   const [shopName, setShopName] = useState('');
+  const [shopPhone, setShopPhone] = useState('');
   
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '' });
@@ -20,28 +21,28 @@ export default function OwnerPanel() {
 
   const user = getCurrentUser();
 
-  useEffect(() => {
-    loadData();
+  const loadProducts = useCallback(async (shopId: string) => {
+    try {
+      const prods = await getProductsByShop(shopId);
+      setProducts(prods);
+    } catch (error) {
+      console.error('Error loading products:', error);
+    }
   }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getShops(1, 100);
       const allShops: Shop[] = data.data || [];
-      
-      // Try to find if user has a shop
-      // NOTE: backend may return owner_id as Int but user.uid is string/uuid. 
-      // We'll just take the first shop for now if they have one, or match by id if possible.
-      // A more robust way would be querying /shops/me if the backend had it.
-      // For now, let's just let the user create one or pick one.
+
       if (allShops.length > 0) {
-        // Just take the first one created by this user if we could match. 
-        // For demonstration, we'll assign the last created shop if no direct match possible.
         const userShop = allShops.find(s => String(s.owner_id) === String(user?.uid)) || allShops[allShops.length - 1];
         if (userShop) {
           setMyShop(userShop);
-          loadProducts(String(userShop.id));
+          if (userShop.id) {
+            await loadProducts(String(userShop.id));
+          }
         }
       }
     } catch (error) {
@@ -49,24 +50,30 @@ export default function OwnerPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadProducts, user?.uid]);
 
-  const loadProducts = async (shopId: string) => {
-    try {
-      const prods = await getProductsByShop(shopId);
-      setProducts(prods);
-    } catch (error) {
-      console.error('Error loading products:', error);
-    }
-  };
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const handleCreateShop = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const created = await createShop(shopName);
-      setMyShop(created);
+      const created = await createShop(shopName, shopPhone);
+      const returnedId = (created.shopId ?? created.id) as string | undefined;
+      const returnedName = created.shopName ?? created.name ?? shopName;
+      const normalized: Shop = {
+        id: returnedId,
+        name: returnedName,
+        owner_id: created.owner_id ?? created.ownerId,
+        phoneNumber: created.phoneNumber,
+      };
+      setMyShop(normalized);
       setShopName('');
-      loadProducts(String(created.id));
+      setShopPhone('');
+      if (returnedId) {
+        await loadProducts(String(returnedId));
+      }
     } catch (error) {
       console.error('Error creating shop', error);
       alert('Error creating shop');
@@ -87,7 +94,7 @@ export default function OwnerPanel() {
       setShowAddProduct(false);
       setNewProduct({ name: '', price: '', description: '' });
       setNewProductFile(null);
-      loadProducts(String(myShop.id));
+      await loadProducts(String(myShop.id));
     } catch (error) {
       console.error('Error adding product:', error);
       alert('Error adding product');
@@ -106,7 +113,7 @@ export default function OwnerPanel() {
         editingProduct.availability,
       );
       setEditingProduct(null);
-      loadProducts(String(myShop.id));
+      await loadProducts(String(myShop.id));
     } catch (error) {
       console.error('Error updating price:', error);
       alert('Error updating price');
@@ -132,6 +139,14 @@ export default function OwnerPanel() {
               className="input-field" 
               value={shopName}
               onChange={e => setShopName(e.target.value)}
+              required
+            />
+            <input
+              type="text"
+              placeholder="Phone Number"
+              className="input-field"
+              value={shopPhone}
+              onChange={e => setShopPhone(e.target.value)}
               required
             />
             <button type="submit" className="btn btn-primary">Create Store</button>
