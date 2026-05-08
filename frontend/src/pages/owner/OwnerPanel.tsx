@@ -303,7 +303,7 @@ export default function OwnerPanel() {
   };
 
   /* ── Load all owner shops ── */
-  const loadShops = useCallback(async () => {
+  const loadShops = useCallback(async (): Promise<Shop[]> => {
     try {
       setLoading(true);
       const [data, profile] = await Promise.all([
@@ -317,9 +317,12 @@ export default function OwnerPanel() {
       const ownerShops = user?.uid
         ? allShops.filter((s) => String(s.owner_id ?? s.ownerId) === String(user.uid))
         : allShops;
-      setShops(ownerShops.length > 0 ? ownerShops : allShops);
+      const visibleShops = ownerShops.length > 0 ? ownerShops : allShops;
+      setShops(visibleShops);
+      return visibleShops;
     } catch (error) {
       console.error('Error loading shops:', error);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -343,10 +346,16 @@ export default function OwnerPanel() {
   }, []);
 
   const handleSelectShop = (shop: Shop) => {
+    const shopId = getShopId(shop);
+    if (!shopId) {
+      console.warn('Skipping shop selection because id is missing:', shop);
+      return;
+    }
+
     setSelectedShop(shop);
     setShowAddProduct(false);
     setEditingProduct(null);
-    void loadProducts(getShopId(shop));
+    void loadProducts(shopId);
   };
 
   const handleBack = () => {
@@ -364,13 +373,26 @@ export default function OwnerPanel() {
       return;
     }
     try {
+      const requestedShopName = shopName.trim();
+      const requestedPhone = shopPhone.trim();
       const created = await createShop(shopName, shopPhone);
+      const createdShopId = getShopId(created);
       setShopName('');
       setShopPhone('');
       setShowCreateShopForm(false);
-      await loadShops();
-      // Auto-select the newly created shop
-      if (created) handleSelectShop(created);
+
+      const refreshedShops = await loadShops();
+
+      const createdShop = refreshedShops.find((shop) => getShopId(shop) === createdShopId)
+        ?? refreshedShops.find(
+          (shop) =>
+            getShopName(shop).trim().toLowerCase() === requestedShopName.toLowerCase()
+            && String(shop.phoneNumber ?? '').trim() === requestedPhone
+        );
+
+      if (createdShop) {
+        handleSelectShop(createdShop);
+      }
     } catch (error) {
       console.error('Error creating shop', error);
       alert('Error creating shop');
