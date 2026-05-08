@@ -29,7 +29,7 @@ app.use(express.json());
 type MePayload = {
   id: number | string;
   role: 'OWNER' | 'ADMIN' | 'USER' | string;
-  subscriptions?: 'FREE' | 'PRO' | 'MAX' | string;
+  subscription?: 'FREE' | 'PRO' | 'MAX' | string;
   subscriptionPlan?: 'FREE' | 'PRO' | 'MAX' | string;
   phoneNumber?: string;
 };
@@ -81,6 +81,10 @@ const toShopResponse = (shop: ShopRecord) => ({
 const getPlanLimit = (plan: string): number | null => {
   const normalized = plan.toUpperCase();
   return PLAN_LIMITS[normalized] ?? null;
+};
+
+const getUserPlan = (user: MePayload): string => {
+  return String(user.subscription ?? user.subscriptionPlan ?? 'FREE').toUpperCase();
 };
 
 
@@ -150,7 +154,7 @@ app.post('/openshop/shop', authenticateToken, async (req: AuthRequest, res: Resp
       return res.status(403).json({ error: 'Unete a Openshop para registrar una tienda' });
     }
 
-    const plan = String(user.subscriptions ?? user.subscriptionPlan ?? 'FREE').toUpperCase();
+    const plan = getUserPlan(user);
     const maxAllowedShops = getPlanLimit(plan);
 
     if (maxAllowedShops === null) {
