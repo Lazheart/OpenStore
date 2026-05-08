@@ -102,6 +102,10 @@ export const getMe = async (): Promise<MeResponse> => {
   return response.data;
 };
 
+export const updateSubscription = async (subscription: string): Promise<void> => {
+  await api.patch('/user/me/subscription', { subscription });
+};
+
 export const logout = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');

@@ -347,7 +347,7 @@ export default function ProfilePage() {
             <Shield size={18} /> Security
           </button>
           <button onClick={() => setActiveTab('billing')} className="btn" style={{ justifyContent: 'flex-start', backgroundColor: activeTab === 'billing' ? 'var(--primary)' : 'transparent', color: activeTab === 'billing' ? '#000' : 'var(--text-secondary)' }}>
-            <CircleDollarSign size={18} /> Billing
+            <CircleDollarSign size={18} /> Subscription
           </button>
           <div style={{ margin: '1rem 0', borderBottom: '1px solid var(--border-color)' }}></div>
           <button onClick={handleLogout} className="btn" style={{ justifyContent: 'flex-start', background: 'transparent', color: 'var(--danger)' }}>
@@ -516,7 +516,7 @@ export default function ProfilePage() {
 
           {activeTab === 'billing' && (
             <div className="card">
-              <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Billing Information</h3>
+              <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}> Subscription Plan</h3>
 
               <div style={{ display: 'grid', gap: '1rem' }}>
                 <div style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius)', background: 'rgba(255,255,255,0.02)' }}>
@@ -524,15 +524,13 @@ export default function ProfilePage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginTop: '0.35rem' }}>
                     <div>
                       <h4 style={{ margin: 0 }}>{billingPlanLabels[currentPlan]}</h4>
-                      <p style={{ margin: '0.25rem 0 0', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{profile?.subscription || 'FREE'}</p>
+                      <div style={{ marginTop: '0.25rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                        {currentPlan === 'FREE' && 'Only One Shop and 100 products limit'}
+                        {currentPlan === 'PRO' && 'Five Shops and 500 products limit'}
+                        {currentPlan === 'MAX' && 'Illimitless Shops and products, plus priority support'}
+                      </div>
                     </div>
-                    <span style={{ padding: '0.4rem 0.75rem', borderRadius: '999px', background: 'rgba(255,255,255,0.08)', color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>
-                      Active
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
                   <button className="btn btn-outline" onClick={startBillingUpgrade} type="button" disabled={billingPlanOptions.length === 0} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                     Change Plan <ArrowRight size={16} />
                   </button>
@@ -543,20 +541,10 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
-
-                <div style={{ display: 'grid', gap: '0.75rem' }}>
-                  <h4 style={{ margin: '0.5rem 0 0' }}>Available upgrades</h4>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                    {billingPlanOptions.length > 0 ? billingPlanOptions.map((plan) => (
-                      <div key={plan} style={{ padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius)', minWidth: '120px' }}>
-                        <p style={{ margin: 0, fontWeight: 700 }}>{billingPlanLabels[plan]}</p>
-                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Upgrade available</p>
-                      </div>
-                    )) : (
-                      <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>You already have the highest available plan.</p>
-                    )}
                   </div>
                 </div>
+
+
               </div>
             </div>
           )}
