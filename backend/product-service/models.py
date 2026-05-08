@@ -14,14 +14,14 @@ class Product(BaseModel):
     name: str = Field(min_length=1)
     price: float = Field(ge=0)
     description: str = Field(default="")
-    imageUrl: HttpUrl
+    imageUrl: HttpUrl | None = None
     availability: Availability
     shopId: UUID
 
 
 class ProductListItem(BaseModel):
     productId: UUID
-    imageUrl: HttpUrl
+    imageUrl: HttpUrl | None = None
     name: str
     description: str = Field(default="")
     price: float
@@ -30,7 +30,7 @@ class ProductListItem(BaseModel):
 
 class ProductCreateRequest(BaseModel):
     name: str = Field(min_length=1)
-    imageUrl: HttpUrl
+    imageUrl: HttpUrl | None = None
     price: float = Field(ge=0)
     description: str = Field(default="")
 

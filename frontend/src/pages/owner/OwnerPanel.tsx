@@ -202,7 +202,7 @@ export default function OwnerPanel() {
               accept="image/*"
               className="input-field"
               onChange={e => setNewProductFile(e.target.files?.[0] ?? null)}
-              required
+              
             />
             <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>Publish Product</button>
           </form>

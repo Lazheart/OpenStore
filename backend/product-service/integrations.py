@@ -114,9 +114,10 @@ class ProductRepository:
 
     @staticmethod
     def _list_item_from_document(document: dict[str, Any]) -> ProductListItem:
+        image_url = str(document.get("image_url", "")).strip() or None
         return ProductListItem(
             productId=document["_id"],
-            imageUrl=str(document["image_url"]),
+            imageUrl=image_url,
             name=str(document["name"]),
             description=str(document.get("description", "")),
             price=float(document["price"]),
@@ -136,7 +137,7 @@ class ProductRepository:
         shop_id: str,
         payload: ProductCreateRequest,
         *,
-        image_url: str,
+        image_url: str | None,
         owner_id: str,
     ) -> str:
         await self.ensure_indexes()

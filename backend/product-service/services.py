@@ -38,12 +38,10 @@ class ProductService:
         authorization: str | None,
     ) -> str:
         owner_id = await self._ensure_owner(shop_id, authorization)
-        if not str(payload.imageUrl).strip():
-            raise BadRequestError("Product image is required")
         return await product_repository.create_product(
             shop_id,
             payload,
-            image_url=str(payload.imageUrl),
+            image_url=str(payload.imageUrl) if payload.imageUrl else None,
             owner_id=owner_id,
         )
 
@@ -55,7 +53,7 @@ class ProductService:
         name: str,
         price: float,
         description: str,
-        image_url: str,
+        image_url: str | None,
     ) -> str:
         owner_id = await self._ensure_owner(shop_id, authorization)
         if price < 0:

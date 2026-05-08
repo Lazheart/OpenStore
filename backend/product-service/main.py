@@ -58,10 +58,10 @@ async def create_product(
             return ProductIdResponse(productId=product_id)
 
         if content_type.startswith("multipart/form-data"):
-            if name is None or price is None or description is None or file is None:
-                raise HTTPException(status_code=400, detail="name, price, description and file are required")
+            if name is None or price is None or description is None:
+                raise HTTPException(status_code=400, detail="name, price and description are required")
 
-            image_url = await s3_uploader.upload_image(file)
+            image_url = await s3_uploader.upload_image(file) if file is not None else None
             product_id = await product_service.create_product_with_uploaded_url(
                 shop_id,
                 authorization=authorization,
