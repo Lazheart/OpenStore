@@ -1,5 +1,6 @@
 import { swaggerDocs } from './swagger';
 import express, { Request, Response } from 'express';
+import cors from 'cors';
 const { PrismaClient } = require('@prisma/client');
 
 type ShopRecord = { id: string; owner_id: string; name: string; phone_number: string };
@@ -15,17 +16,14 @@ const PORT = process.env.SHOP_SERVICE_PORT;
 const STORE_SERVICE_URL = process.env.STORE_SERVICE_URL;
 const EVENTS_INTERNAL_TOKEN = process.env.EVENTS_INTERNAL_TOKEN;
 
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Internal-Token');
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-
-  next();
-});
+// Configuración CORS mejorada
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Internal-Token'],
+  credentials: false,
+  optionsSuccessStatus: 200,
+}));
 
 app.use(express.json());
 
