@@ -284,12 +284,19 @@ async def auth_register(payload: AuthRegisterRequest) -> Any:
 )
 async def create_shop(payload: ShopCreateRequest, authorization: str | None = Header(default=None)) -> Any:
 	# Shop-service aplica las reglas de rol, plan y unicidad del nombre.
-	return await _forward(
+	resp = await _forward(
 		"POST",
 		shop_create_url(),
 		payload=build_shop_create_payload(payload),
 		authorization=authorization,
 	)
+	# Normalizar respuesta: devolver sólo el shopId cuando la tienda se creó correctamente.
+	if isinstance(resp, dict):
+		shop_id = resp.get("shopId") or resp.get("id") or resp.get("shop_id")
+		if shop_id:
+			return {"shopId": str(shop_id)}
+	# Si no hay id en la respuesta, devolver la respuesta completa para facilitar debug.
+	return resp
 
 
 @app.get("/shop/name/{shop_name}", tags=["Tiendas"])
