@@ -3,7 +3,7 @@ import { AlertCircle, Eye, EyeOff, LogOut, Mail, Shield, User, Edit2, CircleDoll
 import { useAuth } from '../../config/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../../api/api';
-import { getMe, type MeResponse, updateProfile, verifyPassword } from '../../api/user-service/user-service';
+import { getMe, type MeResponse, updateProfile, verifyPassword, updateSubscription } from '../../api/user-service/user-service';
 import qrBaseImage from '../../assets/qrbase.jpeg';
 
 type BillingPlan = 'FREE' | 'PRO' | 'MAX';
@@ -14,6 +14,27 @@ const billingPlanLabels: Record<BillingPlan, string> = {
   FREE: 'Free',
   PRO: 'Pro',
   MAX: 'Max',
+};
+
+const billingPlanDetails: Record<BillingPlan, { title: string; price: string; description: string; features: string[] }> = {
+  FREE: {
+    title: 'Free',
+    price: '$0',
+    description: '1 store',
+    features: ['1 store', 'Basic analytics', 'Email support'],
+  },
+  PRO: {
+    title: 'Pro',
+    price: '$19',
+    description: 'Up to 5 stores',
+    features: ['Up to 5 stores', 'Advanced analytics', 'Priority support', 'Custom domain'],
+  },
+  MAX: {
+    title: 'Max',
+    price: '$49',
+    description: 'Unlimited stores & products',
+    features: ['Unlimited stores', 'Unlimited products', '24/7 phone support', 'API access', 'Custom integrations'],
+  },
 };
 
 export default function ProfilePage() {
@@ -43,12 +64,11 @@ export default function ProfilePage() {
   const [verificationCode, setVerificationCode] = useState('');
   const [verifyError, setVerifyError] = useState('');
   const [showBillingModal, setShowBillingModal] = useState(false);
-  const [billingModalStep, setBillingModalStep] = useState<'form' | 'qr-loading' | 'qr-visible' | 'processing' | 'done'>('form');
-  const [billingTargetPlan, setBillingTargetPlan] = useState<BillingPlan>('PRO');
+  const [billingModalStep, setBillingModalStep] = useState<'form' | 'plans' | 'summary' | 'qr-loading' | 'qr' | 'submitting'>('form');
+  const [billingTargetPlan, setBillingTargetPlan] = useState<BillingPlan | null>(null);
   const [billingForm, setBillingForm] = useState({ name: '', email: '' });
   const [billingError, setBillingError] = useState('');
   const [billingSuccess, setBillingSuccess] = useState('');
-  const [billingRequestNote, setBillingRequestNote] = useState('');
 
   const authEmail = user?.email || '';
   const currentPlan = useMemo(() => {
@@ -249,8 +269,7 @@ export default function ProfilePage() {
     setBillingModalStep('form');
     setBillingError('');
     setBillingSuccess('');
-    setBillingRequestNote('');
-    setBillingTargetPlan('PRO');
+    setBillingTargetPlan(null);
     setBillingForm({
       name: profile?.name || user?.name || '',
       email: profile?.email || user?.email || '',
@@ -265,7 +284,6 @@ export default function ProfilePage() {
 
     setBillingError('');
     setBillingSuccess('');
-    setBillingTargetPlan(billingPlanOptions[0]);
     setBillingForm({
       name: profile?.name || user?.name || '',
       email: profile?.email || user?.email || '',
@@ -275,42 +293,16 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    if (!showBillingModal) {
+    if (!showBillingModal || billingModalStep !== 'qr-loading') {
       return;
     }
 
-    if (billingModalStep === 'qr-loading') {
-      const timer = window.setTimeout(() => {
-        setBillingModalStep('qr-visible');
-      }, 3400);
+    const timer = window.setTimeout(() => {
+      setBillingModalStep('qr');
+    }, 2800);
 
-      return () => window.clearTimeout(timer);
-    }
-
-    if (billingModalStep === 'qr-visible') {
-      const timer = window.setTimeout(() => {
-        setBillingRequestNote('Pago procesado');
-        setBillingModalStep('processing');
-      }, 5000);
-
-      return () => window.clearTimeout(timer);
-    }
-
-    if (billingModalStep === 'processing') {
-      const timer = window.setTimeout(() => {
-        setProfile((current) => ({
-          ...current,
-          subscription: billingTargetPlan,
-        }));
-        setBillingSuccess(`Plan actualizado a ${billingPlanLabels[billingTargetPlan]}`);
-        setBillingModalStep('done');
-      }, 1400);
-
-      return () => window.clearTimeout(timer);
-    }
-
-    return undefined;
-  }, [billingModalStep, billingTargetPlan, showBillingModal]);
+    return () => window.clearTimeout(timer);
+  }, [billingModalStep, showBillingModal]);
 
   const handleBillingContinue = () => {
     if (!billingForm.name.trim() || !billingForm.email.trim()) {
@@ -318,13 +310,60 @@ export default function ProfilePage() {
       return;
     }
 
-    if (billingTargetPlan === currentPlan) {
+    setBillingError('');
+    setBillingModalStep('plans');
+  };
+
+  const handleBillingSelectPlan = (plan: BillingPlan) => {
+    setBillingTargetPlan(plan);
+    setBillingError('');
+  };
+
+  const handleBillingContinueToSummary = () => {
+    if (!billingTargetPlan || billingTargetPlan === currentPlan) {
       setBillingError('Selecciona un plan superior');
       return;
     }
 
     setBillingError('');
+    setBillingModalStep('summary');
+  };
+
+  const handleBillingGenerateQR = async () => {
+    if (!billingTargetPlan) {
+      setBillingError('Selecciona un plan');
+      return;
+    }
+
+    setBillingError('');
     setBillingModalStep('qr-loading');
+  };
+
+  const handleBillingCloseAndApply = async () => {
+    if (!billingTargetPlan) {
+      setBillingError('Algo salió mal');
+      return;
+    }
+
+    setBillingModalStep('submitting');
+    try {
+      await updateSubscription(billingTargetPlan);
+      setBillingSuccess(`Plan actualizado a ${billingPlanLabels[billingTargetPlan]}`);
+      setProfile((current) => ({
+        ...current!,
+        subscription: billingTargetPlan,
+      }));
+      // Reload page after 1.5 seconds
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      window.location.reload();
+    } catch (error) {
+      setBillingError(getApiErrorMessage(error));
+      setBillingModalStep('qr');
+    }
+  };
+
+  const closeBillingModalWithoutRequest = () => {
+    resetBillingModal();
   };
 
   if (loadingProfile) {
@@ -618,99 +657,178 @@ export default function ProfilePage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
                 <div>
                   <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Plan upgrade</p>
-                  <h3 style={{ margin: '0.25rem 0 0' }}>{billingModalStep === 'done' ? 'Payment complete' : 'Change plan'}</h3>
+                  <h3 style={{ margin: '0.25rem 0 0' }}>Change plan</h3>
+                  <p style={{ margin: '0.4rem 0 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Follow 4 simple steps to upgrade your subscription</p>
                 </div>
-                <button type="button" className="btn btn-outline" onClick={resetBillingModal} style={{ padding: '0.5rem 0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={closeBillingModalWithoutRequest}
+                  disabled={billingModalStep === 'submitting' || billingModalStep === 'qr-loading'}
+                  style={{ padding: '0.5rem 0.75rem' }}
+                >
                   Close
                 </button>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                {billingPlanOptions.map((plan) => (
-                  <button
-                    key={plan}
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={() => setBillingTargetPlan(plan)}
-                    style={{
-                      backgroundColor: billingTargetPlan === plan ? 'var(--primary)' : 'transparent',
-                      color: billingTargetPlan === plan ? '#000' : 'var(--text-secondary)',
-                    }}
-                  >
-                    {billingPlanLabels[plan]}
-                  </button>
-                ))}
-              </div>
+
 
               {billingError && (
-                <div style={{ backgroundColor: 'rgba(255, 77, 79, 0.1)', color: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--border-radius)', marginTop: '1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ backgroundColor: 'rgba(255, 77, 79, 0.1)', color: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--border-radius)', marginBottom: '1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <AlertCircle size={18} />
                   {billingError}
                 </div>
               )}
 
+              {/* Form Step */}
               {billingModalStep === 'form' && (
-                <div style={{ display: 'grid', gap: '1rem', marginTop: '1.25rem' }}>
-                  <p style={{ margin: 0, color: 'var(--text-secondary)' }}>We will validate the upgrade, then generate a payment QR before processing the change.</p>
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Provide your billing information to proceed with the upgrade.</p>
                   <div className="input-group">
-                    <label>Name</label>
-                    <input className="input-field" type="text" value={billingForm.name} onChange={(e) => setBillingForm({ ...billingForm, name: e.target.value })} />
+                    <label>Full Name</label>
+                    <input className="input-field" type="text" value={billingForm.name} onChange={(e) => setBillingForm({ ...billingForm, name: e.target.value })} placeholder="John Doe" />
                   </div>
                   <div className="input-group">
-                    <label>Email</label>
-                    <input className="input-field" type="email" value={billingForm.email} onChange={(e) => setBillingForm({ ...billingForm, email: e.target.value })} />
+                    <label>Email Address</label>
+                    <input className="input-field" type="email" value={billingForm.email} onChange={(e) => setBillingForm({ ...billingForm, email: e.target.value })} placeholder="john@example.com" />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                    <button type="button" className="btn btn-outline" onClick={resetBillingModal}>Cancel</button>
-                    <button type="button" className="btn btn-primary" onClick={handleBillingContinue}>Continue</button>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '0.5rem' }}>
+                    <button type="button" className="btn btn-outline" onClick={closeBillingModalWithoutRequest}>Cancel</button>
+                    <button type="button" className="btn btn-primary" onClick={handleBillingContinue} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                      Next <ArrowRight size={16} />
+                    </button>
                   </div>
                 </div>
               )}
 
+              {/* Plans Selection Step */}
+              {billingModalStep === 'plans' && (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Choose which plan you'd like to upgrade to:</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                    {billingPlanOptions.map((plan) => {
+                      const isSelected = billingTargetPlan === plan;
+                      const planInfo = billingPlanDetails[plan];
+                      return (
+                        <button
+                          key={plan}
+                          type="button"
+                          onClick={() => handleBillingSelectPlan(plan)}
+                          style={{
+                            textAlign: 'left',
+                            borderRadius: '1rem',
+                            border: `2px solid ${isSelected ? 'var(--primary)' : 'var(--border-color)'}`,
+                            background: isSelected ? 'rgba(154,205,50,0.12)' : 'rgba(255,255,255,0.03)',
+                            padding: '1rem',
+                            color: 'inherit',
+                            cursor: 'pointer',
+                            display: 'grid',
+                            gap: '0.5rem',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                              {planInfo.title}
+                            </div>
+                            {isSelected && <CheckCircle2 size={18} color="var(--primary)" />}
+                          </div>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{planInfo.price}</div>
+                          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{planInfo.description}</p>
+                          <ul style={{ margin: 0, paddingLeft: '1rem', color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'grid', gap: '0.3rem' }}>
+                            {planInfo.features.slice(0, 2).map((feature: string) => (
+                              <li key={feature}>{feature}</li>
+                            ))}
+                          </ul>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '0.5rem' }}>
+                    <button type="button" className="btn btn-outline" onClick={() => setBillingModalStep('form')}>Back</button>
+                    <button type="button" className="btn btn-primary" onClick={handleBillingContinueToSummary} disabled={!billingTargetPlan || billingTargetPlan === currentPlan} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                      Next <ArrowRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Summary Step */}
+              {billingModalStep === 'summary' && (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  <div style={{ padding: '1rem', borderRadius: '1rem', border: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.03)' }}>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Plan Comparison</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                      <div>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Current</p>
+                        <h4 style={{ margin: '0.3rem 0 0' }}>{billingPlanLabels[currentPlan]}</h4>
+                      </div>
+                      <div style={{ padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--primary)', background: 'rgba(154,205,50,0.08)' }}>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--primary)' }}>Upgrading to</p>
+                        <h4 style={{ margin: '0.3rem 0 0', color: 'var(--primary)' }}>{billingPlanLabels[billingTargetPlan!]}</h4>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ padding: '1rem', borderRadius: '1rem', border: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.03)' }}>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Billing Details</p>
+                    <div style={{ display: 'grid', gap: '0.5rem', marginTop: '0.75rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Name:</span>
+                        <span style={{ fontWeight: 600 }}>{billingForm.name}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Email:</span>
+                        <span style={{ fontWeight: 600 }}>{billingForm.email}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '0.5rem' }}>
+                    <button type="button" className="btn btn-outline" onClick={() => setBillingModalStep('plans')}>Back</button>
+                    <button type="button" className="btn btn-primary" onClick={handleBillingGenerateQR} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                      Continue to Payment <ArrowRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* QR Loading Step */}
               {billingModalStep === 'qr-loading' && (
-                <div style={{ display: 'grid', placeItems: 'center', gap: '1rem', minHeight: '320px', textAlign: 'center', marginTop: '1rem' }}>
-                  <Loader2 size={42} className="animate-spin" color="var(--primary)" />
+                <div style={{ display: 'grid', placeItems: 'center', gap: '1rem', minHeight: '280px', textAlign: 'center' }}>
+                  <Loader2 size={48} className="animate-spin" color="var(--primary)" />
                   <div>
-                    <h4 style={{ margin: 0 }}>Generating payment QR</h4>
-                    <p style={{ margin: '0.4rem 0 0', color: 'var(--text-secondary)' }}>Almost ready, preparing your payment details.</p>
+                    <h4 style={{ margin: 0 }}>Generating Payment QR</h4>
+                    <p style={{ margin: '0.4rem 0 0', color: 'var(--text-secondary)' }}>Preparing your payment details...</p>
                   </div>
                 </div>
               )}
 
-              {billingModalStep === 'qr-visible' && (
-                <div style={{ display: 'grid', gap: '1rem', justifyItems: 'center', marginTop: '1.25rem' }}>
+              {/* QR Display Step */}
+              {billingModalStep === 'qr' && (
+                <div style={{ display: 'grid', gap: '1rem', justifyItems: 'center' }}>
                   <div style={{ textAlign: 'center' }}>
-                    <h4 style={{ margin: 0 }}>Your payment QR is ready</h4>
-                    <p style={{ margin: '0.35rem 0 0', color: 'var(--text-secondary)' }}>Scan it to confirm the upgrade to {billingPlanLabels[billingTargetPlan]}.</p>
+                    <h4 style={{ margin: 0 }}>Scan to Confirm</h4>
+                    <p style={{ margin: '0.35rem 0 0', color: 'var(--text-secondary)' }}>Scan this QR code to confirm your upgrade to {billingTargetPlan && billingPlanLabels[billingTargetPlan]}</p>
                   </div>
-                  <div style={{ width: '100%', maxWidth: '300px', padding: '1rem', borderRadius: '1.25rem', background: '#fff', boxShadow: '0 18px 48px rgba(0,0,0,0.25)' }}>
-                    <img src={qrBaseImage} alt="QR base for payment" style={{ display: 'block', width: '100%', height: 'auto', borderRadius: '0.75rem' }} />
+                  <div style={{ width: '100%', maxWidth: '280px', padding: '1.25rem', borderRadius: '1.25rem', background: '#fff', boxShadow: '0 18px 48px rgba(0,0,0,0.25)' }}>
+                    <img src={qrBaseImage} alt="Payment QR" style={{ display: 'block', width: '100%', height: 'auto', borderRadius: '0.75rem' }} />
                   </div>
-                  <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                    <span>Preparing charge</span>
-                    <span>QR visible</span>
-                  </div>
-                </div>
-              )}
-
-              {billingModalStep === 'processing' && (
-                <div style={{ display: 'grid', placeItems: 'center', gap: '1rem', minHeight: '320px', textAlign: 'center', marginTop: '1rem' }}>
-                  <Loader2 size={42} className="animate-spin" color="var(--primary)" />
-                  <div>
-                    <h4 style={{ margin: 0 }}>{billingRequestNote || 'Processing payment'}</h4>
-                    <p style={{ margin: '0.4rem 0 0', color: 'var(--text-secondary)' }}>Simulating backend request to update the plan.</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '0.5rem' }}>
+                    <button type="button" className="btn btn-outline" onClick={() => setBillingModalStep('summary')}>Back</button>
+                    <button type="button" className="btn btn-primary" onClick={handleBillingCloseAndApply} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                      Confirm & Apply <CheckCircle2 size={16} />
+                    </button>
                   </div>
                 </div>
               )}
 
-              {billingModalStep === 'done' && (
-                <div style={{ display: 'grid', placeItems: 'center', gap: '1rem', minHeight: '280px', textAlign: 'center', marginTop: '1rem' }}>
-                  <CheckCircle2 size={52} color="var(--success)" />
+              {/* Submitting Step */}
+              {billingModalStep === 'submitting' && (
+                <div style={{ display: 'grid', placeItems: 'center', gap: '1rem', minHeight: '280px', textAlign: 'center' }}>
+                  <Loader2 size={48} className="animate-spin" color="var(--primary)" />
                   <div>
-                    <h4 style={{ margin: 0 }}>Plan updated to {billingPlanLabels[billingTargetPlan]}</h4>
-                    <p style={{ margin: '0.4rem 0 0', color: 'var(--text-secondary)' }}>The upgrade was applied locally for now. Backend integration can be connected later.</p>
+                    <h4 style={{ margin: 0 }}>Applying Your Upgrade</h4>
+                    <p style={{ margin: '0.4rem 0 0', color: 'var(--text-secondary)' }}>Processing your subscription update...</p>
                   </div>
-                  <button type="button" className="btn btn-primary" onClick={resetBillingModal}>Done</button>
                 </div>
               )}
             </div>
