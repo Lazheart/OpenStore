@@ -32,7 +32,7 @@ public class OwnerController {
         return ResponseEntity.ok(userService.listOwners(page, size));
     }
 
-    @PatchMapping("/{id}/subcription")
+    @PatchMapping("/{id}/subscription")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> updateOwnerSubscription(
             @PathVariable UUID id,
@@ -42,7 +42,7 @@ public class OwnerController {
         return ResponseEntity.ok(Map.of("message", "Suscripcion actualizada"));
     }
 
-    @PatchMapping("/me/subcription")
+    @PatchMapping("/me/subscription")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<Map<String, String>> updateMySubscription(
             Authentication authentication,
