@@ -114,10 +114,16 @@ class ProductRepository:
 
     @staticmethod
     def _list_item_from_document(document: dict[str, Any]) -> ProductListItem:
-        image_url = str(document.get("image_url", "")).strip() or None
+        # Soporta tanto snake_case (image_url) como camelCase (imageUrl) por compatibilidad
+        raw_image_url = document.get("image_url") or document.get("imageUrl")
+        # Sanitizar el string literal "None" que documentos legacy pueden tener guardado
+        if isinstance(raw_image_url, str):
+            raw_image_url = raw_image_url.strip() or None
+        if raw_image_url == "None":
+            raw_image_url = None
         return ProductListItem(
             productId=document["_id"],
-            imageUrl=image_url,
+            imageUrl=raw_image_url,
             name=str(document["name"]),
             description=str(document.get("description", "")),
             price=float(document["price"]),
@@ -203,11 +209,14 @@ class ProductRepository:
         except DuplicateKeyError as exc:
             raise BadRequestError("A product with the same name already exists in this shop") from exc
 
-    async def delete_product(self, shop_id: str, product_id: str) -> str:
+    async def delete_product(self, shop_id: str, product_id: str) -> str | None:
         await self.ensure_indexes()
         current = await self._find_product(shop_id, product_id)
         await self.collection.delete_one({"_id": current["_id"], "shop_id": current["shop_id"]})
-        return str(current.get("image_url", ""))
+        raw = current.get("image_url") or current.get("imageUrl")
+        if not isinstance(raw, str) or raw in ("", "None"):
+            return None
+        return raw
 
     async def delete_products_by_shop(self, shop_id: str) -> list[str]:
         await self.ensure_indexes()

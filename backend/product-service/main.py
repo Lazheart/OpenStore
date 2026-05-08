@@ -110,7 +110,7 @@ async def update_product(
                 name=payload.name,
                 price=payload.price,
                 availability=payload.availability,
-                image_url=str(payload.imageUrl) if payload.imageUrl else None,
+                image_url=payload.imageUrl if payload.imageUrl else None,
             )
             return
 

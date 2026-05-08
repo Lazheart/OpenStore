@@ -41,7 +41,7 @@ class ProductService:
         return await product_repository.create_product(
             shop_id,
             payload,
-            image_url=str(payload.imageUrl) if payload.imageUrl else None,
+            image_url=payload.imageUrl if payload.imageUrl else None,
             owner_id=owner_id,
         )
 
