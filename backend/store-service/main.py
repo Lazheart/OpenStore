@@ -448,6 +448,16 @@ async def update_shop_theme(
 	)
 
 
+@app.get(
+	"/shop/{shop_id}",
+	tags=["Tiendas"],
+	summary="Obtener tienda por ID (ruta pública)",
+	description="Proxy a shop-service: obtiene los datos de una tienda por su ID. Usado por el storefront público.",
+)
+async def get_shop_by_id(shop_id: str, authorization: str | None = Header(default=None)) -> Any:
+	return await _forward("GET", shop_get_by_id_url(shop_id), authorization=authorization)
+
+
 @app.get("/shops/{shop_id}/products", tags=["Productos"])
 async def get_products_by_shop(shop_id: str, authorization: str | None = Header(default=None)) -> Any:
 	return await _forward("GET", product_list_by_shop_url(shop_id), authorization=authorization)
