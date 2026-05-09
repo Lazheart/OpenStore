@@ -547,22 +547,24 @@ export default function OwnerPanel() {
             </div>
           </div>
 
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setEditingProduct(null);
-              setShowAddProduct(!showAddProduct);
-            }}
-          >
-            <Plus size={18} /> {showAddProduct ? 'Cancel' : 'Add Product'}
-          </button>
-          <button
-            className="btn btn-danger"
-            onClick={promptDeleteShop}
-            style={{ marginLeft: '0.75rem' }}
-          >
-            <Trash2 size={16} /> Delete Store
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                setEditingProduct(null);
+                setShowAddProduct(!showAddProduct);
+              }}
+            >
+              <Plus size={18} /> {showAddProduct ? 'Cancel' : 'Add Product'}
+            </button>
+
+            <button
+              className="btn btn-danger"
+              onClick={promptDeleteShop}
+            >
+              <Trash2 size={16} /> Delete Store
+            </button>
+          </div>
         </div>
 
         {/* Add Product Form */}
@@ -745,7 +747,7 @@ export default function OwnerPanel() {
             <div className="card" style={{ width: 'min(720px, 94%)', padding: '1.25rem' }}>
               <h3 style={{ marginTop: 0 }}>Confirm delete</h3>
               <p>
-                ¿Seguro que queres eliminar este producto? Esta acción no se puede deshacer.
+                ¿Seguro de eliminar este producto? Esta acción no se puede deshacer.
               </p>
               <p style={{ fontWeight: 600 }}>{productToDelete.name}</p>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
@@ -775,7 +777,8 @@ export default function OwnerPanel() {
             <div className="card" style={{ width: 'min(720px, 94%)', padding: '1.25rem' }}>
               <h3 style={{ marginTop: 0 }}>Confirm delete store</h3>
               <p>
-                ¿Seguro que queres eliminar la tienda <strong>{getShopName(selectedShop)}</strong>?
+                ¿Seguro de eliminar la tienda <strong>{getShopName(selectedShop)}</strong>?
+                <br />
                 Esta acción eliminará los productos y no se puede deshacer.
               </p>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>

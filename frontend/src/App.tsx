@@ -6,8 +6,6 @@ import HomePage from './pages/home/HomePage';
 import AdminPanel from './pages/client/AdminPanel';
 import OwnerPanel from './pages/owner/OwnerPanel';
 import ProfilePage from './pages/profile/ProfilePage';
-import ShopLanding from './pages/shop/ShopLanding';
-import CartDetailPage from './pages/cart/CartDetailPage';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
 import { ThemeProvider } from './config/ThemeConfig';
@@ -27,8 +25,6 @@ function App() {
           
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
-          <Route path="/shop" element={<ShopLanding />} />
-          <Route path="/cart" element={<CartDetailPage />} />
           
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
