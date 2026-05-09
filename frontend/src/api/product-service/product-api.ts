@@ -57,3 +57,7 @@ export const updateProduct = async (
     },
   });
 };
+
+export const deleteProduct = async (shopId: string, productId: string): Promise<void> => {
+  await api.delete(`/shops/${shopId}/products/${productId}`);
+};

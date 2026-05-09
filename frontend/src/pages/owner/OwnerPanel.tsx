@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Package, Plus, Edit2, Store, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Package, Plus, Edit2, Store, ArrowLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getShops, createShop } from '../../api/shop-service/shop-api';
 import type { Shop } from '../../api/shop-service/shop-api';
-import { getProductsByShop, createProduct, updateProduct } from '../../api/product-service/product-api';
+import { getProductsByShop, createProduct, updateProduct, deleteProduct } from '../../api/product-service/product-api';
 import type { Product } from '../../api/product-service/product-api';
 import { getCurrentUser, getMe } from '../../api/user-service/user-service';
+import { deleteShop } from '../../api/shop-service/shop-api';
 
 type BillingPlan = 'FREE' | 'PRO' | 'MAX';
 
@@ -292,6 +293,10 @@ export default function OwnerPanel() {
 
   /* Edit product */
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showDeleteProductModal, setShowDeleteProductModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+
+  const [showDeleteShopModal, setShowDeleteShopModal] = useState(false);
 
   const user = getCurrentUser();
 
@@ -441,6 +446,53 @@ export default function OwnerPanel() {
     }
   };
 
+  /* ── Delete product (modal flow) ── */
+  const promptDeleteProduct = (product: Product) => {
+    setProductToDelete(product);
+    setShowDeleteProductModal(true);
+  };
+
+  const cancelDeleteProduct = () => {
+    setProductToDelete(null);
+    setShowDeleteProductModal(false);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!selectedShop || !productToDelete) return;
+    try {
+      await deleteProduct(getShopId(selectedShop), productToDelete.productId);
+      setShowDeleteProductModal(false);
+      setProductToDelete(null);
+      await loadProducts(getShopId(selectedShop));
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Error deleting product');
+    }
+  };
+
+  /* ── Delete shop (modal flow) ── */
+  const promptDeleteShop = () => setShowDeleteShopModal(true);
+  const cancelDeleteShop = () => setShowDeleteShopModal(false);
+
+  const confirmDeleteShop = async () => {
+    if (!selectedShop) return;
+    try {
+      // attempt to delete products first
+      const shopId = getShopId(selectedShop);
+      if (products?.length) {
+        await Promise.all(products.map((p) => deleteProduct(shopId, p.productId)));
+      }
+      await deleteShop(shopId);
+      await loadShops();
+      setSelectedShop(null);
+      setProducts([]);
+      setShowDeleteShopModal(false);
+    } catch (error) {
+      console.error('Error deleting shop:', error);
+      alert('Error deleting shop');
+    }
+  };
+
   /* ────────────────── RENDER ────────────────── */
 
   if (loading) {
@@ -503,6 +555,13 @@ export default function OwnerPanel() {
             }}
           >
             <Plus size={18} /> {showAddProduct ? 'Cancel' : 'Add Product'}
+          </button>
+          <button
+            className="btn btn-danger"
+            onClick={promptDeleteShop}
+            style={{ marginLeft: '0.75rem' }}
+          >
+            <Trash2 size={16} /> Delete Store
           </button>
         </div>
 
@@ -643,7 +702,7 @@ export default function OwnerPanel() {
                       <td style={{ fontWeight: 600, color: 'var(--success)' }}>
                         ${product.price?.toFixed(2)}
                       </td>
-                      <td>
+                      <td style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
                           className="btn btn-outline"
                           style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
@@ -654,6 +713,14 @@ export default function OwnerPanel() {
                         >
                           <Edit2 size={14} /> Edit
                         </button>
+
+                        <button
+                          className="btn btn-danger"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                          onClick={() => promptDeleteProduct(product)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -662,6 +729,66 @@ export default function OwnerPanel() {
             </div>
           )}
         </div>
+
+        {/* Delete product modal */}
+        {showDeleteProductModal && productToDelete && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.45)',
+              display: 'grid',
+              placeItems: 'center',
+              zIndex: 60,
+            }}
+          >
+            <div className="card" style={{ width: 'min(720px, 94%)', padding: '1.25rem' }}>
+              <h3 style={{ marginTop: 0 }}>Confirm delete</h3>
+              <p>
+                ¿Seguro que queres eliminar este producto? Esta acción no se puede deshacer.
+              </p>
+              <p style={{ fontWeight: 600 }}>{productToDelete.name}</p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
+                <button className="btn btn-outline" onClick={cancelDeleteProduct}>
+                  Cancel
+                </button>
+                <button className="btn btn-danger" onClick={confirmDeleteProduct}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete shop modal */}
+        {showDeleteShopModal && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.45)',
+              display: 'grid',
+              placeItems: 'center',
+              zIndex: 60,
+            }}
+          >
+            <div className="card" style={{ width: 'min(720px, 94%)', padding: '1.25rem' }}>
+              <h3 style={{ marginTop: 0 }}>Confirm delete store</h3>
+              <p>
+                ¿Seguro que queres eliminar la tienda <strong>{getShopName(selectedShop)}</strong>?
+                Esta acción eliminará los productos y no se puede deshacer.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
+                <button className="btn btn-outline" onClick={cancelDeleteShop}>
+                  Cancel
+                </button>
+                <button className="btn btn-danger" onClick={confirmDeleteShop}>
+                  Delete Store
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

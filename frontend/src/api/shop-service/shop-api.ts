@@ -29,3 +29,7 @@ export const getShopById = async (id: string): Promise<Shop> => {
   const response = await api.get<Shop>(`/shops/${id}`);
   return response.data;
 };
+
+export const deleteShop = async (shopId: string): Promise<void> => {
+  await api.delete(`/shop/id/${shopId}`);
+};
