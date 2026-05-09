@@ -1,0 +1,641 @@
+import { useState } from 'react';
+
+// ─── Shared Product Data ──────────────────────────────────────────────────────
+export interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  badge?: string;
+  stars: number;
+  downloads?: string;
+  version?: string;
+}
+
+export const PRODUCTS: Product[] = [
+  {
+    id: 1,
+    name: 'NeuralDebugger Pro',
+    description: 'AI-powered debugger with real-time stack trace analysis and LLM-assisted root cause detection.',
+    price: 49,
+    category: 'tools',
+    badge: 'HOT',
+    stars: 5,
+    downloads: '12.4k',
+    version: 'v3.2.1',
+  },
+  {
+    id: 2,
+    name: 'TypeSafe ORM Kit',
+    description: 'End-to-end type-safe database layer with automatic migrations and query builder.',
+    price: 29,
+    category: 'libraries',
+    badge: 'NEW',
+    stars: 4,
+    downloads: '8.1k',
+    version: 'v1.0.5',
+  },
+  {
+    id: 3,
+    name: 'DevOps Pipeline Pack',
+    description: 'Pre-built CI/CD templates for GitHub Actions, GitLab CI and Bitbucket Pipelines.',
+    price: 19,
+    category: 'devops',
+    stars: 4,
+    downloads: '20.3k',
+    version: 'v2.7.0',
+  },
+  {
+    id: 4,
+    name: 'API Blueprint Studio',
+    description: 'Design, mock and document REST & GraphQL APIs with auto-generated OpenAPI specs.',
+    price: 39,
+    category: 'tools',
+    badge: 'SALE',
+    stars: 5,
+    downloads: '5.9k',
+    version: 'v4.0.0',
+  },
+  {
+    id: 5,
+    name: 'SecureVault SDK',
+    description: 'Cryptography primitives, JWT utilities and OAuth2 helpers for backend devs.',
+    price: 34,
+    category: 'libraries',
+    stars: 3,
+    downloads: '3.2k',
+    version: 'v0.9.8',
+  },
+  {
+    id: 6,
+    name: 'Terminal UI Components',
+    description: 'Beautiful TUI widgets for Node.js and Python CLIs. Spinners, tables, progress bars.',
+    price: 15,
+    category: 'ui',
+    badge: 'FREE',
+    stars: 5,
+    downloads: '31.7k',
+    version: 'v5.1.3',
+  },
+];
+
+const CATEGORIES = ['all', 'tools', 'libraries', 'devops', 'ui'];
+
+// ─── Star Component ───────────────────────────────────────────────────────────
+function Stars({ count }: { count: number }) {
+  return (
+    <span style={{ color: '#39ff14', fontSize: '0.75rem', letterSpacing: '2px' }}>
+      {'█'.repeat(count)}{'░'.repeat(5 - count)}
+    </span>
+  );
+}
+
+// ─── Product Card ─────────────────────────────────────────────────────────────
+function DevProductCard({ product, onAdd }: { product: Product; onAdd: (p: Product) => void }) {
+  const [added, setAdded] = useState(false);
+
+  const handleAdd = () => {
+    onAdd(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1500);
+  };
+
+  const badgeColors: Record<string, string> = {
+    HOT: '#ff5f57',
+    NEW: '#39ff14',
+    SALE: '#ffd60a',
+    FREE: '#0af0ff',
+  };
+
+  return (
+    <div className="dev-card">
+      <div className="dev-card-header">
+        <span className="dev-prompt">$&gt;</span>
+        <span className="dev-pkg-name">{product.name.toLowerCase().replace(/\s+/g, '-')}</span>
+        {product.badge && (
+          <span
+            className="dev-badge"
+            style={{ color: badgeColors[product.badge] ?? '#fff', borderColor: badgeColors[product.badge] ?? '#fff' }}
+          >
+            [{product.badge}]
+          </span>
+        )}
+      </div>
+
+      <div className="dev-card-meta">
+        <span className="dev-meta-item">version: <em>{product.version}</em></span>
+        <span className="dev-meta-item">downloads: <em>{product.downloads}</em></span>
+        <span className="dev-meta-item">category: <em>{product.category}</em></span>
+      </div>
+
+      <p className="dev-description">// {product.description}</p>
+
+      <div className="dev-card-footer">
+        <Stars count={product.stars} />
+        <div className="dev-actions">
+          <span className="dev-price">${product.price}.00</span>
+          <button className="dev-btn" onClick={handleAdd}>
+            {added ? '✓ Added!' : '$ install --save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function DevStyle() {
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [cart, setCart] = useState<Product[]>([]);
+  const [search, setSearch] = useState('');
+  const [terminalLog, setTerminalLog] = useState<string[]>([
+    '> OpenStore DevShop v2.0.0 initialised...',
+    '> Fetching package registry...',
+    '> 6 packages found. Ready.',
+  ]);
+
+  const filtered = PRODUCTS.filter(
+    (p) =>
+      (activeCategory === 'all' || p.category === activeCategory) &&
+      (p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.description.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const addToCart = (product: Product) => {
+    setCart((prev) => [...prev, product]);
+    setTerminalLog((prev) => [
+      ...prev,
+      `> npm install ${product.name.toLowerCase().replace(/\s+/g, '-')} --save`,
+      `  ✓ added to cart (total: ${cart.length + 1} pkg)`,
+    ]);
+  };
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap');
+
+        .dev-root {
+          min-height: 100vh;
+          background: #0a0a0a;
+          color: #c9d1d9;
+          font-family: 'Source Code Pro', 'Fira Code', monospace;
+          padding: 0;
+        }
+
+        /* ── Header ── */
+        .dev-header {
+          background: #0d1117;
+          border-bottom: 1px solid #21262d;
+          padding: 1rem 2rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+        }
+        .dev-logo {
+          font-size: 1.2rem;
+          font-weight: 700;
+          color: #39ff14;
+          letter-spacing: -0.5px;
+        }
+        .dev-logo span { color: #58a6ff; }
+        .dev-header-right {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+        }
+        .dev-cart-pill {
+          background: #161b22;
+          border: 1px solid #30363d;
+          color: #58a6ff;
+          padding: 0.4rem 1rem;
+          border-radius: 4px;
+          font-size: 0.8rem;
+          cursor: pointer;
+          transition: border-color 0.2s;
+          font-family: inherit;
+        }
+        .dev-cart-pill:hover { border-color: #39ff14; color: #39ff14; }
+
+        /* ── Hero ── */
+        .dev-hero {
+          background: #0d1117;
+          border-bottom: 1px solid #21262d;
+          padding: 3rem 2rem 2rem;
+          position: relative;
+          overflow: hidden;
+        }
+        .dev-hero::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(ellipse at 20% 50%, rgba(57,255,20,0.06) 0%, transparent 60%),
+                      radial-gradient(ellipse at 80% 20%, rgba(88,166,255,0.07) 0%, transparent 50%);
+          pointer-events: none;
+        }
+        .dev-hero-label {
+          color: #39ff14;
+          font-size: 0.7rem;
+          letter-spacing: 3px;
+          text-transform: uppercase;
+          margin-bottom: 0.75rem;
+        }
+        .dev-hero h1 {
+          font-size: clamp(1.6rem, 4vw, 2.8rem);
+          font-weight: 700;
+          color: #e6edf3;
+          margin-bottom: 0.5rem;
+          line-height: 1.2;
+        }
+        .dev-hero h1 .accent { color: #39ff14; }
+        .dev-hero h1 .accent2 { color: #58a6ff; }
+        .dev-hero-sub {
+          color: #8b949e;
+          font-size: 0.9rem;
+          margin-bottom: 0;
+          font-style: italic;
+        }
+        .dev-scan-line {
+          height: 1px;
+          background: linear-gradient(90deg, transparent, #39ff14, transparent);
+          margin-top: 2rem;
+          opacity: 0.4;
+          animation: devScan 3s ease-in-out infinite;
+        }
+        @keyframes devScan {
+          0%, 100% { opacity: 0.1; transform: scaleX(0.3); }
+          50% { opacity: 0.6; transform: scaleX(1); }
+        }
+
+        /* ── Search & Filter bar ── */
+        .dev-toolbar {
+          background: #0d1117;
+          border-bottom: 1px solid #21262d;
+          padding: 1rem 2rem;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+        .dev-search-wrapper {
+          position: relative;
+          flex: 1;
+          min-width: 220px;
+        }
+        .dev-search-prefix {
+          position: absolute;
+          left: 0.8rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #39ff14;
+          font-size: 0.85rem;
+          pointer-events: none;
+        }
+        .dev-search {
+          width: 100%;
+          background: #161b22;
+          border: 1px solid #30363d;
+          color: #c9d1d9;
+          padding: 0.55rem 0.75rem 0.55rem 3.5rem;
+          border-radius: 4px;
+          font-family: 'Source Code Pro', monospace;
+          font-size: 0.85rem;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+        .dev-search:focus { border-color: #39ff14; }
+        .dev-search::placeholder { color: #484f58; }
+
+        .dev-filter-group {
+          display: flex;
+          gap: 0.4rem;
+          flex-wrap: wrap;
+        }
+        .dev-filter-btn {
+          background: #161b22;
+          border: 1px solid #30363d;
+          color: #8b949e;
+          padding: 0.4rem 0.9rem;
+          border-radius: 4px;
+          font-size: 0.75rem;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+          text-transform: lowercase;
+        }
+        .dev-filter-btn:hover { border-color: #58a6ff; color: #58a6ff; }
+        .dev-filter-btn.active { border-color: #39ff14; color: #39ff14; background: rgba(57,255,20,0.07); }
+
+        /* ── Grid ── */
+        .dev-main {
+          display: grid;
+          grid-template-columns: 1fr 320px;
+          gap: 0;
+          min-height: calc(100vh - 200px);
+        }
+        @media (max-width: 900px) {
+          .dev-main { grid-template-columns: 1fr; }
+          .dev-terminal { display: none; }
+        }
+
+        .dev-products-area {
+          padding: 2rem;
+          border-right: 1px solid #21262d;
+        }
+
+        .dev-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: 1rem;
+        }
+
+        /* ── Card ── */
+        .dev-card {
+          background: #0d1117;
+          border: 1px solid #21262d;
+          border-radius: 6px;
+          padding: 1.25rem;
+          transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+          cursor: default;
+          position: relative;
+          overflow: hidden;
+        }
+        .dev-card::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, #39ff14, #58a6ff);
+          transform: scaleX(0);
+          transform-origin: left;
+          transition: transform 0.3s;
+        }
+        .dev-card:hover {
+          border-color: #39ff14;
+          box-shadow: 0 0 20px rgba(57,255,20,0.12);
+          transform: translateY(-2px);
+        }
+        .dev-card:hover::before { transform: scaleX(1); }
+
+        .dev-card-header {
+          display: flex;
+          align-items: baseline;
+          gap: 0.5rem;
+          margin-bottom: 0.75rem;
+          flex-wrap: wrap;
+        }
+        .dev-prompt { color: #39ff14; font-size: 0.85rem; flex-shrink: 0; }
+        .dev-pkg-name {
+          color: #58a6ff;
+          font-size: 0.95rem;
+          font-weight: 700;
+          flex: 1;
+          word-break: break-all;
+        }
+        .dev-badge {
+          font-size: 0.65rem;
+          font-weight: 700;
+          border: 1px solid;
+          padding: 0 0.4rem;
+          border-radius: 2px;
+          letter-spacing: 1px;
+          flex-shrink: 0;
+        }
+
+        .dev-card-meta {
+          display: flex;
+          gap: 1rem;
+          flex-wrap: wrap;
+          margin-bottom: 0.75rem;
+          font-size: 0.72rem;
+          color: #484f58;
+        }
+        .dev-meta-item em { color: #8b949e; font-style: normal; }
+
+        .dev-description {
+          font-size: 0.8rem;
+          color: #6e7681;
+          line-height: 1.6;
+          margin-bottom: 1rem;
+          font-style: italic;
+        }
+
+        .dev-card-footer {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        .dev-actions {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.5rem;
+        }
+        .dev-price {
+          color: #ffd60a;
+          font-weight: 700;
+          font-size: 1.05rem;
+        }
+        .dev-btn {
+          background: #161b22;
+          border: 1px solid #39ff14;
+          color: #39ff14;
+          padding: 0.45rem 1rem;
+          border-radius: 4px;
+          font-size: 0.78rem;
+          font-family: 'Source Code Pro', monospace;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+        .dev-btn:hover {
+          background: rgba(57,255,20,0.12);
+          box-shadow: 0 0 10px rgba(57,255,20,0.3);
+        }
+        .dev-btn:active { transform: scale(0.97); }
+
+        /* ── Terminal Sidebar ── */
+        .dev-terminal {
+          background: #010409;
+          border-left: 1px solid #21262d;
+          padding: 1.5rem;
+          font-size: 0.75rem;
+          color: #8b949e;
+          overflow-y: auto;
+          max-height: calc(100vh - 200px);
+          position: sticky;
+          top: 120px;
+        }
+        .dev-terminal-title {
+          color: #39ff14;
+          font-size: 0.7rem;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          margin-bottom: 1rem;
+          border-bottom: 1px solid #21262d;
+          padding-bottom: 0.5rem;
+        }
+        .dev-terminal-line {
+          margin-bottom: 0.35rem;
+          line-height: 1.5;
+          animation: devFadeIn 0.3s ease;
+        }
+        .dev-terminal-line:nth-child(odd) { color: #39ff14; }
+        .dev-terminal-line:nth-child(even) { color: #8b949e; padding-left: 1rem; }
+        .dev-cursor {
+          display: inline-block;
+          width: 8px;
+          height: 14px;
+          background: #39ff14;
+          vertical-align: middle;
+          animation: devBlink 1s step-end infinite;
+        }
+        @keyframes devBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes devFadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* ── Empty ── */
+        .dev-empty {
+          text-align: center;
+          padding: 4rem 2rem;
+          color: #484f58;
+          font-size: 0.85rem;
+        }
+        .dev-empty-code {
+          font-size: 2rem;
+          margin-bottom: 0.5rem;
+          color: #21262d;
+        }
+
+        /* ── Cart total strip ── */
+        .dev-cart-strip {
+          background: #0d1117;
+          border-top: 1px solid #21262d;
+          padding: 0.75rem 2rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 0.8rem;
+          position: sticky;
+          bottom: 0;
+        }
+        .dev-cart-total { color: #8b949e; }
+        .dev-cart-total span { color: #ffd60a; font-weight: 700; }
+        .dev-checkout-btn {
+          background: linear-gradient(135deg, #39ff14, #00d4ff);
+          border: none;
+          color: #000;
+          padding: 0.5rem 1.5rem;
+          border-radius: 4px;
+          font-family: 'Source Code Pro', monospace;
+          font-weight: 700;
+          font-size: 0.8rem;
+          cursor: pointer;
+          transition: opacity 0.2s, transform 0.2s;
+        }
+        .dev-checkout-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+      `}</style>
+
+      <div className="dev-root">
+        {/* Header */}
+        <header className="dev-header">
+          <div className="dev-logo">
+            open<span>Store</span>.<span style={{ color: '#39ff14' }}>dev</span>
+          </div>
+          <div className="dev-header-right">
+            <span style={{ color: '#484f58', fontSize: '0.75rem' }}>
+              registry.openstore.sh/v2
+            </span>
+            <button className="dev-cart-pill">
+              📦 cart [{cart.length}]
+            </button>
+          </div>
+        </header>
+
+        {/* Hero */}
+        <section className="dev-hero">
+          <div className="dev-hero-label">// marketplace for developers</div>
+          <h1>
+            <span className="accent">pkg</span> install{' '}
+            <span className="accent2">--save</span> your-next-tool
+          </h1>
+          <p className="dev-hero-sub">
+            {'>'} 6 battle-tested packages for serious engineers. No fluff. Just code.
+          </p>
+          <div className="dev-scan-line" />
+        </section>
+
+        {/* Toolbar */}
+        <div className="dev-toolbar">
+          <div className="dev-search-wrapper">
+            <span className="dev-search-prefix">$ search</span>
+            <input
+              className="dev-search"
+              type="text"
+              placeholder="grep -i 'package-name'"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="dev-filter-group">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                className={`dev-filter-btn ${activeCategory === cat ? 'active' : ''}`}
+                onClick={() => setActiveCategory(cat)}
+              >
+                ./{cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Main */}
+        <div className="dev-main">
+          <div className="dev-products-area">
+            {filtered.length === 0 ? (
+              <div className="dev-empty">
+                <div className="dev-empty-code">404</div>
+                <div>No packages match your query.</div>
+                <div style={{ marginTop: '0.5rem', color: '#30363d' }}>
+                  try: `grep -ri 'something else'`
+                </div>
+              </div>
+            ) : (
+              <div className="dev-grid">
+                {filtered.map((p) => (
+                  <DevProductCard key={p.id} product={p} onAdd={addToCart} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Terminal Log */}
+          <aside className="dev-terminal">
+            <div className="dev-terminal-title">// activity log</div>
+            {terminalLog.map((line, i) => (
+              <div key={i} className="dev-terminal-line">{line}</div>
+            ))}
+            <div className="dev-terminal-line">
+              &gt; <span className="dev-cursor" />
+            </div>
+          </aside>
+        </div>
+
+        {/* Cart strip */}
+        {cart.length > 0 && (
+          <div className="dev-cart-strip">
+            <div className="dev-cart-total">
+              {cart.length} pkg · total:{' '}
+              <span>${cart.reduce((a, p) => a + p.price, 0)}.00</span>
+            </div>
+            <button className="dev-checkout-btn">$ checkout --confirm</button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
