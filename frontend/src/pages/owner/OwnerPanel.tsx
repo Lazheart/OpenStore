@@ -318,11 +318,17 @@ export default function OwnerPanel() {
       const allShops: Shop[] = data.data || [];
       const subscription = String(profile?.subscription || '').toUpperCase();
       setBillingPlan(subscription === 'PRO' || subscription === 'MAX' ? subscription : 'FREE');
-      // Filter by owner if uid available, otherwise show all
-      const ownerShops = user?.uid
-        ? allShops.filter((s) => String(s.owner_id ?? s.ownerId) === String(user.uid))
-        : allShops;
-      const visibleShops = ownerShops.length > 0 ? ownerShops : allShops;
+
+      // Determine identifier to match owner on shops. Prefer server-side profile id, fall back to local auth uid.
+      const ownerIdentifier = profile?.id ?? user?.uid ?? null;
+      const isAdmin = (profile?.role || user?.role || '').toUpperCase() === 'ADMIN';
+
+      // If admin, show all shops. Otherwise show only shops that belong to the current user.
+      const ownerShops = ownerIdentifier
+        ? allShops.filter((s) => String(s.owner_id ?? s.ownerId ?? '') === String(ownerIdentifier))
+        : [];
+
+      const visibleShops = isAdmin ? allShops : ownerShops;
       setShops(visibleShops);
       return visibleShops;
     } catch (error) {
@@ -331,7 +337,7 @@ export default function OwnerPanel() {
     } finally {
       setLoading(false);
     }
-  }, [user?.uid]);
+  }, [user?.uid, user?.role]);
 
   useEffect(() => {
     void loadShops();

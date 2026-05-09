@@ -7,6 +7,7 @@ type Client = {
   username: string;
   email: string;
   phone?: string;
+  shopName?: string;
 };
 
 type Store = {
@@ -53,7 +54,11 @@ export default function AdminPanel() {
       const res = await fetch(`/api/owners/${userId}/clients`);
       if (!res.ok) throw new Error('Fetch failed');
       const data = await res.json();
-      setClients(data || []);
+      const normalized = (data || []).map((c: any) => ({
+        ...c,
+        shopName: c.shopName ?? c.storeName ?? c.shop?.name ?? '',
+      }));
+      setClients(normalized);
     } catch (error) {
       console.error('Failed to fetch clients:', error);
     }
@@ -76,7 +81,11 @@ export default function AdminPanel() {
       const res = await fetch(`/api/owners/${store.ownerId}/clients`);
       if (!res.ok) throw new Error('Fetch failed');
       const data = await res.json();
-      setSelectedClientsList(data || []);
+      const normalized = (data || []).map((c: any) => ({
+        ...c,
+        shopName: c.shopName ?? c.storeName ?? c.shop?.name ?? store.name ?? '',
+      }));
+      setSelectedClientsList(normalized || []);
     } catch {
       setSelectedClientsList([
         { id: '1', username: 'demo1', email: 'demo1@example.com', phone: '+1-555-0001' },
@@ -94,9 +103,10 @@ export default function AdminPanel() {
 
   function exportToCsv(filename: string, rows: Client[]) {
     if (!rows || !rows.length) return;
-    const header = ['username', 'email', 'phone'];
+    const header = ['username', 'email', 'shopName', 'phone'];
     const csv = [header.join(',')].concat(
-      rows.map(r => [r.username, r.email, r.phone || ''].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      rows.map(r => [r.username, r.email, r.shopName || '', r.phone || '']
+        .map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
     ).join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -136,13 +146,14 @@ export default function AdminPanel() {
               <tr>
                 <th>Username</th>
                 <th>Email</th>
+                <th>Store</th>
                 <th>Phone</th>
               </tr>
             </thead>
             <tbody>
               {clients.length === 0 ? (
                 <tr>
-                  <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1.5rem' }}>
+                  <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1.5rem' }}>
                     No hay clientes registrados todavía.
                   </td>
                 </tr>
@@ -151,6 +162,7 @@ export default function AdminPanel() {
                   <tr key={c.id} onClick={() => onClientRowClick(c)} style={{ cursor: 'pointer' }}>
                     <td>{c.username}</td>
                     <td>{c.email}</td>
+                    <td>{c.shopName || '-'}</td>
                     <td>{c.phone || '-'}</td>
                   </tr>
                 ))
