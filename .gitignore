@@ -5,4 +5,4 @@ build/
 coverage/
 .github/
 .env
-
+.claude/
