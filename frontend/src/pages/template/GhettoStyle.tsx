@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { Product } from './DevStyle';
 import { PRODUCTS } from './DevStyle';
+import type { ThemeViewProps } from '../storefront/themeTypes';
+import { hasConfiguredHeroTitle, readHeroSubtitle, readHeroTitle } from '../storefront/themeTypes';
 
 const CATEGORIES = ['all', 'tools', 'libraries', 'devops', 'ui'];
 
@@ -47,13 +49,29 @@ function GhettoProductCard({ product, onAdd }: { product: Product; onAdd: (p: Pr
   );
 }
 
-export default function GhettoStyle() {
+function readGhColors(themeConfig: import('../storefront/themeTypes').ShopThemeJson | null) {
+  const c = themeConfig?.colors as Record<string, string> | undefined;
+  return {
+    primary: c?.primaryColor ?? '#ff2d55',
+    bg: c?.bgColor ?? '#0e0e0e',
+    text: c?.textColor ?? '#f0f0f0',
+    accent: c?.accentColor ?? '#ffcc00',
+    headerName: (themeConfig?.headerName as string) ?? '',
+  };
+}
+
+export default function GhettoStyle({ shopId, shopName, themeConfig, catalogProducts }: ThemeViewProps) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
 
-  const filtered = PRODUCTS.filter(
+  const productSource = catalogProducts?.length ? catalogProducts : PRODUCTS;
+  const showCustomHero = hasConfiguredHeroTitle(themeConfig);
+  const ghColors = readGhColors(themeConfig);
+  const displayHeader = ghColors.headerName || shopName;
+
+  const filtered = productSource.filter(
     (p) =>
       (activeCategory === 'all' || p.category === activeCategory) &&
       (p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -67,18 +85,24 @@ export default function GhettoStyle() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Bebas+Neue&family=Russo+One&family=Oswald:wght@400;700&display=swap');
+        :root {
+          --gh-primary: ${ghColors.primary};
+          --gh-bg: ${ghColors.bg};
+          --gh-text: ${ghColors.text};
+          --gh-accent: ${ghColors.accent};
+        }
 
         .gh-root {
           min-height: 100vh;
-          background: #0e0e0e;
-          color: #f0f0f0;
+          background: var(--gh-bg);
+          color: var(--gh-text);
           font-family: 'Oswald', 'Bebas Neue', Impact, sans-serif;
           overflow-x: hidden;
         }
 
         /* ── Marquee ── */
         .gh-marquee-wrap {
-          background: #ff2d55;
+          background: var(--gh-primary);
           overflow: hidden;
           padding: 0.5rem 0;
           white-space: nowrap;
@@ -99,8 +123,8 @@ export default function GhettoStyle() {
 
         /* ── Header ── */
         .gh-header {
-          background: #111;
-          border-bottom: 3px solid #ff2d55;
+          background: color-mix(in srgb, var(--gh-bg) 80%, #000);
+          border-bottom: 3px solid var(--gh-primary);
           padding: 1rem 2rem;
           display: flex;
           align-items: center;
@@ -113,13 +137,13 @@ export default function GhettoStyle() {
           font-family: 'Bebas Neue', Impact, sans-serif;
           font-size: 2.2rem;
           letter-spacing: 4px;
-          color: #fff;
-          text-shadow: 3px 3px 0 #ff2d55, 6px 6px 0 rgba(255,45,85,0.3);
+          color: var(--gh-text);
+          text-shadow: 3px 3px 0 var(--gh-primary), 6px 6px 0 color-mix(in srgb, var(--gh-primary) 30%, transparent);
           line-height: 1;
         }
-        .gh-logo span { color: #ff2d55; }
+        .gh-logo span { color: var(--gh-primary); }
         .gh-cart-btn {
-          background: #ff2d55;
+          background: var(--gh-primary);
           border: none;
           color: #fff;
           font-family: 'Bebas Neue', sans-serif;
@@ -130,11 +154,11 @@ export default function GhettoStyle() {
           clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
           transition: background 0.2s, transform 0.15s;
         }
-        .gh-cart-btn:hover { background: #00f5d4; color: #000; transform: scale(1.05); }
+        .gh-cart-btn:hover { background: var(--gh-accent); color: var(--gh-bg); transform: scale(1.05); }
 
         /* ── Hero ── */
         .gh-hero {
-          background: #111;
+          background: color-mix(in srgb, var(--gh-bg) 80%, #000);
           padding: 4rem 2rem 3rem;
           position: relative;
           overflow: hidden;
@@ -155,8 +179,8 @@ export default function GhettoStyle() {
         }
         .gh-hero-tag {
           display: inline-block;
-          background: #ff2d55;
-          color: #fff;
+          background: var(--gh-primary);
+          color: var(--gh-bg);
           font-size: 0.7rem;
           letter-spacing: 3px;
           padding: 0.3rem 0.9rem;
@@ -175,12 +199,12 @@ export default function GhettoStyle() {
         }
         .gh-hero h1 .line2 {
           display: block;
-          -webkit-text-stroke: 2px #ff2d55;
+          -webkit-text-stroke: 2px var(--gh-primary);
           color: transparent;
         }
         .gh-hero h1 .line3 {
           display: block;
-          color: #00f5d4;
+          color: var(--gh-accent);
           font-size: 0.55em;
           letter-spacing: 12px;
         }
@@ -219,7 +243,7 @@ export default function GhettoStyle() {
           letter-spacing: 1px;
           transition: border-color 0.2s;
         }
-        .gh-search:focus { border-color: #ff2d55; }
+        .gh-search:focus { border-color: var(--gh-primary); }
         .gh-search::placeholder { color: #444; }
         .gh-filters {
           display: flex;
@@ -239,8 +263,8 @@ export default function GhettoStyle() {
           transition: all 0.2s;
           text-transform: uppercase;
         }
-        .gh-filter-btn:hover { border-color: #ff2d55; color: #ff2d55; }
-        .gh-filter-btn.active { border-color: #ff2d55; color: #000; background: #ff2d55; }
+        .gh-filter-btn:hover { border-color: var(--gh-primary); color: var(--gh-primary); }
+        .gh-filter-btn.active { border-color: var(--gh-primary); color: var(--gh-bg); background: var(--gh-primary); }
 
         /* ── Grid ── */
         .gh-content { padding: 2rem; }
@@ -268,7 +292,7 @@ export default function GhettoStyle() {
         }
         .gh-card:hover {
           transform: translate(-4px, -4px);
-          box-shadow: 6px 6px 0 #ff2d55;
+          box-shadow: 6px 6px 0 var(--gh-primary);
         }
         .gh-card-tape {
           position: absolute;
@@ -339,12 +363,12 @@ export default function GhettoStyle() {
         .gh-price {
           font-family: 'Bebas Neue', sans-serif;
           font-size: 2rem;
-          color: #00f5d4;
+          color: var(--gh-accent);
           letter-spacing: 2px;
           line-height: 1;
         }
         .gh-btn {
-          background: #ff2d55;
+          background: var(--gh-primary);
           border: none;
           color: #fff;
           font-family: 'Bebas Neue', sans-serif;
@@ -356,7 +380,7 @@ export default function GhettoStyle() {
           transition: background 0.2s, transform 0.15s;
           white-space: nowrap;
         }
-        .gh-btn:hover { background: #00f5d4; color: #000; transform: scale(1.05); }
+        .gh-btn:hover { background: var(--gh-accent); color: var(--gh-bg); transform: scale(1.05); }
 
         /* ── Cart Drawer ── */
         .gh-overlay {
@@ -368,8 +392,8 @@ export default function GhettoStyle() {
           position: fixed;
           right: 0; top: 0; bottom: 0;
           width: 360px;
-          background: #111;
-          border-left: 3px solid #ff2d55;
+          background: color-mix(in srgb, var(--gh-bg) 80%, #000);
+          border-left: 3px solid var(--gh-primary);
           padding: 2rem;
           overflow-y: auto;
           animation: ghSlide 0.3s ease;
@@ -390,7 +414,7 @@ export default function GhettoStyle() {
         }
         .gh-drawer-close {
           background: none; border: none;
-          color: #ff2d55; font-size: 1.5rem;
+          color: var(--gh-primary); font-size: 1.5rem;
           cursor: pointer; font-family: inherit;
         }
         .gh-cart-item {
@@ -402,7 +426,7 @@ export default function GhettoStyle() {
           font-size: 0.85rem;
         }
         .gh-cart-item-name { color: #ccc; }
-        .gh-cart-item-price { color: #00f5d4; font-weight: 700; }
+        .gh-cart-item-price { color: var(--gh-accent); font-weight: 700; }
         .gh-total-row {
           display: flex;
           justify-content: space-between;
@@ -414,7 +438,7 @@ export default function GhettoStyle() {
         }
         .gh-checkout-btn {
           width: 100%;
-          background: #ff2d55;
+          background: var(--gh-primary);
           border: none;
           color: #fff;
           font-family: 'Bebas Neue', sans-serif;
@@ -426,7 +450,7 @@ export default function GhettoStyle() {
           transition: background 0.2s;
           margin-top: 0.5rem;
         }
-        .gh-checkout-btn:hover { background: #00f5d4; color: #000; }
+        .gh-checkout-btn:hover { background: var(--gh-accent); color: var(--gh-bg); }
 
         /* ── Empty ── */
         .gh-empty {
@@ -440,13 +464,13 @@ export default function GhettoStyle() {
 
         /* ── Bottom strip ── */
         .gh-bottom-strip {
-          background: #ff2d55;
+          background: var(--gh-primary);
           text-align: center;
           padding: 1rem;
           font-family: 'Bebas Neue', sans-serif;
           letter-spacing: 4px;
           font-size: 1rem;
-          color: #000;
+          color: var(--gh-bg);
           margin-top: 3rem;
         }
       `}</style>
@@ -461,7 +485,13 @@ export default function GhettoStyle() {
 
         {/* Header */}
         <header className="gh-header">
-          <div className="gh-logo">Open<span>Store</span></div>
+          <div className="gh-logo">
+            {displayHeader ? (
+              <>{displayHeader}<span> · store</span></>
+            ) : (
+              <>Open<span>Store</span></>
+            )}
+          </div>
           <button className="gh-cart-btn" onClick={() => setCartOpen(true)}>
             🛒 BAG [{cart.length}]
           </button>
@@ -471,14 +501,31 @@ export default function GhettoStyle() {
         <section className="gh-hero">
           <div className="gh-hero-bg-text">DEVTOOLS</div>
           <div className="gh-hero-tag">🔥 Exclusive Drop</div>
-          <h1>
-            CODE<span className="line2">DIFFERENT</span>
-            <span className="line3">FOR REAL ONES ONLY</span>
-          </h1>
-          <p className="gh-hero-sub">
-            No cap. These tools hit different. Built by devs who been through the struggle. 
-            Real tools, real results, no corporate BS.
-          </p>
+          {showCustomHero ? (
+            <>
+              <h1>
+                <span style={{ fontSize: 'clamp(2rem,6vw,3.25rem)', display: 'block' }}>
+                  {readHeroTitle(themeConfig, shopName)}
+                </span>
+              </h1>
+              <p className="gh-hero-sub">
+                {readHeroSubtitle(
+                  themeConfig,
+                  shopId ? `Shop ID on deck: ${shopId.slice(0, 8)}…` : 'No cap. Tu catálogo en vivo desde OpenStore.',
+                )}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1>
+                CODE<span className="line2">DIFFERENT</span>
+                <span className="line3">FOR REAL ONES ONLY</span>
+              </h1>
+              <p className="gh-hero-sub">
+                No cap. These tools hit different. Built by devs who been through the struggle. Real tools, real results, no corporate BS.
+              </p>
+            </>
+          )}
         </section>
 
         {/* Toolbar */}

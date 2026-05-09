@@ -11,6 +11,7 @@ import SignupPage from './pages/auth/SignupPage';
 import { ThemeProvider } from './config/ThemeConfig';
 import { AuthProvider } from './config/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import StorefrontPage from './pages/storefront/StorefrontPage';
 import './index.css';
 
 function App() {
@@ -19,13 +20,9 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-          <Route element={<PublicLayout />}>
-            <Route path="/" element={<HomePage />} />
-          </Route>
-          
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
-          
+
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/owner" element={<OwnerPanel />} />
@@ -33,6 +30,13 @@ function App() {
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Route>
+
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<HomePage />} />
+          </Route>
+
+          {/* Storefront público sin navbar — cada template gestiona su propio header */}
+          <Route path="/:shopSlug" element={<StorefrontPage />} />
         </Routes>
       </BrowserRouter>
       </AuthProvider>

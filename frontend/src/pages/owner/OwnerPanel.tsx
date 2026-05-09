@@ -1,12 +1,46 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Package, Plus, Edit2, Store, ArrowLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Package, Plus, Edit2, Store, ArrowLeft, ChevronRight, Trash2, X, Palette, ExternalLink, Check, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getShops, createShop } from '../../api/shop-service/shop-api';
-import type { Shop } from '../../api/shop-service/shop-api';
+import type { Shop, ThemeColors } from '../../api/shop-service/shop-api';
 import { getProductsByShop, createProduct, updateProduct, deleteProduct } from '../../api/product-service/product-api';
 import type { Product } from '../../api/product-service/product-api';
 import { getCurrentUser, getMe } from '../../api/user-service/user-service';
 import { deleteShop } from '../../api/shop-service/shop-api';
+import ThemePanel from './ThemePanel';
+
+/* ── Theme defaults ── */
+const THEME_DEFAULTS: Record<string, {
+  description: ReactNode; label: string; defaultColors: ThemeColors; accent: string 
+}> = {
+  dev: {
+    label: 'Dev', accent: '#39ff14', defaultColors: { primaryColor: '#39ff14', bgColor: '#0d1117', textColor: '#c9d1d9', accentColor: '#58a6ff' },
+    description: ''
+  },
+  enterprise: {
+    label: 'Enterprise', accent: '#0057b8', defaultColors: { primaryColor: '#0057b8', bgColor: '#f8f9fb', textColor: '#1a2332', accentColor: '#0ea5e9' },
+    description: ''
+  },
+  ghetto: {
+    label: 'Ghetto', accent: '#ff3b3b', defaultColors: { primaryColor: '#ff3b3b', bgColor: '#111111', textColor: '#ffffff', accentColor: '#ffcc00' },
+    description: ''
+  },
+};
+
+interface ColorFieldProps { label: string; value: string; onChange: (v: string) => void; }
+function ColorField({ label, value, onChange }: ColorFieldProps) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+      <input type="color" value={value} onChange={(e) => onChange(e.target.value)}
+        style={{ width: 32, height: 32, border: '2px solid var(--border-color)', borderRadius: 6, padding: 2, cursor: 'pointer', background: 'none', flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>{label}</div>
+        <input type="text" className="input-field" value={value} onChange={(e) => onChange(e.target.value)}
+          style={{ padding: '0.25rem 0.5rem', fontSize: '0.78rem', fontFamily: 'monospace', height: 'auto' }} />
+      </div>
+    </div>
+  );
+}
 
 type BillingPlan = 'FREE' | 'PRO' | 'MAX';
 
@@ -134,134 +168,34 @@ interface StoreActionCardProps {
   canCreateShop: boolean;
   shopCount: number;
   shopLimit: number;
-  isCreatingShop: boolean;
-  shopName: string;
-  shopPhone: string;
   onStartCreate: () => void;
-  onCancelCreate: () => void;
-  onShopNameChange: (value: string) => void;
-  onShopPhoneChange: (value: string) => void;
-  onCreateShop: (e: React.FormEvent) => void;
   onUpgrade: () => void;
 }
 
-function StoreActionCard({
-  canCreateShop,
-  shopCount,
-  shopLimit,
-  isCreatingShop,
-  shopName,
-  shopPhone,
-  onStartCreate,
-  onCancelCreate,
-  onShopNameChange,
-  onShopPhoneChange,
-  onCreateShop,
-  onUpgrade,
-}: StoreActionCardProps) {
+function StoreActionCard({ canCreateShop, shopCount, shopLimit, onStartCreate, onUpgrade }: StoreActionCardProps) {
   if (!canCreateShop) {
     return (
-      <div
-        className="card"
-        style={{
-          minHeight: '280px',
-          border: '1px dashed var(--border-color)',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          textAlign: 'center',
-          gap: '1rem',
-        }}
-      >
+      <div className="card" style={{ minHeight: '280px', border: '1px dashed var(--border-color)', background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', gap: '1rem' }}>
         <Store size={44} color="var(--primary)" />
         <div>
-          <h3 style={{ margin: 0 }}>Store limit reached</h3>
+          <h3 style={{ margin: 0 }}>Límite alcanzado</h3>
           <p style={{ margin: '0.5rem 0 0', color: 'var(--text-secondary)', maxWidth: '260px' }}>
-            Your current plan allows {formatShopLimit(shopLimit)} store{shopLimit === 1 ? '' : 's'}. You have {shopCount}.
+            Tu plan permite {formatShopLimit(shopLimit)} tienda{shopLimit === 1 ? '' : 's'}. Tienes {shopCount}.
           </p>
         </div>
-        <button className="btn btn-primary" type="button" onClick={onUpgrade}>
-          Upgrade plan
-        </button>
+        <button className="btn btn-primary" type="button" onClick={onUpgrade}>Mejorar plan</button>
       </div>
     );
   }
-
-  if (isCreatingShop) {
-    return (
-      <div className="card" style={{ minHeight: '280px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <div>
-            <h3 style={{ margin: 0 }}>Create New Store</h3>
-          </div>
-          <button className="btn btn-outline" type="button" onClick={onCancelCreate}>
-            Cancel
-          </button>
-        </div>
-
-        <form onSubmit={onCreateShop} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <input
-            type="text"
-            placeholder="Store Name"
-            className="input-field"
-            value={shopName}
-            onChange={(e) => onShopNameChange(e.target.value)}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Phone Number"
-            className="input-field"
-            value={shopPhone}
-            onChange={(e) => onShopPhoneChange(e.target.value)}
-            required
-          />
-          <button type="submit" className="btn btn-primary">
-            Create Store
-          </button>
-        </form>
-      </div>
-    );
-  }
-
   return (
-    <div
-      className="card"
-      onClick={onStartCreate}
-      style={{
-        minHeight: '280px',
-        border: '1px dashed var(--border-color)',
-        background: 'linear-gradient(180deg, rgba(92,203,159,0.12) 0%, rgba(255,255,255,0.02) 100%)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        textAlign: 'center',
-        gap: '1rem',
-        cursor: 'pointer',
-      }}
-    >
-      <div
-        style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '18px',
-          display: 'grid',
-          placeItems: 'center',
-          background: 'var(--primary)',
-          color: '#000',
-          boxShadow: '0 18px 32px rgba(0,0,0,0.18)',
-        }}
-      >
+    <div className="card" onClick={onStartCreate}
+      style={{ minHeight: '280px', border: '1px dashed var(--border-color)', background: 'linear-gradient(180deg, rgba(92,203,159,0.12) 0%, rgba(255,255,255,0.02) 100%)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', gap: '1rem', cursor: 'pointer' }}>
+      <div style={{ width: '64px', height: '64px', borderRadius: '18px', display: 'grid', placeItems: 'center', background: 'var(--primary)', color: '#000', boxShadow: '0 18px 32px rgba(0,0,0,0.18)' }}>
         <Plus size={30} />
       </div>
       <div>
-        <h3 style={{ margin: 0 }}>Create New Store</h3>
-        <p style={{ margin: '0.5rem 0 0', color: 'var(--text-secondary)', maxWidth: '260px' }}>
-           Start another store from here.
-        </p>
+        <h3 style={{ margin: 0 }}>Crear Nueva Tienda</h3>
+        <p style={{ margin: '0.5rem 0 0', color: 'var(--text-secondary)', maxWidth: '260px' }}>Abre otra tienda desde aquí.</p>
       </div>
     </div>
   );
@@ -281,10 +215,20 @@ export default function OwnerPanel() {
   const [loading, setLoading] = useState(true);
   const [productsLoading, setProductsLoading] = useState(false);
 
-  /* Create shop form */
+  /* Create shop modal */
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [modalStep, setModalStep] = useState(1);
   const [shopName, setShopName] = useState('');
   const [shopPhone, setShopPhone] = useState('');
-  const [showCreateShopForm, setShowCreateShopForm] = useState(false);
+  /* Theme selection in modal */
+  const [newThemeKey, setNewThemeKey] = useState('dev');
+  const [newColors, setNewColors] = useState<ThemeColors>(THEME_DEFAULTS.dev.defaultColors);
+  const [newHeaderName, setNewHeaderName] = useState('');
+  const [newHeroTitle, setNewHeroTitle] = useState('');
+  const [newHeroSubtitle, setNewHeroSubtitle] = useState('');
+
+  const openCreateModal = () => { setModalStep(1); setShowCreateModal(true); };
+  const closeCreateModal = () => { setShowCreateModal(false); setModalStep(1); };
 
   /* Add product form */
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -379,34 +323,34 @@ export default function OwnerPanel() {
   /* ── Create shop ── */
   const handleCreateShop = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canCreateShop) {
-      goToSubscriptionPlan();
-      return;
-    }
+    if (!canCreateShop) { goToSubscriptionPlan(); return; }
     try {
       const requestedShopName = shopName.trim();
       const requestedPhone = shopPhone.trim();
-      const created = await createShop(shopName, shopPhone);
+      const config = {
+        colors: newColors,
+        headerName: newHeaderName.trim() || undefined,
+        hero: {
+          title: newHeroTitle.trim() || undefined,
+          subtitle: newHeroSubtitle.trim() || undefined,
+        },
+      };
+      const created = await createShop(shopName, shopPhone, newThemeKey, config);
       const createdShopId = getShopId(created);
-      setShopName('');
-      setShopPhone('');
-      setShowCreateShopForm(false);
-
+      setShopName(''); setShopPhone('');
+      setNewThemeKey('dev'); setNewColors(THEME_DEFAULTS.dev.defaultColors);
+      setNewHeaderName(''); setNewHeroTitle(''); setNewHeroSubtitle('');
+      setShowCreateModal(false); setModalStep(1);
       const refreshedShops = await loadShops();
-
       const createdShop = refreshedShops.find((shop) => getShopId(shop) === createdShopId)
-        ?? refreshedShops.find(
-          (shop) =>
-            getShopName(shop).trim().toLowerCase() === requestedShopName.toLowerCase()
-            && String(shop.phoneNumber ?? '').trim() === requestedPhone
+        ?? refreshedShops.find((shop) =>
+          getShopName(shop).trim().toLowerCase() === requestedShopName.toLowerCase()
+          && String(shop.phoneNumber ?? '').trim() === requestedPhone
         );
-
-      if (createdShop) {
-        handleSelectShop(createdShop);
-      }
+      if (createdShop) handleSelectShop(createdShop);
     } catch (error) {
       console.error('Error creating shop', error);
-      alert('Error creating shop');
+      alert('Error al crear la tienda');
     }
   };
 
@@ -553,7 +497,7 @@ export default function OwnerPanel() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               className="btn btn-primary"
               onClick={() => {
@@ -564,6 +508,16 @@ export default function OwnerPanel() {
               <Plus size={18} /> {showAddProduct ? 'Cancel' : 'Add Product'}
             </button>
 
+            <a
+              href={`/${encodeURIComponent(getShopName(selectedShop))}?id=${encodeURIComponent(getShopId(selectedShop))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-outline"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <ExternalLink size={16} /> View Shop
+            </a>
+
             <button
               className="btn btn-danger"
               onClick={promptDeleteShop}
@@ -572,6 +526,9 @@ export default function OwnerPanel() {
             </button>
           </div>
         </div>
+
+        {/* Theme & Storefront */}
+        <ThemePanel shopId={getShopId(selectedShop)} shopName={shopDisplayName} />
 
         {/* Add Product Form */}
         {showAddProduct && (
@@ -806,44 +763,197 @@ export default function OwnerPanel() {
   return (
     <div className="animate-fade-in">
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ margin: 0 }}>My Stores</h1>
+        <h1 style={{ margin: 0 }}>Mis Tiendas</h1>
         <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-          Select a store to manage its products. Plan: {billingPlan}.
+          Selecciona una tienda para gestionar sus productos. Plan: {billingPlan}.
         </p>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-          gap: '1.5rem',
-        }}
-      >
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.5rem' }}>
         {shops.map((shop) => (
           <ShopCard key={getShopId(shop) || getShopName(shop)} shop={shop} onClick={handleSelectShop} />
         ))}
-
         <StoreActionCard
           canCreateShop={canCreateShop}
           shopCount={shops.length}
           shopLimit={shopLimit}
-          isCreatingShop={showCreateShopForm}
-          shopName={shopName}
-          shopPhone={shopPhone}
-          onStartCreate={() => {
-            if (!canCreateShop) {
-              goToSubscriptionPlan();
-              return;
-            }
-            setShowCreateShopForm(true);
-          }}
-          onCancelCreate={() => setShowCreateShopForm(false)}
-          onShopNameChange={setShopName}
-          onShopPhoneChange={setShopPhone}
-          onCreateShop={handleCreateShop}
+          onStartCreate={() => { if (!canCreateShop) { goToSubscriptionPlan(); return; } openCreateModal(); }}
           onUpgrade={goToSubscriptionPlan}
         />
       </div>
+
+      {/* ── Create Shop Modal (4-step wizard) ── */}
+      {showCreateModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'grid', placeItems: 'center', zIndex: 100, padding: '1rem', backdropFilter: 'blur(6px)' }}>
+          <div className="card" style={{ width: 'min(680px, 96%)', maxHeight: '92vh', overflowY: 'auto', padding: '2rem', position: 'relative' }}>
+
+            {/* Step indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {[1,2,3,4].map((s) => (
+                  <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: '0.75rem', fontWeight: 700,
+                      background: s < modalStep ? 'var(--primary)' : s === modalStep ? 'var(--primary)' : 'var(--border-color)',
+                      color: s <= modalStep ? '#000' : 'var(--text-secondary)', transition: 'all 0.2s' }}>
+                      {s < modalStep ? <Check size={14}/> : s}
+                    </div>
+                    {s < 4 && <div style={{ width: 24, height: 2, background: s < modalStep ? 'var(--primary)' : 'var(--border-color)', transition: 'all 0.3s' }} />}
+                  </div>
+                ))}
+              </div>
+              <button onClick={closeCreateModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }}><X size={20}/></button>
+            </div>
+
+            {/* ── STEP 1: Basic info ── */}
+            {modalStep === 1 && (
+              <div>
+                <h2 style={{ margin: '0 0 0.4rem' }}>Nueva Tienda</h2>
+                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1.5rem', fontSize: '0.9rem' }}>Primero, danos los datos básicos de tu tienda.</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nombre de la tienda *</div>
+                    <input type="text" className="input-field" placeholder="Ej: Mi Tienda Cool" value={shopName} onChange={(e) => setShopName(e.target.value)} autoFocus />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Teléfono de contacto *</div>
+                    <input type="text" className="input-field" placeholder="+1 555 0000" value={shopPhone} onChange={(e) => setShopPhone(e.target.value)} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-primary" onClick={() => { if (!shopName.trim() || !shopPhone.trim()) { alert('Por favor completa todos los campos.'); return; } setModalStep(2); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    Siguiente <ChevronRight size={16}/>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 2: Theme + colors ── */}
+            {modalStep === 2 && (
+              <div>
+                <h2 style={{ margin: '0 0 0.4rem' }}>Plantilla y Colores</h2>
+                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1.25rem', fontSize: '0.9rem' }}>Elige el estilo visual de tu tienda y personaliza sus colores.</p>
+
+                {/* Theme cards + live preview side by side */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: '1rem', marginBottom: '1.25rem', alignItems: 'start' }}>
+                  <div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}><Palette size={12}/> Plantilla</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '0.5rem' }}>
+                      {Object.entries(THEME_DEFAULTS).map(([key, meta]) => {
+                        const active = newThemeKey === key;
+                        return (
+                          <div key={key} onClick={() => { setNewThemeKey(key); setNewColors(meta.defaultColors); }}
+                            style={{ borderRadius: 8, border: `2px solid ${active ? meta.accent : 'var(--border-color)'}`, padding: '0.65rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s', boxShadow: active ? `0 0 12px ${meta.accent}44` : 'none', background: active ? `${meta.accent}0f` : 'transparent' }}>
+                            <div style={{ fontWeight: 700, color: active ? meta.accent : 'var(--text-primary)', fontSize: '0.85rem' }}>{meta.label}</div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{meta.description}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* Mini live preview */}
+                  <div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.6rem' }}>Preview</div>
+                    <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)', fontSize: '0.6rem', userSelect: 'none' }}>
+                      <div style={{ background: newColors.bgColor, padding: '0.35rem 0.5rem', borderBottom: `1px solid ${newColors.primaryColor}44`, display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: newColors.primaryColor, fontWeight: 800 }}>{shopName || 'Tienda'}</span>
+                        <span style={{ color: newColors.accentColor }}>◉</span>
+                      </div>
+                      <div style={{ background: newColors.bgColor, padding: '0.5rem' }}>
+                        <div style={{ color: newColors.primaryColor, fontWeight: 700, marginBottom: '0.2rem' }}>{shopName || 'Hero'}</div>
+                        <div style={{ background: `${newColors.primaryColor}22`, border: `1px solid ${newColors.primaryColor}44`, borderRadius: 4, padding: '0.3rem 0.4rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: newColors.textColor }}>Producto</span>
+                          <span style={{ background: newColors.primaryColor, color: newColors.bgColor, borderRadius: 3, padding: '0.05rem 0.3rem', fontWeight: 700 }}>$29</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Color pickers compact 2x2 */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.6rem' }}>Colores</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <ColorField label="Primario" value={newColors.primaryColor ?? '#39ff14'} onChange={(v) => setNewColors((c) => ({ ...c, primaryColor: v }))} />
+                    <ColorField label="Fondo" value={newColors.bgColor ?? '#0d1117'} onChange={(v) => setNewColors((c) => ({ ...c, bgColor: v }))} />
+                    <ColorField label="Texto" value={newColors.textColor ?? '#c9d1d9'} onChange={(v) => setNewColors((c) => ({ ...c, textColor: v }))} />
+                    <ColorField label="Secundario" value={newColors.accentColor ?? '#58a6ff'} onChange={(v) => setNewColors((c) => ({ ...c, accentColor: v }))} />
+                  </div>
+                  <button type="button" onClick={() => setNewColors(THEME_DEFAULTS[newThemeKey]?.defaultColors ?? THEME_DEFAULTS.dev.defaultColors)}
+                    style={{ marginTop: '0.5rem', background: 'none', border: '1px solid var(--border-color)', borderRadius: 6, padding: '0.25rem 0.65rem', fontSize: '0.72rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                    ↺ Restaurar por defecto
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <button className="btn btn-outline" onClick={() => setModalStep(1)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}><ChevronLeft size={15}/> Atrás</button>
+                  <button className="btn btn-primary" onClick={() => setModalStep(3)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>Siguiente <ChevronRight size={15}/></button>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 3: Web texts ── */}
+            {modalStep === 3 && (
+              <div>
+                <h2 style={{ margin: '0 0 0.4rem' }}>Texto de la Web</h2>
+                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1.5rem', fontSize: '0.9rem' }}>Personaliza el nombre y los mensajes que verán tus clientes. Todos son opcionales.</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2rem' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.2rem' }}>Nombre en el Header</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Aparece en la barra de navegación superior de tu tienda. Por defecto usa el nombre de la tienda.</div>
+                    <input type="text" className="input-field" placeholder={shopName || 'Mi Tienda'} value={newHeaderName} onChange={(e) => setNewHeaderName(e.target.value)} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.2rem' }}>Título Principal</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>El gran titular en la sección hero (banner) de la tienda. Es lo primero que ven los visitantes.</div>
+                    <input type="text" className="input-field" placeholder={shopName || 'Bienvenido a mi tienda'} value={newHeroTitle} onChange={(e) => setNewHeroTitle(e.target.value)} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.2rem' }}>Subtítulo / Tagline</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Una frase corta debajo del título que describe tu propuesta de valor o estilo.</div>
+                    <input type="text" className="input-field" placeholder="Tu tienda, tus reglas." value={newHeroSubtitle} onChange={(e) => setNewHeroSubtitle(e.target.value)} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <button className="btn btn-outline" onClick={() => setModalStep(2)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}><ChevronLeft size={15}/> Atrás</button>
+                  <button className="btn btn-primary" onClick={() => setModalStep(4)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>Siguiente <ChevronRight size={15}/></button>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 4: Summary + confirm ── */}
+            {modalStep === 4 && (
+              <form onSubmit={(e) => void handleCreateShop(e)}>
+                <h2 style={{ margin: '0 0 0.4rem' }}>Resumen</h2>
+                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1.5rem', fontSize: '0.9rem' }}>Revisa los detalles y confirma para crear tu tienda.</p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
+                  {[['Nombre', shopName], ['Teléfono', shopPhone], ['Plantilla', THEME_DEFAULTS[newThemeKey]?.label ?? newThemeKey], ['Header', newHeaderName || shopName], ['Título principal', newHeroTitle || shopName || '—'], ['Subtítulo', newHeroSubtitle || '—']]
+                    .map(([k, v]) => (
+                      <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--bg-secondary, rgba(255,255,255,0.04))', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                        <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{k}</span>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{v}</span>
+                      </div>
+                    ))}
+                  {/* Color swatches */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--bg-secondary, rgba(255,255,255,0.04))', borderRadius: 8, border: '1px solid var(--border-color)', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Colores</span>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      {[newColors.primaryColor, newColors.bgColor, newColors.textColor, newColors.accentColor].map((c, i) => (
+                        <div key={i} style={{ width: 20, height: 20, borderRadius: '50%', background: c, border: '2px solid var(--border-color)' }} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
+                  <button type="button" className="btn btn-outline" onClick={() => setModalStep(3)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}><ChevronLeft size={15}/> Atrás</button>
+                  <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Store size={16}/> Crear Tienda</button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

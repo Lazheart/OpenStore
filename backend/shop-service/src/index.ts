@@ -1,6 +1,7 @@
 import { swaggerDocs } from './swagger';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import type { Prisma } from '@prisma/client';
 const { PrismaClient } = require('@prisma/client');
 
 type ShopRecord = { id: string; owner_id: string; name: string; phone_number: string };
@@ -14,6 +15,17 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.SHOP_SERVICE_PORT;
 const STORE_SERVICE_URL = process.env.STORE_SERVICE_URL;
+
+const DEFAULT_STOREFRONT_THEME_KEY = 'dev';
+const ALLOWED_STOREFRONT_THEME_KEYS = new Set(['dev', 'enterprise', 'ghetto']);
+
+const normalizeStorefrontThemeKey = (raw: unknown): string => {
+  if (typeof raw !== 'string' || !raw.trim()) {
+    return DEFAULT_STOREFRONT_THEME_KEY;
+  }
+  const k = raw.trim();
+  return ALLOWED_STOREFRONT_THEME_KEYS.has(k) ? k : DEFAULT_STOREFRONT_THEME_KEY;
+};
 
 // Configuración CORS mejorada
 app.use(cors({
@@ -127,7 +139,7 @@ app.get('/shops', async (req: Request, res: Response) => {
 
 
 app.post('/openshop/shop', authenticateToken, async (req: AuthRequest, res: Response) => {
-  const { shopName, phoneNumber } = req.body ?? {};
+  const { shopName, phoneNumber, themeKey, config } = req.body ?? {};
 
   if (!shopName || typeof shopName !== 'string' || !shopName.trim()) {
     return res.status(400).json({ error: 'shopName es obligatorio' });
@@ -179,12 +191,25 @@ app.post('/openshop/shop', authenticateToken, async (req: AuthRequest, res: Resp
       });
     }
 
-    const newShop = await prisma.shop.create({
-      data: {
-        name: shopName.trim(),
-        owner_id: ownerId,
-        phone_number: phoneNumber.trim(),
-      },
+    const resolvedThemeKey = normalizeStorefrontThemeKey(themeKey);
+    const resolvedConfig = config && typeof config === 'object' ? config : {};
+
+    const newShop = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const shop = await tx.shop.create({
+        data: {
+          name: shopName.trim(),
+          owner_id: ownerId,
+          phone_number: phoneNumber.trim(),
+        },
+      });
+      await tx.shopTheme.create({
+        data: {
+          shopId: shop.id,
+          themeKey: resolvedThemeKey,
+          config: resolvedConfig,
+        },
+      });
+      return shop;
     });
 
     return res.status(201).json(toShopResponse(newShop));
@@ -196,6 +221,7 @@ app.post('/openshop/shop', authenticateToken, async (req: AuthRequest, res: Resp
     return res.status(500).json({ error: 'Error al crear la tienda' });
   }
 });
+
 
 app.get('/shop/name/:shopName', async (req: Request, res: Response) => {
   const shopName = String(req.params.shopName ?? '');
@@ -307,6 +333,99 @@ app.get('/shop/owner/:ownerId', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Error al obtener tiendas del propietario' });
   }
 });
+
+// GET /shop/:shopId/theme — configuración visual pública del storefront (sin auth)
+app.get('/shop/:shopId/theme', async (req: Request, res: Response) => {
+  const shopId = String(req.params.shopId ?? '').trim();
+
+  if (!shopId) {
+    return res.status(400).json({ error: 'shopId invalido' });
+  }
+
+  try {
+    const shop = await prisma.shop.findUnique({
+      where: { id: shopId },
+    });
+
+    if (!shop) {
+      return res.status(404).json({ error: 'Tienda no encontrada' });
+    }
+
+    let theme = await prisma.shopTheme.findUnique({
+      where: { shopId },
+    });
+
+    if (!theme) {
+      theme = await prisma.shopTheme.create({
+        data: {
+          shopId,
+          themeKey: DEFAULT_STOREFRONT_THEME_KEY,
+          config: {},
+        },
+      });
+    }
+
+    const themeKey = normalizeStorefrontThemeKey(theme.themeKey);
+
+    return res.json({
+      shopId: shop.id,
+      themeKey,
+      config: theme.config ?? {},
+      updatedAt: theme.updatedAt,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener el tema de la tienda' });
+  }
+});
+
+// PUT /shop/:shopId/theme — guarda configuración de tema (requiere auth)
+app.put('/shop/:shopId/theme', authenticateToken, async (req: AuthRequest, res: Response) => {
+  const shopId = String(req.params.shopId ?? '').trim();
+  const { themeKey, config } = req.body ?? {};
+
+  if (!shopId) {
+    return res.status(400).json({ error: 'shopId invalido' });
+  }
+
+  const token = getBearerToken(req);
+  if (!token) {
+    return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
+  }
+
+  try {
+    const user = await getCurrentUserFromMe(token);
+    const requesterId = String(user.id);
+
+    const shop = await prisma.shop.findUnique({ where: { id: shopId } });
+    if (!shop) {
+      return res.status(404).json({ error: 'Tienda no encontrada' });
+    }
+
+    const isAdmin = String(user.role).toUpperCase() === 'ADMIN';
+    if (!isAdmin && shop.owner_id !== requesterId) {
+      return res.status(403).json({ error: 'No puedes modificar el tema de una tienda que no te pertenece' });
+    }
+
+    const resolvedThemeKey = normalizeStorefrontThemeKey(themeKey);
+    const resolvedConfig = config && typeof config === 'object' ? config : {};
+
+    const updated = await prisma.shopTheme.upsert({
+      where: { shopId },
+      create: { shopId, themeKey: resolvedThemeKey, config: resolvedConfig },
+      update: { themeKey: resolvedThemeKey, config: resolvedConfig },
+    });
+
+    return res.json({
+      shopId,
+      themeKey: updated.themeKey,
+      config: updated.config ?? {},
+      updatedAt: updated.updatedAt,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al guardar el tema de la tienda' });
+  }
+});
+
 
 // GET /shop/{shopId} - Get shop details by ID
 app.get('/shop/:shopId', async (req: Request, res: Response) => {

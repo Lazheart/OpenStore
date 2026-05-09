@@ -14,6 +14,7 @@ from mapping import (
 	AuthRegisterRequest,
 	ShopCreateRequest,
 	ShopUpdateRequest,
+	ThemeUpdateRequest,
 	UpdateMeRequest,
 	UpdateSubscriptionRequest,
 	VerifyPasswordRequest,
@@ -30,6 +31,7 @@ from services_paths import (
 	product_purge_by_shop_url,
 	shop_internal_delete_url,
 	shop_update_url,
+	shop_theme_url,
 	user_me_url,
 	user_me_update_subscription_url,
 	user_verify_url,
@@ -415,6 +417,35 @@ async def get_shops(page: int = 1, limit: int = 10, authorization: str | None = 
 @app.get("/shops/{shop_id}", tags=["Tiendas"])
 async def get_shop(shop_id: str, authorization: str | None = Header(default=None)) -> Any:
 	return await _forward("GET", shop_get_by_id_url(shop_id), authorization=authorization)
+
+
+@app.get(
+	"/shop/{shop_id}/theme",
+	tags=["Tiendas"],
+	summary="Obtener tema del storefront",
+	description="Proxy a shop-service: obtiene themeKey y config (colores, headerName, hero) de una tienda.",
+)
+async def get_shop_theme(shop_id: str, authorization: str | None = Header(default=None)) -> Any:
+	return await _forward("GET", shop_theme_url(shop_id), authorization=authorization)
+
+
+@app.put(
+	"/shop/{shop_id}/theme",
+	tags=["Tiendas"],
+	summary="Actualizar tema del storefront",
+	description="Proxy a shop-service: actualiza themeKey y config (colores, headerName, hero) de una tienda.",
+)
+async def update_shop_theme(
+	shop_id: str,
+	payload: ThemeUpdateRequest,
+	authorization: str | None = Header(default=None),
+) -> Any:
+	return await _forward(
+		"PUT",
+		shop_theme_url(shop_id),
+		payload=payload.model_dump(exclude_none=True),
+		authorization=authorization,
+	)
 
 
 @app.get("/shops/{shop_id}/products", tags=["Productos"])

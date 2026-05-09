@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { Product } from './DevStyle';
 import { PRODUCTS } from './DevStyle';
+import type { ThemeViewProps } from '../storefront/themeTypes';
+import { hasConfiguredHeroTitle, readHeroSubtitle, readHeroTitle } from '../storefront/themeTypes';
 
 const CATEGORIES = ['all', 'tools', 'libraries', 'devops', 'ui'];
 
@@ -90,14 +92,30 @@ function EnterpriseProductCard({ product, onAdd }: { product: Product; onAdd: (p
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-export default function EntrepriseStyle() {
+// ─── Main Page ──────────────────────────────────────────────────────────────────────────────────
+function readEntColors(themeConfig: import('../storefront/themeTypes').ShopThemeJson | null) {
+  const c = themeConfig?.colors as Record<string, string> | undefined;
+  return {
+    primary: c?.primaryColor ?? '#0057b8',
+    bg: c?.bgColor ?? '#f8f9fb',
+    text: c?.textColor ?? '#1a2332',
+    accent: c?.accentColor ?? '#c9a84c',
+    headerName: (themeConfig?.headerName as string) ?? '',
+  };
+}
+
+export default function EntrepriseStyle({ shopId, shopName, themeConfig, catalogProducts }: ThemeViewProps) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
 
-  const filtered = PRODUCTS.filter(
+  const productSource = catalogProducts?.length ? catalogProducts : PRODUCTS;
+  const showCustomHero = hasConfiguredHeroTitle(themeConfig);
+  const entColors = readEntColors(themeConfig);
+  const displayHeader = entColors.headerName || shopName || 'OpenStore';
+
+  const filtered = productSource.filter(
     (p) =>
       (activeCategory === 'all' || p.category === activeCategory) &&
       (p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -114,18 +132,24 @@ export default function EntrepriseStyle() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+        :root {
+          --ent-primary: ${entColors.primary};
+          --ent-bg: ${entColors.bg};
+          --ent-text: ${entColors.text};
+          --ent-accent: ${entColors.accent};
+        }
 
         .ent-root {
           min-height: 100vh;
-          background: #f8f7f4;
-          color: #1a1a2e;
+          background: var(--ent-bg);
+          color: var(--ent-text);
           font-family: 'Montserrat', 'Helvetica Neue', sans-serif;
         }
 
         /* ── Topbar ── */
         .ent-topbar {
-          background: #1a1a2e;
-          color: #c9a84c;
+          background: var(--ent-text);
+          color: var(--ent-accent);
           text-align: center;
           padding: 0.5rem;
           font-size: 0.72rem;
@@ -136,8 +160,8 @@ export default function EntrepriseStyle() {
 
         /* ── Header ── */
         .ent-header {
-          background: #fff;
-          border-bottom: 1px solid #e2ddd5;
+          background: var(--ent-bg);
+          border-bottom: 1px solid color-mix(in srgb, var(--ent-text) 12%, transparent);
           padding: 1.25rem 3rem;
           display: flex;
           align-items: center;
@@ -150,11 +174,11 @@ export default function EntrepriseStyle() {
         .ent-logo {
           font-size: 1.35rem;
           font-weight: 800;
-          color: #1a1a2e;
+          color: var(--ent-text);
           letter-spacing: -0.5px;
         }
         .ent-logo em {
-          color: #c9a84c;
+          color: var(--ent-accent);
           font-style: normal;
         }
         .ent-nav {
@@ -166,19 +190,19 @@ export default function EntrepriseStyle() {
           text-transform: uppercase;
         }
         .ent-nav a {
-          color: #5a5a7a;
+          color: color-mix(in srgb, var(--ent-text) 60%, transparent);
           text-decoration: none;
           transition: color 0.2s;
         }
-        .ent-nav a:hover { color: #c9a84c; }
+        .ent-nav a:hover { color: var(--ent-accent); }
         .ent-header-right {
           display: flex;
           align-items: center;
           gap: 1rem;
         }
         .ent-cart-btn {
-          background: #1a1a2e;
-          color: #c9a84c;
+          background: var(--ent-text);
+          color: var(--ent-accent);
           border: none;
           padding: 0.6rem 1.4rem;
           font-family: 'Montserrat', sans-serif;
@@ -190,15 +214,15 @@ export default function EntrepriseStyle() {
           transition: background 0.2s, transform 0.2s;
         }
         .ent-cart-btn:hover {
-          background: #c9a84c;
-          color: #1a1a2e;
+          background: var(--ent-accent);
+          color: var(--ent-text);
           transform: translateY(-1px);
         }
 
         /* ── Hero ── */
         .ent-hero {
-          background: linear-gradient(160deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
-          color: #fff;
+          background: linear-gradient(160deg, var(--ent-text) 0%, color-mix(in srgb, var(--ent-text) 85%, var(--ent-primary)) 100%);
+          color: var(--ent-bg);
           padding: 5rem 3rem 4rem;
           position: relative;
           overflow: hidden;
@@ -225,7 +249,7 @@ export default function EntrepriseStyle() {
           font-size: 0.7rem;
           letter-spacing: 4px;
           text-transform: uppercase;
-          color: #c9a84c;
+          color: var(--ent-accent);
           font-weight: 600;
           margin-bottom: 1.25rem;
           display: flex;
@@ -237,7 +261,7 @@ export default function EntrepriseStyle() {
           display: block;
           width: 32px;
           height: 1px;
-          background: #c9a84c;
+          background: var(--ent-accent);
         }
         .ent-hero h1 {
           font-size: clamp(2rem, 5vw, 3.5rem);
@@ -249,9 +273,9 @@ export default function EntrepriseStyle() {
           color: #fff;
         }
         .ent-hero h1 em {
-          color: #c9a84c;
+          color: var(--ent-accent);
           font-style: normal;
-          border-bottom: 2px solid rgba(201,168,76,0.5);
+          border-bottom: 2px solid color-mix(in srgb, var(--ent-accent) 50%, transparent);
         }
         .ent-hero-sub {
           color: rgba(255,255,255,0.6);
@@ -269,7 +293,7 @@ export default function EntrepriseStyle() {
         .ent-stat-num {
           font-size: 1.8rem;
           font-weight: 800;
-          color: #c9a84c;
+          color: var(--ent-accent);
           line-height: 1;
         }
         .ent-stat-label {
@@ -316,8 +340,8 @@ export default function EntrepriseStyle() {
           border-radius: 0;
         }
         .ent-search:focus {
-          border-color: #c9a84c;
-          box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+          border-color: var(--ent-accent);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--ent-accent) 15%, transparent);
         }
         .ent-search::placeholder { color: #b0a898; }
 
@@ -338,11 +362,11 @@ export default function EntrepriseStyle() {
           cursor: pointer;
           transition: all 0.2s;
         }
-        .ent-filter-btn:hover { border-color: #c9a84c; color: #c9a84c; }
+        .ent-filter-btn:hover { border-color: var(--ent-accent); color: var(--ent-accent); }
         .ent-filter-btn.active {
-          background: #1a1a2e;
-          border-color: #1a1a2e;
-          color: #c9a84c;
+          background: var(--ent-text);
+          border-color: var(--ent-text);
+          color: var(--ent-accent);
         }
 
         /* ── Products grid ── */
@@ -391,7 +415,7 @@ export default function EntrepriseStyle() {
           position: absolute;
           top: 0; left: 0; right: 0;
           height: 3px;
-          background: linear-gradient(90deg, #1a1a2e, #c9a84c);
+          background: linear-gradient(90deg, var(--ent-text), var(--ent-accent));
           transform: scaleX(0);
           transform-origin: left;
           transition: transform 0.4s ease;
@@ -474,8 +498,8 @@ export default function EntrepriseStyle() {
           letter-spacing: -0.5px;
         }
         .ent-btn {
-          background: #1a1a2e;
-          color: #c9a84c;
+          background: var(--ent-text);
+          color: var(--ent-accent);
           border: none;
           padding: 0.6rem 1.5rem;
           font-family: 'Montserrat', sans-serif;
@@ -488,8 +512,8 @@ export default function EntrepriseStyle() {
           white-space: nowrap;
         }
         .ent-btn:hover {
-          background: #c9a84c;
-          color: #1a1a2e;
+          background: var(--ent-accent);
+          color: var(--ent-text);
         }
 
         /* ── Cart Drawer ── */
@@ -558,8 +582,8 @@ export default function EntrepriseStyle() {
         }
         .ent-checkout-btn {
           width: 100%;
-          background: #1a1a2e;
-          color: #c9a84c;
+          background: var(--ent-text);
+          color: var(--ent-accent);
           border: none;
           padding: 1rem;
           font-family: 'Montserrat', sans-serif;
@@ -570,7 +594,7 @@ export default function EntrepriseStyle() {
           cursor: pointer;
           transition: background 0.2s;
         }
-        .ent-checkout-btn:hover { background: #c9a84c; color: #1a1a2e; }
+        .ent-checkout-btn:hover { background: var(--ent-accent); color: var(--ent-text); }
 
         /* ── Empty ── */
         .ent-empty {
@@ -586,8 +610,8 @@ export default function EntrepriseStyle() {
 
         /* ── Footer ── */
         .ent-footer {
-          background: #1a1a2e;
-          color: rgba(255,255,255,0.4);
+          background: var(--ent-text);
+          color: color-mix(in srgb, var(--ent-bg) 40%, transparent);
           text-align: center;
           padding: 2rem 3rem;
           font-size: 0.72rem;
@@ -595,7 +619,7 @@ export default function EntrepriseStyle() {
           text-transform: uppercase;
           margin-top: 4rem;
         }
-        .ent-footer span { color: #c9a84c; }
+        .ent-footer span { color: var(--ent-accent); }
       `}</style>
 
       <div className="ent-root">
@@ -606,7 +630,14 @@ export default function EntrepriseStyle() {
 
         {/* Header */}
         <header className="ent-header">
-          <div className="ent-logo">Open<em>Store</em> <span style={{ color: '#9b9b9b', fontWeight: 300, fontSize: '0.75rem', letterSpacing: '2px' }}>ENTERPRISE</span></div>
+          <div className="ent-logo">
+            {displayHeader}<em>{' '}</em>
+            {shopId ? (
+              <span style={{ display: 'block', fontSize: '0.65rem', color: 'color-mix(in srgb, var(--ent-text) 40%, transparent)', marginTop: '0.25rem' }}>
+                storefront · {shopId.slice(0, 8)}…
+              </span>
+            ) : null}
+          </div>
           <nav className="ent-nav">
             <a href="#">Products</a>
             <a href="#">Solutions</a>
@@ -623,13 +654,28 @@ export default function EntrepriseStyle() {
         {/* Hero */}
         <section className="ent-hero">
           <div className="ent-hero-eyebrow">Developer Solutions Catalog</div>
-          <h1>
-            Enterprise-Grade<br />
-            Tools for <em>Modern Teams</em>
-          </h1>
-          <p className="ent-hero-sub">
-            Scalable, secure, and supported software solutions built for professional engineering organizations. SOC 2 compliant. 24/7 support.
-          </p>
+          {showCustomHero ? (
+            <>
+              <h1>{readHeroTitle(themeConfig, shopName)}</h1>
+              <p className="ent-hero-sub">
+                {readHeroSubtitle(
+                  themeConfig,
+                  'Tu catálogo, con disponibilidad y precios desde OpenStore.',
+                )}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1>
+                Enterprise-Grade<br />
+                Tools for <em>Modern Teams</em>
+              </h1>
+              <p className="ent-hero-sub">
+                Scalable, secure, and supported software solutions built for professional engineering organizations.
+                SOC 2 compliant. 24/7 support.
+              </p>
+            </>
+          )}
           <div className="ent-hero-stats">
             <div className="ent-stat-item">
               <div className="ent-stat-num">6</div>

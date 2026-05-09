@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import type { ThemeViewProps } from '../storefront/themeTypes';
+import { hasConfiguredHeroTitle, readHeroSubtitle, readHeroTitle } from '../storefront/themeTypes';
 
 // ─── Shared Product Data ──────────────────────────────────────────────────────
 export interface Product {
@@ -144,8 +146,19 @@ function DevProductCard({ product, onAdd }: { product: Product; onAdd: (p: Produ
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-export default function DevStyle() {
+// ─── Main Page ──────────────────────────────────────────────────────────────────────────────────
+function readColors(themeConfig: import('../storefront/themeTypes').ShopThemeJson | null) {
+  const c = themeConfig?.colors as Record<string, string> | undefined;
+  return {
+    primary: c?.primaryColor ?? '#39ff14',
+    bg: c?.bgColor ?? '#0d1117',
+    text: c?.textColor ?? '#c9d1d9',
+    accent: c?.accentColor ?? '#58a6ff',
+    headerName: (themeConfig?.headerName as string) ?? '',
+  };
+}
+
+export default function DevStyle({ shopId, shopName, themeConfig, catalogProducts }: ThemeViewProps) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
@@ -155,7 +168,12 @@ export default function DevStyle() {
     '> 6 packages found. Ready.',
   ]);
 
-  const filtered = PRODUCTS.filter(
+  const productSource = catalogProducts?.length ? catalogProducts : PRODUCTS;
+  const showCustomHero = hasConfiguredHeroTitle(themeConfig);
+  const colors = readColors(themeConfig);
+  const displayHeader = colors.headerName || shopName || 'openStore.dev';
+
+  const filtered = productSource.filter(
     (p) =>
       (activeCategory === 'all' || p.category === activeCategory) &&
       (p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -175,19 +193,25 @@ export default function DevStyle() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap');
+        :root {
+          --dev-primary: ${colors.primary};
+          --dev-bg: ${colors.bg};
+          --dev-text: ${colors.text};
+          --dev-accent: ${colors.accent};
+        }
 
         .dev-root {
           min-height: 100vh;
-          background: #0a0a0a;
-          color: #c9d1d9;
+          background: var(--dev-bg);
+          color: var(--dev-text);
           font-family: 'Source Code Pro', 'Fira Code', monospace;
           padding: 0;
         }
 
         /* ── Header ── */
         .dev-header {
-          background: #0d1117;
-          border-bottom: 1px solid #21262d;
+          background: color-mix(in srgb, var(--dev-bg) 85%, #000);
+          border-bottom: 1px solid color-mix(in srgb, var(--dev-primary) 20%, transparent);
           padding: 1rem 2rem;
           display: flex;
           align-items: center;
@@ -199,19 +223,19 @@ export default function DevStyle() {
         .dev-logo {
           font-size: 1.2rem;
           font-weight: 700;
-          color: #39ff14;
+          color: var(--dev-primary);
           letter-spacing: -0.5px;
         }
-        .dev-logo span { color: #58a6ff; }
+        .dev-logo span { color: var(--dev-accent); }
         .dev-header-right {
           display: flex;
           align-items: center;
           gap: 1.5rem;
         }
         .dev-cart-pill {
-          background: #161b22;
-          border: 1px solid #30363d;
-          color: #58a6ff;
+          background: color-mix(in srgb, var(--dev-bg) 70%, #000);
+          border: 1px solid color-mix(in srgb, var(--dev-primary) 30%, transparent);
+          color: var(--dev-accent);
           padding: 0.4rem 1rem;
           border-radius: 4px;
           font-size: 0.8rem;
@@ -219,12 +243,12 @@ export default function DevStyle() {
           transition: border-color 0.2s;
           font-family: inherit;
         }
-        .dev-cart-pill:hover { border-color: #39ff14; color: #39ff14; }
+        .dev-cart-pill:hover { border-color: var(--dev-primary); color: var(--dev-primary); }
 
         /* ── Hero ── */
         .dev-hero {
-          background: #0d1117;
-          border-bottom: 1px solid #21262d;
+          background: color-mix(in srgb, var(--dev-bg) 90%, #000);
+          border-bottom: 1px solid color-mix(in srgb, var(--dev-primary) 20%, transparent);
           padding: 3rem 2rem 2rem;
           position: relative;
           overflow: hidden;
@@ -233,12 +257,12 @@ export default function DevStyle() {
           content: '';
           position: absolute;
           inset: 0;
-          background: radial-gradient(ellipse at 20% 50%, rgba(57,255,20,0.06) 0%, transparent 60%),
-                      radial-gradient(ellipse at 80% 20%, rgba(88,166,255,0.07) 0%, transparent 50%);
+          background: radial-gradient(ellipse at 20% 50%, color-mix(in srgb, var(--dev-primary) 6%, transparent) 0%, transparent 60%),
+                      radial-gradient(ellipse at 80% 20%, color-mix(in srgb, var(--dev-accent) 7%, transparent) 0%, transparent 50%);
           pointer-events: none;
         }
         .dev-hero-label {
-          color: #39ff14;
+          color: var(--dev-primary);
           font-size: 0.7rem;
           letter-spacing: 3px;
           text-transform: uppercase;
@@ -247,21 +271,21 @@ export default function DevStyle() {
         .dev-hero h1 {
           font-size: clamp(1.6rem, 4vw, 2.8rem);
           font-weight: 700;
-          color: #e6edf3;
+          color: var(--dev-text);
           margin-bottom: 0.5rem;
           line-height: 1.2;
         }
-        .dev-hero h1 .accent { color: #39ff14; }
-        .dev-hero h1 .accent2 { color: #58a6ff; }
+        .dev-hero h1 .accent { color: var(--dev-primary); }
+        .dev-hero h1 .accent2 { color: var(--dev-accent); }
         .dev-hero-sub {
-          color: #8b949e;
+          color: color-mix(in srgb, var(--dev-text) 60%, transparent);
           font-size: 0.9rem;
           margin-bottom: 0;
           font-style: italic;
         }
         .dev-scan-line {
           height: 1px;
-          background: linear-gradient(90deg, transparent, #39ff14, transparent);
+          background: linear-gradient(90deg, transparent, var(--dev-primary), transparent);
           margin-top: 2rem;
           opacity: 0.4;
           animation: devScan 3s ease-in-out infinite;
@@ -273,8 +297,8 @@ export default function DevStyle() {
 
         /* ── Search & Filter bar ── */
         .dev-toolbar {
-          background: #0d1117;
-          border-bottom: 1px solid #21262d;
+          background: color-mix(in srgb, var(--dev-bg) 90%, #000);
+          border-bottom: 1px solid color-mix(in srgb, var(--dev-primary) 15%, transparent);
           padding: 1rem 2rem;
           display: flex;
           align-items: center;
@@ -297,9 +321,9 @@ export default function DevStyle() {
         }
         .dev-search {
           width: 100%;
-          background: #161b22;
-          border: 1px solid #30363d;
-          color: #c9d1d9;
+          background: color-mix(in srgb, var(--dev-bg) 60%, #000);
+          border: 1px solid color-mix(in srgb, var(--dev-primary) 20%, transparent);
+          color: var(--dev-text);
           padding: 0.55rem 0.75rem 0.55rem 3.5rem;
           border-radius: 4px;
           font-family: 'Source Code Pro', monospace;
@@ -307,8 +331,9 @@ export default function DevStyle() {
           outline: none;
           transition: border-color 0.2s;
         }
-        .dev-search:focus { border-color: #39ff14; }
-        .dev-search::placeholder { color: #484f58; }
+        .dev-search:focus { border-color: var(--dev-primary); }
+        .dev-search::placeholder { color: color-mix(in srgb, var(--dev-text) 30%, transparent); }
+        .dev-search-prefix { color: var(--dev-primary); }
 
         .dev-filter-group {
           display: flex;
@@ -316,9 +341,9 @@ export default function DevStyle() {
           flex-wrap: wrap;
         }
         .dev-filter-btn {
-          background: #161b22;
-          border: 1px solid #30363d;
-          color: #8b949e;
+          background: color-mix(in srgb, var(--dev-bg) 60%, #000);
+          border: 1px solid color-mix(in srgb, var(--dev-primary) 15%, transparent);
+          color: color-mix(in srgb, var(--dev-text) 60%, transparent);
           padding: 0.4rem 0.9rem;
           border-radius: 4px;
           font-size: 0.75rem;
@@ -327,8 +352,8 @@ export default function DevStyle() {
           transition: all 0.2s;
           text-transform: lowercase;
         }
-        .dev-filter-btn:hover { border-color: #58a6ff; color: #58a6ff; }
-        .dev-filter-btn.active { border-color: #39ff14; color: #39ff14; background: rgba(57,255,20,0.07); }
+        .dev-filter-btn:hover { border-color: var(--dev-accent); color: var(--dev-accent); }
+        .dev-filter-btn.active { border-color: var(--dev-primary); color: var(--dev-primary); background: color-mix(in srgb, var(--dev-primary) 7%, transparent); }
 
         /* ── Grid ── */
         .dev-main {
@@ -355,8 +380,8 @@ export default function DevStyle() {
 
         /* ── Card ── */
         .dev-card {
-          background: #0d1117;
-          border: 1px solid #21262d;
+          background: color-mix(in srgb, var(--dev-bg) 90%, #000);
+          border: 1px solid color-mix(in srgb, var(--dev-primary) 15%, transparent);
           border-radius: 6px;
           padding: 1.25rem;
           transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
@@ -369,14 +394,14 @@ export default function DevStyle() {
           position: absolute;
           top: 0; left: 0; right: 0;
           height: 2px;
-          background: linear-gradient(90deg, #39ff14, #58a6ff);
+          background: linear-gradient(90deg, var(--dev-primary), var(--dev-accent));
           transform: scaleX(0);
           transform-origin: left;
           transition: transform 0.3s;
         }
         .dev-card:hover {
-          border-color: #39ff14;
-          box-shadow: 0 0 20px rgba(57,255,20,0.12);
+          border-color: var(--dev-primary);
+          box-shadow: 0 0 20px color-mix(in srgb, var(--dev-primary) 12%, transparent);
           transform: translateY(-2px);
         }
         .dev-card:hover::before { transform: scaleX(1); }
@@ -388,9 +413,9 @@ export default function DevStyle() {
           margin-bottom: 0.75rem;
           flex-wrap: wrap;
         }
-        .dev-prompt { color: #39ff14; font-size: 0.85rem; flex-shrink: 0; }
+        .dev-prompt { color: var(--dev-primary); font-size: 0.85rem; flex-shrink: 0; }
         .dev-pkg-name {
-          color: #58a6ff;
+          color: var(--dev-accent);
           font-size: 0.95rem;
           font-weight: 700;
           flex: 1;
@@ -436,14 +461,14 @@ export default function DevStyle() {
           gap: 0.5rem;
         }
         .dev-price {
-          color: #ffd60a;
+          color: color-mix(in srgb, var(--dev-primary) 80%, #ff0);
           font-weight: 700;
           font-size: 1.05rem;
         }
         .dev-btn {
-          background: #161b22;
-          border: 1px solid #39ff14;
-          color: #39ff14;
+          background: color-mix(in srgb, var(--dev-bg) 60%, #000);
+          border: 1px solid var(--dev-primary);
+          color: var(--dev-primary);
           padding: 0.45rem 1rem;
           border-radius: 4px;
           font-size: 0.78rem;
@@ -453,15 +478,15 @@ export default function DevStyle() {
           white-space: nowrap;
         }
         .dev-btn:hover {
-          background: rgba(57,255,20,0.12);
-          box-shadow: 0 0 10px rgba(57,255,20,0.3);
+          background: color-mix(in srgb, var(--dev-primary) 12%, transparent);
+          box-shadow: 0 0 10px color-mix(in srgb, var(--dev-primary) 30%, transparent);
         }
         .dev-btn:active { transform: scale(0.97); }
 
         /* ── Terminal Sidebar ── */
         .dev-terminal {
-          background: #010409;
-          border-left: 1px solid #21262d;
+          background: color-mix(in srgb, var(--dev-bg) 50%, #000);
+          border-left: 1px solid color-mix(in srgb, var(--dev-primary) 15%, transparent);
           padding: 1.5rem;
           font-size: 0.75rem;
           color: #8b949e;
@@ -471,7 +496,7 @@ export default function DevStyle() {
           top: 120px;
         }
         .dev-terminal-title {
-          color: #39ff14;
+          color: var(--dev-primary);
           font-size: 0.7rem;
           letter-spacing: 2px;
           text-transform: uppercase;
@@ -484,13 +509,13 @@ export default function DevStyle() {
           line-height: 1.5;
           animation: devFadeIn 0.3s ease;
         }
-        .dev-terminal-line:nth-child(odd) { color: #39ff14; }
-        .dev-terminal-line:nth-child(even) { color: #8b949e; padding-left: 1rem; }
+        .dev-terminal-line:nth-child(odd) { color: var(--dev-primary); }
+        .dev-terminal-line:nth-child(even) { color: color-mix(in srgb, var(--dev-text) 60%, transparent); padding-left: 1rem; }
         .dev-cursor {
           display: inline-block;
           width: 8px;
           height: 14px;
-          background: #39ff14;
+          background: var(--dev-primary);
           vertical-align: middle;
           animation: devBlink 1s step-end infinite;
         }
@@ -512,8 +537,8 @@ export default function DevStyle() {
 
         /* ── Cart total strip ── */
         .dev-cart-strip {
-          background: #0d1117;
-          border-top: 1px solid #21262d;
+          background: color-mix(in srgb, var(--dev-bg) 90%, #000);
+          border-top: 1px solid color-mix(in srgb, var(--dev-primary) 20%, transparent);
           padding: 0.75rem 2rem;
           display: flex;
           align-items: center;
@@ -522,12 +547,12 @@ export default function DevStyle() {
           position: sticky;
           bottom: 0;
         }
-        .dev-cart-total { color: #8b949e; }
-        .dev-cart-total span { color: #ffd60a; font-weight: 700; }
+        .dev-cart-total { color: color-mix(in srgb, var(--dev-text) 60%, transparent); }
+        .dev-cart-total span { color: color-mix(in srgb, var(--dev-primary) 80%, #ff0); font-weight: 700; }
         .dev-checkout-btn {
-          background: linear-gradient(135deg, #39ff14, #00d4ff);
+          background: linear-gradient(135deg, var(--dev-primary), var(--dev-accent));
           border: none;
-          color: #000;
+          color: color-mix(in srgb, var(--dev-bg) 90%, #000);
           padding: 0.5rem 1.5rem;
           border-radius: 4px;
           font-family: 'Source Code Pro', monospace;
@@ -543,11 +568,16 @@ export default function DevStyle() {
         {/* Header */}
         <header className="dev-header">
           <div className="dev-logo">
-            open<span>Store</span>.<span style={{ color: '#39ff14' }}>dev</span>
+            {displayHeader.includes(' ') ? (
+              <>{displayHeader.split(' ')[0]}<span>{displayHeader.split(' ').slice(1).join(' ')}</span></>
+            ) : (
+              <>{displayHeader}<span>.dev</span></>
+            )}
           </div>
           <div className="dev-header-right">
             <span style={{ color: '#484f58', fontSize: '0.75rem' }}>
-              registry.openstore.sh/v2
+              {shopName ? `${shopName} · storefront` : 'registry.openstore.sh/v2'}
+              {shopId ? ` · ${shopId.slice(0, 8)}…` : ''}
             </span>
             <button className="dev-cart-pill">
               📦 cart [{cart.length}]
@@ -558,13 +588,27 @@ export default function DevStyle() {
         {/* Hero */}
         <section className="dev-hero">
           <div className="dev-hero-label">// marketplace for developers</div>
-          <h1>
-            <span className="accent">pkg</span> install{' '}
-            <span className="accent2">--save</span> your-next-tool
-          </h1>
-          <p className="dev-hero-sub">
-            {'>'} 6 battle-tested packages for serious engineers. No fluff. Just code.
-          </p>
+          {showCustomHero ? (
+            <>
+              <h1>{readHeroTitle(themeConfig, shopName)}</h1>
+              <p className="dev-hero-sub">
+                {readHeroSubtitle(
+                  themeConfig,
+                  '> Catálogo de la tienda. Productos cargados desde el backend.',
+                )}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1>
+                <span className="accent">pkg</span> install{' '}
+                <span className="accent2">--save</span> your-next-tool
+              </h1>
+              <p className="dev-hero-sub">
+                {'>'} 6 battle-tested packages for serious engineers. No fluff. Just code.
+              </p>
+            </>
+          )}
           <div className="dev-scan-line" />
         </section>
 

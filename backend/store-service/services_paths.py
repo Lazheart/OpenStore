@@ -88,3 +88,7 @@ def product_create_url(shop_id: str) -> str:
 
 def product_update_url(shop_id: str, product_id: str) -> str:
 	return f"{PRODUCT_SERVICE_URL}/shops/{shop_id}/products/{product_id}"
+
+
+def shop_theme_url(shop_id: str) -> str:
+	return f"{SHOP_SERVICE_URL}/shop/{shop_id}/theme"

@@ -88,6 +88,8 @@ def build_register_payload(request: AuthRegisterRequest) -> dict[str, Any]:
 class ShopCreateRequest(BaseModel):
 	shopName: str = Field(min_length=1)
 	phoneNumber: str = Field(min_length=1, description="Teléfono de la tienda")
+	themeKey: Optional[str] = Field(default=None, description="Clave del tema visual (dev, enterprise, ghetto)")
+	config: Optional[dict[str, Any]] = Field(default=None, description="Configuración del tema: colores, headerName, hero")
 
 
 class ShopUpdateRequest(BaseModel):
@@ -101,11 +103,27 @@ class ShopUpdateRequest(BaseModel):
 		return self
 
 
-def build_shop_create_payload(request: ShopCreateRequest) -> dict[str, str]:
-	return {
+class ThemeUpdateRequest(BaseModel):
+	themeKey: Optional[str] = Field(default=None, description="Clave del tema (dev, enterprise, ghetto)")
+	config: Optional[dict[str, Any]] = Field(default=None, description="Configuración: colores, headerName, hero")
+
+	@model_validator(mode="after")
+	def validate_at_least_one(self) -> "ThemeUpdateRequest":
+		if self.themeKey is None and self.config is None:
+			raise ValueError("Debes enviar themeKey, config o ambos")
+		return self
+
+
+def build_shop_create_payload(request: ShopCreateRequest) -> dict[str, Any]:
+	payload: dict[str, Any] = {
 		"shopName": request.shopName.strip(),
 		"phoneNumber": request.phoneNumber.strip(),
 	}
+	if request.themeKey is not None:
+		payload["themeKey"] = request.themeKey
+	if request.config is not None:
+		payload["config"] = request.config
+	return payload
 
 
 def build_shop_update_payload(request: ShopUpdateRequest) -> dict[str, str]:
