@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>OpenStore | Data ingest</title>
+		<meta
+			name="description"
+			content="Documentación de la ingesta de OpenStore y el uso de boto3 para S3 y Athena."
+		/>
+		<link rel="stylesheet" href="../styles/style.css" />
+		<script defer src="../scripts/main.js"></script>
+		<script defer src="../scripts/search.js"></script>
+		<script defer src="../scripts/scaleimages.js"></script>
+	</head>
+	<body data-page="dataingest" data-docs-root="../">
+		<div class="docs-shell">
+			<div data-include="../components/sidebar.html">
+				<aside class="sidebar-panel" aria-label="Navegación principal">
+					<div class="sidebar-brand">
+						<p class="eyebrow">OpenStore Docs</p>
+						<h2>Documentación</h2>
+						<p>Microservicios, frontend, ingesta, despliegue e infraestructura.</p>
+					</div>
+					<nav class="sidebar-nav" aria-label="Secciones del sitio">
+						<a data-nav-link="home" data-doc-href="index.html" href="#">Inicio</a>
+						<a data-nav-link="api" data-doc-href="pages/api.html" href="#">API</a>
+						<a data-nav-link="frontend" data-doc-href="pages/frontend.html" href="#">Frontend</a>
+						<a data-nav-link="dataingest" data-doc-href="pages/dataingest.html" href="#">Data ingest</a>
+						<a data-nav-link="deployment" data-doc-href="pages/deployment.html" href="#">Deployment</a>
+						<a data-nav-link="infrastructure" data-doc-href="pages/infrastructure.html" href="#">Infrastructure</a>
+					</nav>
+				</aside>
+			</div>
+
+			<div class="docs-content">
+				<header class="topbar">
+					<div>
+						<p class="eyebrow">OpenStore Data ingest</p>
+						<h1>Cómo se construyó la ingesta y por qué usamos boto3</h1>
+						<p class="lead">
+							La ingesta prepara un conjunto de datos reproducible para analítica. Los scripts extraen
+							información desde PostgreSQL, MySQL y MongoDB, la transforman a formatos portables y la
+							publican en S3 para que Athena pueda consultarla después.
+						</p>
+					</div>
+					<div data-include="../components/searchbar.html">
+						<section class="search-panel" aria-label="Buscador de documentación">
+							<label class="search-label" for="docs-search">Buscar documentación</label>
+							<form class="search-form" data-doc-search-form>
+								<input
+									id="docs-search"
+									type="search"
+									placeholder="API, frontend, deployment, AWS..."
+									data-doc-search-input
+								/>
+								<button type="submit">Ir</button>
+							</form>
+							<div class="search-results" data-doc-search-results aria-live="polite"></div>
+						</section>
+					</div>
+				</header>
+
+				<main class="main-stack">
+					<section class="hero-panel">
+						<p class="section-kicker">Pipeline</p>
+						<h2>La ingesta toma datos ya normalizados y los lleva a S3</h2>
+						<p>
+							Primero se generan datos sintéticos para poblar las bases. Después, los jobs de ingestión
+							extraen cada fuente por separado, serializan el resultado y lo suben a un bucket S3 en un
+							formato que Athena pueda leer.
+						</p>
+					</section>
+
+					<section class="section-card">
+						<div class="section-heading">
+							<div>
+								<p class="section-kicker">Cómo se hizo</p>
+								<h2>Flujo de ingesta paso a paso</h2>
+							</div>
+						</div>
+						<div class="card-grid">
+							<article class="callout-card">
+								<h3>1. Semilla de datos</h3>
+								<p>
+									Los scripts <code>seed.py</code> y <code>seed_direct.py</code> usan Faker para generar
+									usuarios, tiendas, membresías y productos con datos coherentes y reproducibles.
+								</p>
+							</article>
+							<article class="callout-card">
+								<h3>2. Extracción por dominio</h3>
+								<p>
+									Cada script de la carpeta <code>ingest-*</code> extrae una sola fuente: usuarios desde
+									PostgreSQL, tiendas y membresías desde MySQL, y productos desde MongoDB.
+								</p>
+							</article>
+							<article class="callout-card">
+								<h3>3. Serialización</h3>
+								<p>
+									Los datos se convierten a CSV o JSON Lines según el tipo de fuente. JSON Lines es útil
+									para consultas analíticas y para mantener un registro por línea.
+								</p>
+							</article>
+							<article class="callout-card">
+								<h3>4. Publicación en S3</h3>
+								<p>
+									Los archivos se suben con <code>boto3</code> a rutas estables como
+									<code>users/users.csv</code>, <code>shops/shops.csv</code>, <code>shops/memberships.csv</code>
+									y <code>products/products.json</code>.
+								</p>
+							</article>
+							<article class="callout-card">
+								<h3>5. Consumo analítico</h3>
+								<p>
+									<code>store-service</code> consulta Athena para construir métricas por tienda, usuarios y
+									membresías sin depender de consultas ad hoc a cada base operativa.
+								</p>
+							</article>
+						</div>
+					</section>
+
+					<section class="section-card">
+						<div class="section-heading">
+							<div>
+								<p class="section-kicker">Por qué boto3</p>
+								<h2>Qué resuelve boto3 en este proyecto</h2>
+							</div>
+						</div>
+						<div class="card-grid two-up">
+							<article class="feature-card">
+								<h3>Integración nativa con AWS</h3>
+								<p>
+									Permite hablar con S3 y Athena usando el SDK oficial de Python, sin depender de
+									scripts manuales o procesos externos adicionales.
+								</p>
+							</article>
+							<article class="feature-card">
+								<h3>Autenticación por IAM</h3>
+								<p>
+									Las credenciales se resuelven con la identidad de ejecución. Eso hace más simple mover
+									el mismo código entre local, EC2 o contenedores.
+								</p>
+							</article>
+							<article class="feature-card">
+								<h3>Subida simple de archivos</h3>
+								<p>
+									La API de <code>upload_file</code> facilita mandar CSV o JSON al bucket sin tener que
+									reconstruir todo el proceso de carga a mano.
+								</p>
+							</article>
+							<article class="feature-card">
+								<h3>Encaje con el resto del stack</h3>
+								<p>
+									Python ya es la base de la ingesta y de varios servicios del proyecto, así que boto3
+									encaja sin introducir otra dependencia de plataforma.
+								</p>
+							</article>
+						</div>
+					</section>
+
+					<section class="section-card">
+						<div class="section-heading">
+							<div>
+								<p class="section-kicker">Resultado</p>
+								<h2>Archivos producidos por la ingesta</h2>
+							</div>
+						</div>
+						<div class="table-wrap">
+							<table>
+								<thead>
+									<tr>
+										<th>Origen</th>
+										<th>Salida</th>
+										<th>Destino en S3</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>PostgreSQL</td>
+										<td>CSV de usuarios</td>
+										<td>users/users.csv</td>
+									</tr>
+									<tr>
+										<td>MySQL</td>
+										<td>CSV de tiendas</td>
+										<td>shops/shops.csv</td>
+									</tr>
+									<tr>
+										<td>MySQL</td>
+										<td>CSV de membresías</td>
+										<td>shops/memberships.csv</td>
+									</tr>
+									<tr>
+										<td>MongoDB</td>
+										<td>JSON Lines de productos</td>
+										<td>products/products.json</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</section>
+				</main>
+
+				<div data-include="../components/fotter.html">
+					<footer class="site-footer">
+						<p>OpenStore Docs · Microservicios, documentación técnica y despliegue replicable.</p>
+					</footer>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

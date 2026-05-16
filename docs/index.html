@@ -3,457 +3,208 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>OpenStore | Documentacion Tecnica</title>
+		<title>OpenStore | Inicio</title>
 		<meta
 			name="description"
-			content="Documentacion tecnica de OpenStore: comunicacion entre servicios, APIs y diagrama ER."
+			content="OpenStore es una creadora de tiendas virtuales con control de clientes basada en microservicios, escalable y replicable."
 		/>
-		<link rel="stylesheet" href="./style.css" />
+		<link rel="stylesheet" href="./styles/style.css" />
+		<script defer src="./scripts/main.js"></script>
+		<script defer src="./scripts/search.js"></script>
+		<script defer src="./scripts/scaleimages.js"></script>
 	</head>
-	<body>
-		<header class="hero">
-			<div class="container">
-				<p class="eyebrow">OpenStore Docs</p>
-				<h1>Documentacion tecnica para integracion y desarrollo</h1>
-				<p class="lead">
-					Esta pagina describe como comunicarte con los microservicios, que rutas
-					usar y como entender el modelo relacional del sistema.
-				</p>
-				<nav class="quick-links" aria-label="Navegacion rapida">
-					<a href="#overview">Overview</a>
-					<a href="#services">Servicios y puertos</a>
-					<a href="#deploy">Despliegue AWS</a>
-					<a href="#communication">Como comunicarte</a>
-					<a href="#endpoints">Endpoints</a>
-					<a href="#er">Diagrama ER</a>
-				</nav>
+	<body data-page="home" data-docs-root="./">
+		<div class="docs-shell">
+			<div data-include="./components/sidebar.html">
+				<aside class="sidebar-panel" aria-label="Navegación principal">
+					<div class="sidebar-brand">
+						<p class="eyebrow">OpenStore Docs</p>
+						<h2>Documentación</h2>
+						<p>Microservicios, frontend, ingesta, despliegue e infraestructura.</p>
+					</div>
+					<nav class="sidebar-nav" aria-label="Secciones del sitio">
+						<a data-nav-link="home" data-doc-href="index.html" href="#">Inicio</a>
+						<a data-nav-link="api" data-doc-href="pages/api.html" href="#">API</a>
+						<a data-nav-link="frontend" data-doc-href="pages/frontend.html" href="#">Frontend</a>
+						<a data-nav-link="dataingest" data-doc-href="pages/dataingest.html" href="#">Data ingest</a>
+						<a data-nav-link="deployment" data-doc-href="pages/deployment.html" href="#">Deployment</a>
+						<a data-nav-link="infrastructure" data-doc-href="pages/infrastructure.html" href="#">Infrastructure</a>
+					</nav>
+				</aside>
 			</div>
-		</header>
 
-		<main class="container content">
-			<section id="overview" aria-labelledby="overview-title">
-				<h2 id="overview-title">Overview</h2>
-				<p>
-					OpenStore usa una arquitectura de microservicios donde cada dominio del
-					negocio se implementa de forma independiente:
-				</p>
-				<ul>
-					<li><strong>user-service</strong>: autenticacion, seguridad y usuarios.</li>
-					<li><strong>shop-service</strong>: tiendas y membresias.</li>
-					<li><strong>product-service</strong>: catalogo, disponibilidad e imagenes.</li>
-				</ul>
-			</section>
+			<div class="docs-content">
+				<header class="topbar">
+					<div>
+						<p class="eyebrow">OpenStore</p>
+						<h1>Una creadora de tiendas virtuales basada en microservicios</h1>
+						<p class="lead">
+							OpenStore centraliza el control de clientes, tiendas, productos y autenticación
+							con una arquitectura escalable y replicable para desarrollo y despliegue.
+						</p>
+					</div>
+					<div data-include="./components/searchbar.html">
+						<section class="search-panel" aria-label="Buscador de documentación">
+							<label class="search-label" for="docs-search">Buscar documentación</label>
+							<form class="search-form" data-doc-search-form>
+								<input
+									id="docs-search"
+									type="search"
+									placeholder="API, frontend, deployment, AWS..."
+									data-doc-search-input
+								/>
+								<button type="submit">Ir</button>
+							</form>
+							<div class="search-results" data-doc-search-results aria-live="polite"></div>
+						</section>
+					</div>
+				</header>
 
-			<section id="services" aria-labelledby="services-title">
-				<h2 id="services-title">Servicios y puertos</h2>
-				<p>
-					Los puertos varian por entorno. A continuacion se resumen los valores definidos
-					en Docker Compose y CloudFormation.
-				</p>
-				<div class="table-wrap">
-					<table>
-						<thead>
-							<tr>
-								<th>Servicio</th>
-								<th>Stack</th>
-								<th>Puerto host</th>
-								<th>Puerto interno</th>
-								<th>Base path</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td>user-service</td>
-								<td>Spring Boot</td>
-								<td>3050</td>
-								<td>8080</td>
-								<td>/api</td>
-							</tr>
-							<tr>
-								<td>shop-service</td>
-								<td>Express + Prisma</td>
-								<td>3060</td>
-								<td>3000</td>
-								<td>/</td>
-							</tr>
-							<tr>
-								<td>product-service</td>
-								<td>FastAPI</td>
-								<td>3070</td>
-								<td>8000</td>
-								<td>/</td>
-							</tr>
-							<tr>
-								<td>store-service</td>
-								<td>FastAPI</td>
-								<td>2060</td>
-								<td>8000</td>
-								<td>/</td>
-							</tr>
-							<tr>
-								<td>postgres</td>
-								<td>PostgreSQL</td>
-								<td>${POSTGRES_PORT:-4050}</td>
-								<td>5432</td>
-								<td>N/A</td>
-							</tr>
-							<tr>
-								<td>mysql</td>
-								<td>MySQL</td>
-								<td>${MYSQL_PORT:-4060}</td>
-								<td>3306</td>
-								<td>N/A</td>
-							</tr>
-							<tr>
-								<td>mongo</td>
-								<td>MongoDB</td>
-								<td>${MONGO_PORT:-4070}</td>
-								<td>27017</td>
-								<td>N/A</td>
-							</tr>
-						</tbody>
-					</table>
+				<main class="main-stack">
+					<section class="hero-panel" aria-labelledby="welcome-title">
+						<p class="section-kicker">Bienvenida</p>
+						<h2 id="welcome-title">Proyecto OpenStore</h2>
+						<p>
+							OpenStore es una plataforma para crear y administrar tiendas virtuales con control
+							de clientes, catálogos y autenticación centralizada. El backend se organiza en
+							microservicios para que cada dominio evolucione por separado y el sistema pueda
+							desplegarse de forma reproducible.
+						</p>
+						<div class="pill-row" role="list" aria-label="Tecnologías principales">
+							<span class="pill" role="listitem">React</span>
+							<span class="pill" role="listitem">Vite</span>
+							<span class="pill" role="listitem">TailwindCSS</span>
+							<span class="pill" role="listitem">Spring Boot</span>
+							<span class="pill" role="listitem">FastAPI</span>
+							<span class="pill" role="listitem">Express + Prisma</span>
+						</div>
+					</section>
+
+					<section aria-labelledby="docs-map-title" class="section-card">
+						<div class="section-heading">
+							<div>
+								<p class="section-kicker">Mapa</p>
+								<h2 id="docs-map-title">La documentación ahora está separada por tema</h2>
+							</div>
+							<p class="section-summary">
+								El índice funciona como bienvenida y punto de entrada. Cada tema principal vive en su
+								propia página y los componentes reutilizables se concentran en la carpeta
+								<code>components</code>.
+							</p>
+						</div>
+						<div class="card-grid two-up">
+							<article class="feature-card">
+								<h3>API</h3>
+								<p>
+									Describe el gateway <strong>store-service</strong>, el flujo de peticiones, los puertos,
+									las variables de entorno, los endpoints por servicio y la base de datos de cada
+									microservicio.
+								</p>
+								<a class="text-link" data-doc-href="pages/api.html" href="#">Abrir API</a>
+							</article>
+							<article class="feature-card">
+								<h3>Frontend</h3>
+								<p>
+									Explica el stack React + Vite + TailwindCSS, el renderizado con React Router y el flujo
+									de login para owner y cliente.
+								</p>
+								<a class="text-link" data-doc-href="pages/frontend.html" href="#">Abrir frontend</a>
+							</article>
+							<article class="feature-card">
+								<h3>Data ingest</h3>
+								<p>
+									Resume cómo se construyó la ingesta, cómo se cargan los datos al lago y por qué se usa
+									<code>boto3</code> para S3 y Athena.
+								</p>
+								<a class="text-link" data-doc-href="pages/dataingest.html" href="#">Abrir ingesta</a>
+							</article>
+							<article class="feature-card">
+								<h3>Deployment</h3>
+								<p>
+									Expone por qué usamos CloudFormation, cómo se empaquetan con Docker, cómo se levantan
+									las bases con Docker Compose y cómo se publica el frontend.
+							</p>
+								<a class="text-link" data-doc-href="pages/deployment.html" href="#">Abrir despliegue</a>
+							</article>
+						</div>
+					</section>
+
+					<section aria-labelledby="scripts-title" class="section-card">
+						<div class="section-heading">
+							<div>
+								<p class="section-kicker">Scripts</p>
+								<h2 id="scripts-title">El archivo <code>main.js</code> es el punto de entrada de la documentación</h2>
+							</div>
+							<p class="section-summary">
+								Los scripts quedan separados para que cada uno haga una sola cosa: cargar componentes,
+								buscar páginas o ampliar imágenes.
+							</p>
+						</div>
+						<div class="card-grid three-up">
+							<article class="mini-card">
+								<h3>main.js</h3>
+								<p>Carga componentes, resuelve enlaces, marca la página activa y conecta el buscador.</p>
+							</article>
+							<article class="mini-card">
+								<h3>search.js</h3>
+								<p>Asocia palabras clave con la página correcta y sugiere coincidencias relevantes.</p>
+							</article>
+							<article class="mini-card">
+								<h3>scaleimages.js</h3>
+								<p>Permite ver en zoom los diagramas y figuras que están en la documentación.</p>
+							</article>
+						</div>
+					</section>
+
+					<section aria-labelledby="quick-start-title" class="section-card">
+						<div class="section-heading">
+							<div>
+								<p class="section-kicker">Lectura rápida</p>
+								<h2 id="quick-start-title">Qué explica cada página</h2>
+							</div>
+						</div>
+						<div class="table-wrap">
+							<table>
+								<thead>
+									<tr>
+										<th>Página</th>
+										<th>Contenido principal</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>API</td>
+										<td>Gateway store-service, endpoints, puertos, variables y bases.</td>
+									</tr>
+									<tr>
+										<td>Frontend</td>
+										<td>Stack, rutas, renderizado y autenticación owner/cliente.</td>
+									</tr>
+									<tr>
+										<td>Data ingest</td>
+										<td>Construcción de la ingesta, uso de boto3 y carga a S3/Athena.</td>
+									</tr>
+									<tr>
+										<td>Deployment</td>
+										<td>CloudFormation, Docker, Docker Compose y publicación del frontend.</td>
+									</tr>
+									<tr>
+										<td>Infrastructure</td>
+										<td>ER, arquitectura AWS y atributos de las bases de datos.</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</section>
+				</main>
+
+				<div data-include="./components/fotter.html">
+					<footer class="site-footer">
+						<p>OpenStore Docs · Microservicios, documentación técnica y despliegue replicable.</p>
+					</footer>
 				</div>
-				<p>
-					Nota local: si un puerto ya esta en uso (ejemplo 4060), el script SETUP_BD.sh
-					asigna automaticamente el siguiente puerto libre y lo refleja en
-					<strong>backend/.env</strong> y <strong>backend/.env.api.generated</strong>.
-				</p>
-				<div class="table-wrap">
-					<table>
-						<thead>
-							<tr>
-								<th>Componente AWS</th>
-								<th>Puerto</th>
-								<th>Detalle</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td>ALB listener</td>
-								<td>80</td>
-								<td>Entrada publica HTTP y enrutamiento por path</td>
-							</tr>
-							<tr>
-								<td>App servers (EC2)</td>
-								<td>3050, 3060, 3070, 2060</td>
-								<td>Reciben trafico desde el SG del ALB</td>
-							</tr>
-							<tr>
-								<td>DB server (EC2)</td>
-								<td>4050, 4060, 4070</td>
-								<td>Puertos de BD abiertos por Security Group</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-			</section>
-
-			<section id="stack" aria-labelledby="stack-title">
-				<h2 id="stack-title">Stack</h2>
-				<ul class="chips" role="list">
-					<li>React</li>
-					<li>Spring Boot</li>
-					<li>FastAPI</li>
-					<li>Prisma</li>
-					<li>MySQL</li>
-					<li>PostgreSQL</li>
-					<li>MongoDB</li>
-				</ul>
-			</section>
-
-			<section id="deploy" aria-labelledby="deploy-title">
-				<h2 id="deploy-title">Despliegue AWS (CloudFormation + Amplify)</h2>
-				<p>
-					El template <strong>cloud-formation.yml</strong> aprovisiona ALB, EC2 para apps,
-					EC2 para bases de datos, bucket S3 y el despliegue del frontend en Amplify
-					tomando la carpeta <strong>frontend</strong> del mismo repositorio.
-				</p>
-				<div class="card">
-					<h3>1. Prerequisitos</h3>
-					<ul>
-						<li>AWS CLI configurado (credenciales y region).</li>
-						<li>VPC y dos subnets publicas en la misma region.</li>
-						<li>KeyPair existente para las instancias EC2.</li>
-						<li>Permisos para EC2, ELBv2, S3, CloudFormation y Amplify.</li>
-					</ul>
-				</div>
-
-				<div class="card">
-					<h3>2. Obtener IDs de red y keypair</h3>
-					<pre><code>aws ec2 describe-vpcs \
-  --query "Vpcs[].{VpcId:VpcId,Cidr:CidrBlock,Name:Tags[?Key=='Name']|[0].Value}" \
-  --output table
-
-aws ec2 describe-subnets \
-  --filters "Name=vpc-id,Values=vpc-xxxxxx" \
-  --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,PublicIpMap:MapPublicIpOnLaunch,Name:Tags[?Key=='Name']|[0].Value}" \
-  --output table
-
-aws ec2 describe-key-pairs --query "KeyPairs[].KeyName" --output table</code></pre>
-				</div>
-
-				<div class="card">
-					<h3>3. Generar Personal Access Token de GitHub (para Amplify)</h3>
-					<p>
-						Amplify necesita conectarse al repositorio de GitHub para clonar el código y crear webhooks
-						de auto-despliegue. Para ello, requiere un token personal de GitHub (PAT) con permisos específicos.
-					</p>
-					<h4>Pasos para crear el token:</h4>
-					<ol>
-						<li>
-							Entra a tu cuenta de GitHub → 
-							<strong>Settings (engranaje) → Developer settings → Personal access tokens → Tokens (classic)</strong>
-						</li>
-						<li>
-							Haz clic en <strong>Generate new token (classic)</strong>
-						</li>
-						<li>
-							Dale un nombre descriptivo, ej: <strong>openstore-amplify</strong>
-						</li>
-						<li>
-							Define expiración (recomendado: 30 o 90 días)
-						</li>
-						<li>
-							Selecciona estos permisos:
-							<ul>
-								<li><strong>repo</strong> (acceso completo a repositorios)</li>
-								<li><strong>admin:repo_hook</strong> (crear webhooks)</li>
-								<li><strong>repo:status</strong> (acceso al status del repositorio)</li>
-								<li><strong>repo:deployment</strong> (gestionar deployments)</li>
-							</ul>
-						</li>
-						<li>
-							Haz clic en <strong>Generate token</strong>
-						</li>
-						<li>
-							Copia el token (comienza con <strong>ghp_</strong>) - GitHub NO lo vuelve a mostrar
-						</li>
-						<li>
-							Si tu repositorio está en una organización, autoriza el SSO haciendo clic en <strong>Configure SSO</strong> al lado del token
-						</li>
-					</ol>
-					<p>
-						Guarda este token en un archivo <strong>.env</strong> en la raíz del proyecto:
-					</p>
-					<pre><code>FRONTEND_AMPLIFY_ACCESS_TOKEN=ghp_tu_token_aqui</code></pre>
-					<p style="color: #d32f2f; font-weight: bold;">
-						 NO commits este archivo a Git. Agrega .env a .gitignore si aún no está.
-					</p>
-				</div>
-
-				<div class="card">
-					<h3>4. Desplegar stack</h3>
-					<p>Ejemplo (repositorio publico, sin token de GitHub):</p>
-					<pre><code>aws cloudformation deploy \
-  --stack-name openstore-stack \
-  --template-file cloud-formation.yml \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --parameter-overrides \
-    InstanceName=MV-OpenShop \
-    AMI=ami-08d434e92c0cfa0c0 \
-    KeyName=vockey \
-    InstanceType=t3.micro \
-    VpcId=vpc-xxxxxxxx \
-    PublicSubnet1=subnet-xxxxxxxx \
-    PublicSubnet2=subnet-yyyyyyyy \
-    FrontendRepoUrl=https://github.com/Lazheart/OpenStore \
-    FrontendBranchName=main \
-    FrontendAmplifyAppName=openstore-frontend</code></pre>
-					<p>
-						Si Amplify requiere autenticacion GitHub, agrega:
-						<strong>FrontendAmplifyAccessToken=ghp_tu_token</strong>.
-					</p>
-				</div>
-
-				<div class="card">
-					<h3>5. Validar outputs</h3>
-					<pre><code>aws cloudformation describe-stacks \
-  --stack-name openstore-stack \
-  --query "Stacks[0].Outputs[].[OutputKey,OutputValue]" \
-  --output table</code></pre>
-					<p>
-						Outputs esperados: DNS del ALB, URL de Amplify y datos de las instancias.
-					</p>
-				</div>
-
-				<div class="card">
-					<h3>6. Orden de arranque en backend</h3>
-					<p>
-						El flujo definido en UserData es: primero bases de datos (PostgreSQL, MySQL, MongoDB),
-						luego servicios (user-service, shop-service, product-service) una vez que los puertos de DB
-						estan disponibles.
-					</p>
-				</div>
-			</section>
-
-			<section id="communication" aria-labelledby="communication-title">
-				<h2 id="communication-title">Como comunicarte con OpenStore</h2>
-				<div class="card">
-					<h3>Autenticacion</h3>
-					<p>
-						Para endpoints protegidos usa JWT en cabecera Authorization.
-					</p>
-					<pre><code>Authorization: Bearer &lt;token_jwt&gt;</code></pre>
-				</div>
-				<div class="card">
-					<h3>Formato de payload</h3>
-					<ul>
-						<li>JSON para operaciones comunes.</li>
-						<li>multipart/form-data cuando subes imagenes en product-service.</li>
-					</ul>
-				</div>
-				<div class="card">
-					<h3>Documentacion Swagger</h3>
-					<p>
-						Shop service expone Swagger UI en:
-						<a href="http://localhost:3001/api-docs" target="_blank" rel="noreferrer">
-							http://localhost:3001/api-docs
-						</a>
-					</p>
-				</div>
-			</section>
-
-			<section id="endpoints" aria-labelledby="endpoints-title">
-				<h2 id="endpoints-title">Endpoints clave</h2>
-				<article class="card" aria-labelledby="shop-title">
-					<h3 id="shop-title">Shop service</h3>
-					<ul>
-						<li>GET /health</li>
-						<li>GET /shops?page=1&amp;limit=10</li>
-						<li>GET /shops/:id</li>
-						<li>POST /shops (JWT requerido)</li>
-						<li>PUT /shops/:id</li>
-						<li>DELETE /shops/:id</li>
-						<li>POST /shops/:id/memberships (JWT requerido)</li>
-					</ul>
-				</article>
-
-				<article class="card" aria-labelledby="product-title">
-					<h3 id="product-title">Product service</h3>
-					<ul>
-						<li>GET /</li>
-						<li>GET /shops/:shop_id/products</li>
-						<li>POST /shops/:shop_id/products (JSON o multipart/form-data)</li>
-						<li>PATCH /shops/:shop_id/products/:product_id</li>
-					</ul>
-				</article>
-
-				<article class="card" aria-labelledby="curl-title">
-					<h3 id="curl-title">Ejemplo rapido con curl</h3>
-					<pre><code>curl -X GET "http://localhost:3001/shops?page=1&amp;limit=10"
-
-curl -X POST "http://localhost:8000/shops/{shop_id}/products" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Teclado mecanico",
-    "price": 59.99,
-    "description": "Switches red",
-    "imageUrl": "https://example.com/keyboard.png"
-  }'</code></pre>
-				</article>
-			</section>
-
-			<section id="er" aria-labelledby="er-title">
-				<h2 id="er-title">Diagrama ER</h2>
-				<p>
-					Referencia visual del modelo entidad-relacion usado para usuarios,
-					tiendas y productos.
-				</p>
-				<figure class="er-figure">
-					<img
-						src="./assets/er.jpeg"
-						alt="Diagrama ER de OpenStore"
-						loading="lazy"
-					/>
-					<figcaption>ER actual del proyecto (fuente: assets del frontend).</figcaption>
-				</figure>
-			</section>
-
-			<section aria-labelledby="domain-title">
-				<h2 id="domain-title">Reglas de dominio</h2>
-
-				<article class="card" aria-labelledby="usuarios-title">
-					<h3 id="usuarios-title">1. Modelo de Usuarios</h3>
-					<p>
-						Entidad base: <strong>User</strong>
-					</p>
-					<p>Campos:</p>
-					<ul>
-						<li><strong>id</strong> (PK)</li>
-						<li><strong>uid</strong> (unico)</li>
-						<li><strong>name</strong></li>
-						<li><strong>email</strong></li>
-						<li><strong>phone_number</strong></li>
-						<li><strong>role</strong> (enum: ADMIN, OWNER, CLIENT)</li>
-					</ul>
-					<p>Roles del sistema:</p>
-					<ul>
-						<li>Admin</li>
-						<li>Owner</li>
-						<li>Client</li>
-					</ul>
-					<p>
-						Los roles pueden modelarse con herencia o mediante el atributo
-						<strong>role</strong>.
-					</p>
-					<p>Restricciones:</p>
-					<ul>
-						<li>Solo usuarios con rol OWNER pueden crear tiendas.</li>
-						<li>Un OWNER puede tener una o multiples tiendas.</li>
-						<li>
-							CLIENT y OWNER pueden asociarse a una tienda mediante el campo
-							<strong>shop_id</strong>.
-						</li>
-					</ul>
-				</article>
-
-				<article class="card" aria-labelledby="tienda-title">
-					<h3 id="tienda-title">2. Modelo de Tienda (Shop)</h3>
-					<p>
-						Entidad: <strong>Shop</strong>
-					</p>
-					<p>Atributos:</p>
-					<ul>
-						<li><strong>id</strong> (PK)</li>
-						<li><strong>name</strong></li>
-						<li><strong>owner_id</strong> (FK - User.id)</li>
-					</ul>
-					<p>Relaciones:</p>
-					<ul>
-						<li>Un User (OWNER) puede tener muchas Shops (1:N).</li>
-						<li>Una Shop pertenece a un solo Owner.</li>
-					</ul>
-				</article>
-
-				<article class="card" aria-labelledby="producto-title">
-					<h3 id="producto-title">3. Modelo de Productos</h3>
-					<p>
-						Entidad: <strong>Product</strong>
-					</p>
-					<p>Atributos:</p>
-					<ul>
-						<li><strong>id</strong> (PK)</li>
-						<li><strong>name</strong></li>
-						<li><strong>price</strong></li>
-						<li><strong>description</strong></li>
-						<li><strong>image</strong> (URL almacenada en S3)</li>
-						<li><strong>availability</strong> (boolean o enum)</li>
-						<li><strong>shop_id</strong> (FK - Shop.id)</li>
-					</ul>
-					<p>Restricciones:</p>
-					<ul>
-						<li>Un producto solo puede existir si pertenece a una tienda.</li>
-						<li>Un producto pertenece a una sola tienda.</li>
-						<li>
-							Dos productos pueden tener el mismo nombre si pertenecen a tiendas
-							diferentes.
-						</li>
-					</ul>
-					<p>Relacion principal: Shop (1) -&gt; (N) Product.</p>
-				</article>
-			</section>
-		</main>
+			</div>
+		</div>
 	</body>
 </html>
 
