@@ -818,7 +818,7 @@ li {
 /* ─── PAGE NAV (Prev / Next) ─────────────────────────────── */
 .page-nav {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   gap: 1rem;
   margin-top: 3rem;
