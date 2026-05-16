@@ -3,6 +3,6 @@
 dist/
 build/
 coverage/
-.github/
+.github/java-upgrade
 .env
 .claude/
