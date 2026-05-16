@@ -20,7 +20,9 @@
     }
   };
 
-  // ─── Sidebar toggle ───────────────────────────────────────
+  // ─── Sidebar toggle (persisted in localStorage) ───────────
+  const SIDEBAR_KEY = 'opendocs-sidebar-collapsed';
+
   const initSidebar = () => {
     const sidebar = document.querySelector('.docs-sidebar');
     const main = document.querySelector('.docs-main');
@@ -28,7 +30,9 @@
     if (!sidebar || !toggleBtn) return;
 
     const isMobile = () => window.innerWidth <= 900;
-    let collapsed = false;
+
+    // Restore saved state (desktop only; mobile always starts closed)
+    let collapsed = !isMobile() && localStorage.getItem(SIDEBAR_KEY) === 'true';
 
     const apply = () => {
       if (isMobile()) {
@@ -42,13 +46,26 @@
       }
     };
 
+    // Apply saved state immediately on load (no animation flash)
+    sidebar.style.transition = 'none';
+    main && (main.style.transition = 'none');
+    apply();
+    // Re-enable transitions after first paint
+    requestAnimationFrame(() => {
+      sidebar.style.transition = '';
+      main && (main.style.transition = '');
+    });
+
     toggleBtn.addEventListener('click', () => {
       collapsed = !collapsed;
+      localStorage.setItem(SIDEBAR_KEY, String(collapsed));
       apply();
     });
 
     window.addEventListener('resize', () => {
-      if (!isMobile() && collapsed) apply();
+      // On resize to mobile, reset collapsed so it behaves naturally
+      if (isMobile()) collapsed = false;
+      apply();
     });
   };
 
