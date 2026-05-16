@@ -6,6 +6,8 @@ import { DEFAULT_THEME_KEY, THEME_REGISTRY } from './themeRegistry';
 import { mapApiProductsToCatalog } from './mapCatalogProducts';
 import type { ShopThemeJson } from './themeTypes';
 import type { Product } from '../template/DevStyle';
+import { useAuth } from '../../config/AuthContext';
+import UserShopPageLogin from '../auth/UserShopPageLogin';
 
 function decodeShopSlug(raw: string | undefined): string {
   if (!raw) return '';
@@ -20,6 +22,9 @@ export default function StorefrontPage() {
   const { shopSlug } = useParams<{ shopSlug: string }>();
   const [searchParams] = useSearchParams();
   const id = (searchParams.get('id') ?? '').trim();
+
+  const { isAuthenticated } = useAuth();
+  const [loginOpen, setLoginOpen] = useState(false);
 
   const slugDecoded = useMemo(() => decodeShopSlug(shopSlug), [shopSlug]);
 
@@ -121,11 +126,56 @@ export default function StorefrontPage() {
   const ThemeComponent = THEME_REGISTRY[themeKey] ?? THEME_REGISTRY[DEFAULT_THEME_KEY];
 
   return (
-    <ThemeComponent
-      shopId={shopId}
-      shopName={shopName}
-      themeConfig={themeConfig}
-      catalogProducts={catalog}
-    />
+    <>
+      <ThemeComponent
+        shopId={shopId}
+        shopName={shopName}
+        themeConfig={themeConfig}
+        catalogProducts={catalog}
+      />
+
+      {/* Botón flotante de login para visitantes no autenticados */}
+      {!isAuthenticated && !loginOpen && (
+        <button
+          onClick={() => setLoginOpen(true)}
+          style={{
+            position: 'fixed',
+            bottom: '1.75rem',
+            right: '1.75rem',
+            zIndex: 500,
+            background: 'var(--primary, #9ACD32)',
+            color: '#000',
+            border: 'none',
+            borderRadius: '50px',
+            padding: '0.75rem 1.5rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'transform 0.15s, box-shadow 0.15s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 8px 28px rgba(0,0,0,0.5)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.4)';
+          }}
+        >
+          🔑 Iniciar sesión
+        </button>
+      )}
+
+      {loginOpen && (
+        <UserShopPageLogin
+          onSuccess={() => setLoginOpen(false)}
+          onClose={() => setLoginOpen(false)}
+        />
+      )}
+    </>
   );
 }

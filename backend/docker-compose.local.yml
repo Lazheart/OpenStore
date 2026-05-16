@@ -1,0 +1,132 @@
+services:
+  # ─── Bases de datos locales ───────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: openstore-postgres
+    environment:
+      POSTGRES_DB: userdb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d userdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mysql:
+    image: mariadb:11
+    container_name: openstore-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: admin123
+      MYSQL_DATABASE: shopdb
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin123
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "admin", "-padmin123"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  mongo:
+    image: mongo:6
+    container_name: openstore-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: productdb
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')" , "--authenticationDatabase", "admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─── Servicios de aplicación ──────────────────────────────────────────────
+  product-service:
+    image: lazheart/product-service:latest
+    container_name: product-service
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      - STORE_SERVICE_URL=http://store-service:8004
+      - AWS_REGION=us-east-1
+      - BUCKET_NAME=openstore-images-local
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123
+      - MONGO_URI=mongodb://admin:admin123@mongo:27017/productdb?authSource=admin
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthcheck').read()\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  shop-service:
+    image: lazheart/shop-service:latest
+    container_name: shop-service
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      - STORE_SERVICE_URL=http://store-service:8004
+      - SHOP_DATABASE_URL_PRISMA=mysql://admin:admin123@mysql:3306/shopdb
+      - MYSQL_USER=admin
+      - MYSQL_ROOT_PASSWORD=admin123
+      - MYSQL_DATABASE=shopdb
+      - JWT_SECRET=i3VKQUnRpo3i29qN0yCEIDyv4DV26ngjA/qg+Q9Euzo=
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/healthcheck').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1));\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  user-service:
+    image: lazheart/user-service:latest
+    container_name: user-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/userdb
+      - DB_USERNAME=admin
+      - DB_PASSWORD=admin123
+      - DB_NAME=userdb
+      - JWT_SECRET=i3VKQUnRpo3i29qN0yCEIDyv4DV26ngjA/qg+Q9Euzo=
+      - JWT_EXPIRATION=864000
+      - JPA_DDL_AUTO=update
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  store-service:
+    image: lazheart/store-service:latest
+    container_name: store-service
+    depends_on:
+      user-service:
+        condition: service_healthy
+      shop-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+    ports:
+      - "8004:8004"
+    environment:
+      - USER_SERVICE_URL=http://user-service:8080
+      - SHOP_SERVICE_URL=http://shop-service:3000
+      - PRODUCT_SERVICE_URL=http://product-service:8000

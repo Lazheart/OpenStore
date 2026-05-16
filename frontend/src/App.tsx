@@ -12,6 +12,7 @@ import { ThemeProvider } from './config/ThemeConfig';
 import { AuthProvider } from './config/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import StorefrontPage from './pages/storefront/StorefrontPage';
+import ShopListingPage from './pages/shop/ShopListingPage';
 import './index.css';
 
 function App() {
@@ -34,6 +35,9 @@ function App() {
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
           </Route>
+
+          {/* Listado de tiendas para clientes */}
+          <Route path="/shop" element={<ShopListingPage />} />
 
           {/* Storefront público sin navbar — cada template gestiona su propio header */}
           <Route path="/:shopSlug" element={<StorefrontPage />} />
