@@ -1,293 +1,195 @@
 <!doctype html>
 <html lang="es">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>OpenStore | API</title>
-		<meta
-			name="description"
-			content="API de OpenStore: store-service como gateway, microservicios, puertos, variables y endpoints."
-		/>
-		<link rel="stylesheet" href="../styles/style.css" />
-		<script defer src="../scripts/main.js"></script>
-		<script defer src="../scripts/search.js"></script>
-		<script defer src="../scripts/scaleimages.js"></script>
-	</head>
-	<body data-page="api" data-docs-root="../">
-		<div class="docs-shell">
-			<div data-include="../components/sidebar.html">
-				<aside class="sidebar-panel" aria-label="Navegación principal">
-					<div class="sidebar-brand">
-						<p class="eyebrow">OpenStore Docs</p>
-						<h2>Documentación</h2>
-						<p>Microservicios, frontend, ingesta, despliegue e infraestructura.</p>
-					</div>
-					<nav class="sidebar-nav" aria-label="Secciones del sitio">
-						<a data-nav-link="home" data-doc-href="index.html" href="#">Inicio</a>
-						<a data-nav-link="api" data-doc-href="pages/api.html" href="#">API</a>
-						<a data-nav-link="frontend" data-doc-href="pages/frontend.html" href="#">Frontend</a>
-						<a data-nav-link="dataingest" data-doc-href="pages/dataingest.html" href="#">Data ingest</a>
-						<a data-nav-link="deployment" data-doc-href="pages/deployment.html" href="#">Deployment</a>
-						<a data-nav-link="infrastructure" data-doc-href="pages/infrastructure.html" href="#">Infrastructure</a>
-					</nav>
-				</aside>
-			</div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenStore | API & Gateway</title>
+  <meta name="description" content="API de OpenStore: store-service como gateway, microservicios, puertos, variables y endpoints." />
+  <link rel="stylesheet" href="../styles/style.css" />
+  <script defer src="../scripts/main.js"></script>
+  <script defer src="../scripts/scaleimages.js"></script>
+</head>
+<body data-page="api" data-docs-root="../">
 
-			<div class="docs-content">
-				<header class="topbar">
-					<div>
-						<p class="eyebrow">OpenStore API</p>
-						<h1>Gateway, microservicios y contratos HTTP</h1>
-						<p class="lead">
-							Todas las request del frontend pasan por <strong>store-service</strong>. Ese servicio
-							mapea las operaciones a <strong>user-service</strong>, <strong>shop-service</strong> y
-							<strong>product-service</strong>, valida ownership, expone analytics y desacopla al
-							cliente de la topología interna.
-						</p>
-					</div>
-					<div data-include="../components/searchbar.html">
-						<section class="search-panel" aria-label="Buscador de documentación">
-							<label class="search-label" for="docs-search">Buscar documentación</label>
-							<form class="search-form" data-doc-search-form>
-								<input
-									id="docs-search"
-									type="search"
-									placeholder="API, frontend, deployment, AWS..."
-									data-doc-search-input
-								/>
-								<button type="submit">Ir</button>
-							</form>
-							<div class="search-results" data-doc-search-results aria-live="polite"></div>
-						</section>
-					</div>
-				</header>
+  <nav class="docs-navbar">
+    <div class="navbar-left">
+      <button class="sidebar-toggle" id="sidebar-toggle" title="Alternar sidebar" aria-label="Alternar sidebar">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="1" y1="4" x2="15" y2="4"/><line x1="1" y1="8" x2="15" y2="8"/><line x1="1" y1="12" x2="15" y2="12"/></svg>
+      </button>
+      <a class="navbar-brand" data-doc-href="index.html" href="#">
+        <span class="brand-dot"></span>
+        OpenDocs <span class="navbar-brand-sub">/ OpenStore</span>
+      </a>
+    </div>
+    <div class="navbar-search">
+      <span class="navbar-search-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="5"/><path d="M11 11l3 3"/></svg></span>
+      <input type="search" placeholder="Buscar en la documentación…" data-navbar-search id="navbar-search" autocomplete="off" />
+      <div class="search-results-dropdown"></div>
+    </div>
+    <div class="navbar-right">
+      <a class="navbar-icon-btn" href="https://github.com/Lazheart/OpenStore" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.185 6.839 9.504.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.021C22 6.484 17.522 2 12 2z"/></svg>
+      </a>
+    </div>
+  </nav>
 
-				<main class="main-stack">
-					<section class="hero-panel">
-						<p class="section-kicker">Punto de entrada</p>
-						<h2>store-service orquesta toda la capa de API</h2>
-						<p>
-							El frontend no habla con los microservicios internos de forma directa. Store-service
-							actúa como fachada pública: recibe las solicitudes, redirige al servicio correcto y
-							coordina cadenas de llamadas cuando una operación toca varias entidades.
-						</p>
-						<div class="content-callout">
-							<strong>Idea clave:</strong> una sola URL pública simplifica la integración, reduce el
-							desacoplamiento y deja la lógica de composición en el backend.
-						</div>
-					</section>
+  <div class="docs-layout">
+    <aside class="docs-sidebar" id="docs-sidebar" aria-label="Navegación principal">
+      <p class="sidebar-label">Navegación</p>
+      <nav class="sidebar-nav">
+        <a class="sidebar-link" data-nav-link="home" data-doc-href="index.html" href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M1 6l7-5 7 5v9H10V10H6v5H1z"/></svg>Inicio</a>
+        <a class="sidebar-link" data-nav-link="api" data-doc-href="pages/api.html" href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 4h12M2 8h8M2 12h10"/></svg>API & Gateway</a>
+        <a class="sidebar-link" data-nav-link="frontend" data-doc-href="pages/frontend.html" href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="2" width="14" height="11" rx="1.5"/><path d="M5 15h6"/></svg>Frontend</a>
+        <a class="sidebar-link" data-nav-link="dataingest" data-doc-href="pages/dataingest.html" href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><ellipse cx="8" cy="4" rx="6" ry="2"/><path d="M2 4v4c0 1.1 2.7 2 6 2s6-.9 6-2V4"/><path d="M2 8v4c0 1.1 2.7 2 6 2s6-.9 6-2V8"/></svg>Data Ingest</a>
+        <a class="sidebar-link" data-nav-link="deployment" data-doc-href="pages/deployment.html" href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="8" width="4" height="7" rx="0.5"/><rect x="6" y="4" width="4" height="11" rx="0.5"/><rect x="11" y="1" width="4" height="14" rx="0.5"/></svg>Deployment</a>
+        <a class="sidebar-link" data-nav-link="infrastructure" data-doc-href="pages/infrastructure.html" href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="3" r="2"/><circle cx="3" cy="13" r="2"/><circle cx="13" cy="13" r="2"/><path d="M8 5v3M8 8l-4 3M8 8l4 3"/></svg>Infrastructure</a>
+      </nav>
+    </aside>
 
-					<section class="section-card">
-						<div class="section-heading">
-							<div>
-								<p class="section-kicker">Puertos y variables</p>
-								<h2>Qué usa cada servicio</h2>
-							</div>
-							<p class="section-summary">
-								Los puertos locales y de contenedor están documentados para que puedas levantar todo el
-								sistema sin adivinar qué servicio escucha en cada sitio.
-							</p>
-						</div>
-						<div class="table-wrap">
-							<table>
-								<thead>
-									<tr>
-										<th>Servicio</th>
-										<th>Puerto</th>
-										<th>Variables de entorno clave</th>
-										<th>Base de datos</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr>
-										<td>store-service</td>
-										<td>8004</td>
-										<td>USER_SERVICE_URL, SHOP_SERVICE_URL, PRODUCT_SERVICE_URL, AWS_REGION, ATHENA_DATABASE, ATHENA_RESULTS_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN, EVENTS_INTERNAL_TOKEN</td>
-										<td>No persiste datos; consulta servicios y Athena</td>
-									</tr>
-									<tr>
-										<td>user-service</td>
-										<td>8080</td>
-										<td>DATABASE_URL, DB_USERNAME, DB_PASSWORD, DB_NAME, JWT_SECRET, JWT_EXPIRATION, JPA_DDL_AUTO, APP_BASE_URL</td>
-										<td>PostgreSQL</td>
-									</tr>
-									<tr>
-										<td>shop-service</td>
-										<td>3000</td>
-										<td>SHOP_SERVICE_PORT, STORE_SERVICE_URL, SHOP_DATABASE_URL_PRISMA, MYSQL_USER, MYSQL_ROOT_PASSWORD, MYSQL_DATABASE, JWT_SECRET</td>
-										<td>MySQL</td>
-									</tr>
-									<tr>
-										<td>product-service</td>
-										<td>8000</td>
-										<td>STORE_SERVICE_URL, AWS_REGION, BUCKET_NAME, MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD, MONGO_URI</td>
-										<td>MongoDB</td>
-									</tr>
-								</tbody>
-							</table>
-						</div>
-					</section>
+    <div class="docs-main" id="docs-main">
+      <div class="docs-content">
 
-					<section class="section-card">
-						<div class="section-heading">
-							<div>
-								<p class="section-kicker">Responsabilidad</p>
-								<h2>Qué hace cada microservicio</h2>
-							</div>
-						</div>
-						<div class="card-grid two-up">
-							<article class="feature-card">
-								<h3>store-service</h3>
-								<p>
-									Es el gateway público. Resuelve login y registro, crea y elimina tiendas, proxyea
-									consultas al catálogo, publica endpoints de analytics y expone la documentación
-									mapeada de todos los servicios.
-								</p>
-							</article>
-							<article class="feature-card">
-								<h3>user-service</h3>
-								<p>
-									Gestiona autenticación, registro, perfiles, actualización de usuario y control de
-									suscripciones. Es la fuente de verdad para roles y datos del usuario.
-								</p>
-							</article>
-							<article class="feature-card">
-								<h3>shop-service</h3>
-							<p>
-									Administra tiendas, membresías y temas del storefront. Aplica límites por plan,
-									valida ownership y persiste la relación tienda-suscriptor.
-								</p>
-							</article>
-							<article class="feature-card">
-								<h3>product-service</h3>
-							<p>
-									Maneja el catálogo de productos, las imágenes subidas a S3 y las operaciones CRUD
-									ligadas a una tienda.
-								</p>
-							</article>
-						</div>
-					</section>
+        <header class="page-header">
+          <p class="page-kicker">API & Gateway</p>
+          <h1>Gateway, microservicios y contratos HTTP</h1>
+          <p class="page-lead">Todas las peticiones del frontend pasan por <code>store-service</code>. Ese servicio enruta a <code>user-service</code>, <code>shop-service</code> y <code>product-service</code>, valida ownership y desacopla al cliente de la topología interna.</p>
+        </header>
 
-					<section class="section-card">
-						<div class="section-heading">
-							<div>
-								<p class="section-kicker">Endpoints</p>
-								<h2>Contrato por API</h2>
-							</div>
-							<p class="section-summary">
-								La lista siguiente resume las rutas visibles desde el gateway y las rutas internas de
-								cada servicio.
-							</p>
-						</div>
-						<div class="card-grid">
-							<article class="callout-card">
-								<h3>store-service</h3>
-								<ul>
-									<li><strong>Auth:</strong> POST /auth/login, POST /auth/register, PATCH /me, GET /me, POST /verify, PATCH /user/me/subscription, PATCH /user/{user_id}/subscription</li>
-									<li><strong>Tiendas:</strong> POST /openshop/shop, GET /shops, GET /shops/{shop_id}, GET /shop/{shop_id}, GET /shop/name/{shop_name}, PATCH /shop/id/{shop_id}, DELETE /shop/id/{shop_id}, GET /shop/{shop_id}/theme, PUT /shop/{shop_id}/theme</li>
-									<li><strong>Productos:</strong> GET /shops/{shop_id}/products, POST /shops/{shop_id}/products, PATCH /shops/{shop_id}/products/{product_id}, DELETE /shops/{shop_id}/products/{product_id}</li>
-									<li><strong>Utilidades:</strong> GET /shop/id/{shop_id}/owner</li>
-									<li><strong>Analytics:</strong> GET /analytics/productos-por-tienda, GET /analytics/usuarios-por-tienda, GET /analytics/membresias-por-tienda, GET /analytics/resumen-tiendas</li>
-								</ul>
-							</article>
-							<article class="callout-card">
-								<h3>user-service</h3>
-								<ul>
-									<li>POST /auth/register</li>
-									<li>POST /auth/{shopId}/register</li>
-									<li>POST /auth/login</li>
-									<li>POST /auth/{shopId}/login</li>
-									<li>POST /auth/logout</li>
-									<li>GET /me</li>
-									<li>PATCH /me</li>
-									<li>POST /verify</li>
-									<li>GET /users, GET /users/{id}, PUT /users/{id}, DELETE /users/{id}</li>
-									<li>GET /user, PATCH /user/{id}/subscription, PATCH /user/me/subscription</li>
-								</ul>
-							</article>
-							<article class="callout-card">
-								<h3>shop-service</h3>
-								<ul>
-									<li>GET /health, GET /healthcheck, GET /shops, GET /shop/:shopId</li>
-									<li>POST /openshop/shop</li>
-									<li>GET /shop/name/:shopName, GET /shop/owner/:ownerId</li>
-									<li>PATCH /shop/:shopId, PUT /shop/:shopId/theme, GET /shop/:shopId/theme</li>
-									<li>DELETE /shop/id/:shopId, DELETE /internal/shops/:shopId</li>
-									<li>POST /shops/:id/memberships</li>
-								</ul>
-							</article>
-							<article class="callout-card">
-								<h3>product-service</h3>
-								<ul>
-									<li>GET /, GET /healthcheck</li>
-									<li>GET /shops/{shop_id}/products</li>
-									<li>POST /shops/{shop_id}/products</li>
-									<li>PATCH /shops/{shop_id}/products/{product_id}</li>
-									<li>DELETE /shops/{shop_id}/products/{product_id}</li>
-									<li>DELETE /internal/shops/{shop_id}/products</li>
-								</ul>
-							</article>
-						</div>
-					</section>
+        <section class="doc-section">
+          <h2 class="section-title">store-service orquesta toda la capa de API</h2>
+          <div class="hero-banner">
+            <h2>Una sola URL pública, cuatro servicios internos</h2>
+            <p>El frontend no habla con los microservicios de forma directa. <code>store-service</code> actúa como fachada pública: recibe las solicitudes, redirige al servicio correcto y coordina cadenas de llamadas cuando una operación toca varias entidades.</p>
+          </div>
+        </section>
 
-					<section class="section-card">
-						<div class="section-heading">
-							<div>
-								<p class="section-kicker">Bases de datos</p>
-								<h2>Qué tipo de base usa cada servicio</h2>
-							</div>
-						</div>
-						<div class="table-wrap">
-							<table>
-								<thead>
-									<tr>
-										<th>Servicio</th>
-										<th>Base de datos</th>
-										<th>Motivo</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr>
-										<td>user-service</td>
-										<td>PostgreSQL</td>
-										<td>Relaciones de usuario, roles, perfiles y suscripciones.</td>
-									</tr>
-									<tr>
-										<td>shop-service</td>
-										<td>MySQL</td>
-										<td>Tiendas, membresías y configuración del storefront.</td>
-									</tr>
-									<tr>
-										<td>product-service</td>
-										<td>MongoDB</td>
-										<td>Catálogo flexible con documentos de productos y metadatos.</td>
-									</tr>
-									<tr>
-										<td>store-service</td>
-										<td>No aplica</td>
-										<td>Solo orquesta y consulta servicios externos/Athena.</td>
-									</tr>
-								</tbody>
-							</table>
-						</div>
-					</section>
+        <section class="doc-section">
+          <h2 class="section-title">Puertos y variables de entorno</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Servicio</th><th>Puerto</th><th>Base de datos</th><th>Variables clave</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>store-service</code></td><td>8004</td><td>No persiste</td>
+                  <td><code>USER_SERVICE_URL</code>, <code>SHOP_SERVICE_URL</code>, <code>PRODUCT_SERVICE_URL</code>, <code>AWS_REGION</code>, <code>ATHENA_DATABASE</code>, <code>ATHENA_RESULTS_BUCKET</code></td>
+                </tr>
+                <tr>
+                  <td><code>user-service</code></td><td>8080</td><td>PostgreSQL</td>
+                  <td><code>DATABASE_URL</code>, <code>JWT_SECRET</code>, <code>JWT_EXPIRATION</code>, <code>JPA_DDL_AUTO</code></td>
+                </tr>
+                <tr>
+                  <td><code>shop-service</code></td><td>3000</td><td>MySQL</td>
+                  <td><code>SHOP_DATABASE_URL_PRISMA</code>, <code>MYSQL_USER</code>, <code>MYSQL_ROOT_PASSWORD</code>, <code>JWT_SECRET</code></td>
+                </tr>
+                <tr>
+                  <td><code>product-service</code></td><td>8000</td><td>MongoDB</td>
+                  <td><code>MONGO_URI</code>, <code>AWS_REGION</code>, <code>BUCKET_NAME</code>, <code>STORE_SERVICE_URL</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-					<section class="section-card">
-						<p class="section-kicker">Resumen</p>
-						<p>
-							Si quieres integrar otra aplicación con OpenStore, usa <strong>store-service</strong> como
-							punto de entrada. Solo los servicios internos conocen sus detalles de persistencia y
-							ningún cliente necesita hablar directo con PostgreSQL, MySQL o MongoDB.
-						</p>
-					</section>
-				</main>
+        <section class="doc-section">
+          <h2 class="section-title">Responsabilidad de cada microservicio</h2>
+          <div class="card-grid two-up">
+            <article class="feature-card">
+              <h3>store-service</h3>
+              <p>Gateway público. Resuelve login, registro, crea/elimina tiendas, proxea el catálogo y expone endpoints de analytics consultando Athena.</p>
+            </article>
+            <article class="feature-card">
+              <h3>user-service</h3>
+              <p>Gestiona autenticación, registro, perfiles, actualización de usuario y control de suscripciones. Fuente de verdad para roles y datos del usuario.</p>
+            </article>
+            <article class="feature-card">
+              <h3>shop-service</h3>
+              <p>Administra tiendas, membresías y temas del storefront. Aplica límites por plan y valida que el owner sea el correcto antes de modificar.</p>
+            </article>
+            <article class="feature-card">
+              <h3>product-service</h3>
+              <p>Maneja el catálogo de productos, las imágenes subidas a S3 y las operaciones CRUD ligadas a una tienda específica.</p>
+            </article>
+          </div>
+        </section>
 
-				<div data-include="../components/fotter.html">
-					<footer class="site-footer">
-						<p>OpenStore Docs · Microservicios, documentación técnica y despliegue replicable.</p>
-					</footer>
-				</div>
-			</div>
-		</div>
-	</body>
+        <section class="doc-section">
+          <h2 class="section-title">Endpoints por servicio</h2>
+          <div class="card-grid">
+            <article class="feature-card">
+              <h3>store-service (gateway público)</h3>
+              <ul>
+                <li><strong>Auth:</strong> <code>POST /auth/login</code>, <code>POST /auth/register</code>, <code>GET /me</code>, <code>PATCH /me</code>, <code>POST /verify</code></li>
+                <li><strong>Suscripción:</strong> <code>PATCH /user/me/subscription</code>, <code>PATCH /user/{user_id}/subscription</code></li>
+                <li><strong>Tiendas:</strong> <code>POST /openshop/shop</code>, <code>GET /shops</code>, <code>GET /shops/{id}</code>, <code>PATCH /shop/id/{id}</code>, <code>DELETE /shop/id/{id}</code>, <code>GET|PUT /shop/{id}/theme</code></li>
+                <li><strong>Productos:</strong> <code>GET|POST /shops/{id}/products</code>, <code>PATCH|DELETE /shops/{id}/products/{pid}</code></li>
+                <li><strong>Analytics:</strong> <code>GET /analytics/productos-por-tienda</code>, <code>/analytics/usuarios-por-tienda</code>, <code>/analytics/membresias-por-tienda</code>, <code>/analytics/resumen-tiendas</code></li>
+              </ul>
+            </article>
+            <article class="feature-card">
+              <h3>user-service (interno)</h3>
+              <ul>
+                <li><code>POST /auth/register</code>, <code>POST /auth/{shopId}/register</code></li>
+                <li><code>POST /auth/login</code>, <code>POST /auth/{shopId}/login</code></li>
+                <li><code>GET /me</code>, <code>PATCH /me</code>, <code>POST /verify</code></li>
+                <li><code>GET /users</code>, <code>GET /users/{id}</code>, <code>PUT /users/{id}</code>, <code>DELETE /users/{id}</code></li>
+                <li><code>PATCH /user/{id}/subscription</code>, <code>PATCH /user/me/subscription</code></li>
+              </ul>
+            </article>
+            <article class="feature-card">
+              <h3>shop-service (interno)</h3>
+              <ul>
+                <li><code>GET /health</code>, <code>GET /shops</code>, <code>GET /shop/:shopId</code></li>
+                <li><code>POST /openshop/shop</code></li>
+                <li><code>GET /shop/name/:name</code>, <code>GET /shop/owner/:ownerId</code></li>
+                <li><code>PATCH /shop/:shopId</code>, <code>PUT|GET /shop/:shopId/theme</code></li>
+                <li><code>DELETE /shop/id/:shopId</code>, <code>POST /shops/:id/memberships</code></li>
+              </ul>
+            </article>
+            <article class="feature-card">
+              <h3>product-service (interno)</h3>
+              <ul>
+                <li><code>GET /healthcheck</code></li>
+                <li><code>GET /shops/{shop_id}/products</code></li>
+                <li><code>POST /shops/{shop_id}/products</code></li>
+                <li><code>PATCH /shops/{shop_id}/products/{product_id}</code></li>
+                <li><code>DELETE /shops/{shop_id}/products/{product_id}</code></li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="doc-section">
+          <h2 class="section-title">Base de datos por servicio</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Servicio</th><th>Base</th><th>Motivo</th></tr></thead>
+              <tbody>
+                <tr><td>user-service</td><td>PostgreSQL</td><td>Relaciones fuertes entre usuarios, roles y suscripciones.</td></tr>
+                <tr><td>shop-service</td><td>MySQL</td><td>Tiendas, membresías y configuración del storefront.</td></tr>
+                <tr><td>product-service</td><td>MongoDB</td><td>Catálogo flexible; los documentos de producto varían por tienda.</td></tr>
+                <tr><td>store-service</td><td>No aplica</td><td>Solo orquesta; delega persistencia a los servicios internos.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <nav class="page-nav" aria-label="Navegación de páginas">
+          <a class="page-nav-btn next" data-doc-href="pages/frontend.html" href="#">
+            Frontend
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </a>
+        </nav>
+
+        <footer class="docs-footer">OpenStore Docs · <span data-current-year></span> · <a href="https://github.com/Lazheart/OpenStore" target="_blank" rel="noopener">GitHub</a></footer>
+      </div>
+    </div>
+  </div>
+
+  <div class="image-modal" id="image-modal" role="dialog" aria-modal="true">
+    <div class="image-modal__backdrop" id="modal-backdrop"></div>
+    <div class="image-modal__panel"><button class="image-modal__close" id="modal-close" aria-label="Cerrar">✕</button><img id="modal-img" src="" alt="" /></div>
+  </div>
+</body>
 </html>

@@ -1,215 +1,155 @@
 <!doctype html>
 <html lang="es">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>OpenStore | Deployment</title>
-		<meta
-			name="description"
-			content="Despliegue de OpenStore con CloudFormation, Docker y Docker Compose."
-		/>
-		<link rel="stylesheet" href="../styles/style.css" />
-		<script defer src="../scripts/main.js"></script>
-		<script defer src="../scripts/search.js"></script>
-		<script defer src="../scripts/scaleimages.js"></script>
-	</head>
-	<body data-page="deployment" data-docs-root="../">
-		<div class="docs-shell">
-			<div data-include="../components/sidebar.html">
-				<aside class="sidebar-panel" aria-label="Navegación principal">
-					<div class="sidebar-brand">
-						<p class="eyebrow">OpenStore Docs</p>
-						<h2>Documentación</h2>
-						<p>Microservicios, frontend, ingesta, despliegue e infraestructura.</p>
-					</div>
-					<nav class="sidebar-nav" aria-label="Secciones del sitio">
-						<a data-nav-link="home" data-doc-href="index.html" href="#">Inicio</a>
-						<a data-nav-link="api" data-doc-href="pages/api.html" href="#">API</a>
-						<a data-nav-link="frontend" data-doc-href="pages/frontend.html" href="#">Frontend</a>
-						<a data-nav-link="dataingest" data-doc-href="pages/dataingest.html" href="#">Data ingest</a>
-						<a data-nav-link="deployment" data-doc-href="pages/deployment.html" href="#">Deployment</a>
-						<a data-nav-link="infrastructure" data-doc-href="pages/infrastructure.html" href="#">Infrastructure</a>
-					</nav>
-				</aside>
-			</div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenStore | Deployment</title>
+  <meta name="description" content="Despliegue de OpenStore con CloudFormation, Docker, Docker Compose y Amplify." />
+  <link rel="stylesheet" href="../styles/style.css" />
+  <script defer src="../scripts/main.js"></script>
+  <script defer src="../scripts/scaleimages.js"></script>
+</head>
+<body data-page="deployment" data-docs-root="../">
 
-			<div class="docs-content">
-				<header class="topbar">
-					<div>
-						<p class="eyebrow">OpenStore Deployment</p>
-						<h1>CloudFormation, Docker y despliegue reproducible</h1>
-						<p class="lead">
-							El proyecto usa CloudFormation para que la infraestructura se pueda recrear de forma
-							determinista. Los servicios se empaquetan con Docker, las bases de datos se levantan con
-							Docker Compose y el frontend se publica por Amplify.
-						</p>
-					</div>
-					<div data-include="../components/searchbar.html">
-						<section class="search-panel" aria-label="Buscador de documentación">
-							<label class="search-label" for="docs-search">Buscar documentación</label>
-							<form class="search-form" data-doc-search-form>
-								<input
-									id="docs-search"
-									type="search"
-									placeholder="API, frontend, deployment, AWS..."
-									data-doc-search-input
-								/>
-								<button type="submit">Ir</button>
-							</form>
-							<div class="search-results" data-doc-search-results aria-live="polite"></div>
-						</section>
-					</div>
-				</header>
+  <nav class="docs-navbar">
+    <div class="navbar-left">
+      <button class="sidebar-toggle" id="sidebar-toggle" title="Alternar sidebar" aria-label="Alternar sidebar">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="1" y1="4" x2="15" y2="4"/><line x1="1" y1="8" x2="15" y2="8"/><line x1="1" y1="12" x2="15" y2="12"/></svg>
+      </button>
+      <a class="navbar-brand" data-doc-href="index.html" href="#">
+        <span class="brand-dot"></span>OpenDocs <span class="navbar-brand-sub">/ OpenStore</span>
+      </a>
+    </div>
+    <div class="navbar-search">
+      <span class="navbar-search-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="5"/><path d="M11 11l3 3"/></svg></span>
+      <input type="search" placeholder="Buscar en la documentación…" data-navbar-search id="navbar-search" autocomplete="off" />
+      <div class="search-results-dropdown"></div>
+    </div>
+    <div class="navbar-right">
+      <a class="navbar-icon-btn" href="https://github.com/Lazheart/OpenStore" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.185 6.839 9.504.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.021C22 6.484 17.522 2 12 2z"/></svg>
+      </a>
+    </div>
+  </nav>
 
-				<main class="main-stack">
-					<section class="hero-panel">
-						<p class="section-kicker">Por qué CloudFormation</p>
-						<h2>La infraestructura debe poder recrearse igual en cualquier cuenta</h2>
-						<p>
-							CloudFormation deja la infraestructura declarada en un template versionable. Eso evita
-							cambios manuales difíciles de rastrear, permite repetir la misma topología en otra cuenta y
-							hace más simple revisar qué recursos necesita realmente OpenStore.
-						</p>
-					</section>
+  <div class="docs-layout">
+    <aside class="docs-sidebar" id="docs-sidebar" aria-label="Navegación principal">
+      <p class="sidebar-label">Navegación</p>
+      <nav class="sidebar-nav">
+        <a class="sidebar-link" data-nav-link="home" data-doc-href="index.html" href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M1 6l7-5 7 5v9H10V10H6v5H1z"/></svg>Inicio</a>
+        <a class="sidebar-link" data-nav-link="api" data-doc-href="pages/api.html" href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 4h12M2 8h8M2 12h10"/></svg>API & Gateway</a>
+        <a class="sidebar-link" data-nav-link="frontend" data-doc-href="pages/frontend.html" href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="2" width="14" height="11" rx="1.5"/><path d="M5 15h6"/></svg>Frontend</a>
+        <a class="sidebar-link" data-nav-link="dataingest" data-doc-href="pages/dataingest.html" href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><ellipse cx="8" cy="4" rx="6" ry="2"/><path d="M2 4v4c0 1.1 2.7 2 6 2s6-.9 6-2V4"/><path d="M2 8v4c0 1.1 2.7 2 6 2s6-.9 6-2V8"/></svg>Data Ingest</a>
+        <a class="sidebar-link" data-nav-link="deployment" data-doc-href="pages/deployment.html" href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="8" width="4" height="7" rx="0.5"/><rect x="6" y="4" width="4" height="11" rx="0.5"/><rect x="11" y="1" width="4" height="14" rx="0.5"/></svg>Deployment</a>
+        <a class="sidebar-link" data-nav-link="infrastructure" data-doc-href="pages/infrastructure.html" href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="3" r="2"/><circle cx="3" cy="13" r="2"/><circle cx="13" cy="13" r="2"/><path d="M8 5v3M8 8l-4 3M8 8l4 3"/></svg>Infrastructure</a>
+      </nav>
+    </aside>
 
-					<section class="section-card">
-						<div class="section-heading">
-							<div>
-								<p class="section-kicker">Buenas prácticas</p>
-								<h2>Si trabajas con cuentas de estudiantes</h2>
-							</div>
-						</div>
-						<div class="card-grid two-up">
-							<article class="feature-card">
-								<h3>Usa un rol dedicado</h3>
-								<p>
-									Es mejor crear un role específico para ejecutar la plantilla que usar la cuenta raíz.
-									Así reduces el riesgo y delimitas qué acciones pueden realizar las pruebas.
-								</p>
-							</article>
-							<article class="feature-card">
-								<h3>Aplica least privilege</h3>
-								<p>
-									Limita permisos a EC2, ELB, S3, CloudFormation y Amplify solo a lo necesario para el
-									despliegue. Menos permisos equivalen a menos superficie de error.
-								</p>
-							</article>
-						</div>
-					</section>
+    <div class="docs-main" id="docs-main">
+      <div class="docs-content">
 
-					<section class="section-card">
-						<div class="section-heading">
-							<div>
-								<p class="section-kicker">Empaquetado</p>
-								<h2>Docker se usa para empaquetar las aplicaciones</h2>
-							</div>
-						</div>
-						<div class="card-grid two-up">
-							<article class="callout-card">
-								<h3>Microservicios</h3>
-								<p>
-									Cada servicio del backend tiene su propio <code>Dockerfile</code>, lo que permite construir
-									imágenes independientes y desplegarlas de forma aislada.
-								</p>
-							</article>
-							<article class="callout-card">
-								<h3>Local dev</h3>
-								<p>
-									El stack local usa Compose para levantar las bases y después los servicios, conservando la
-									misma separación que existe en AWS.
-								</p>
-							</article>
-						</div>
-						<div class="content-callout">
-							<strong>Orden recomendado:</strong> primero bases de datos, después APIs y al final el frontend.
-						</div>
-					</section>
+        <header class="page-header">
+          <p class="page-kicker">Deployment</p>
+          <h1>CloudFormation, Docker y despliegue reproducible</h1>
+          <p class="page-lead">La infraestructura está declarada en CloudFormation para poder recrearse de forma determinista. Los servicios se empaquetan con Docker, las bases se levantan con Docker Compose y el frontend se publica por Amplify.</p>
+        </header>
 
-					<section class="section-card">
-						<div class="section-heading">
-							<div>
-								<p class="section-kicker">Docker Compose</p>
-								<h2>Cómo se levantan bases y APIs en tu máquina</h2>
-							</div>
-						</div>
-						<div class="card-grid two-up">
-							<article class="feature-card">
-								<h3>Bases de datos</h3>
-								<p>
-									<code>database/docker-compose.yml</code> levanta PostgreSQL en <code>5432</code>, MySQL en
-									<code>3307</code> y MongoDB en <code>27017</code>. Cada contenedor conserva su volumen para
-									no perder datos entre reinicios.
-								</p>
-							</article>
-							<article class="feature-card">
-								<h3>APIs</h3>
-								<p>
-									<code>backend/docker-compose.yml</code> arranca user-service, shop-service,
-									product-service y store-service con healthchecks y variables de entorno predefinidas.
-								</p>
-							</article>
-						</div>
-						<div class="table-wrap">
-							<table>
-								<thead>
-									<tr>
-										<th>Archivo</th>
-										<th>Qué arranca</th>
-										<th>Nota</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr>
-										<td>database/docker-compose.yml</td>
-										<td>PostgreSQL, MySQL, MongoDB</td>
-										<td>Una base por servicio persistida en volúmenes locales</td>
-									</tr>
-									<tr>
-										<td>backend/docker-compose.yml</td>
-										<td>user, shop, product y store services</td>
-										<td>Conexiones internas y healthchecks listos</td>
-									</tr>
-								</tbody>
-							</table>
-						</div>
-					</section>
+        <section class="doc-section">
+          <h2 class="section-title">Por qué CloudFormation</h2>
+          <div class="hero-banner">
+            <h2>Infraestructura como código, no como clics manuales</h2>
+            <p>CloudFormation deja la infraestructura declarada en un template versionable. Eso evita cambios manuales difíciles de rastrear, permite repetir la misma topología en otra cuenta AWS y hace más simple revisar qué recursos necesita realmente el sistema.</p>
+          </div>
+        </section>
 
-					<section class="section-card">
-						<div class="section-heading">
-							<div>
-								<p class="section-kicker">Frontend</p>
-								<h2>Despliegue del frontend</h2>
-							</div>
-						</div>
-						<div class="card-grid two-up">
-							<article class="callout-card">
-								<h3>Build</h3>
-								<p>
-									La carpeta <code>frontend</code> se compila con Vite usando <code>pnpm install</code> y
-									<code>pnpm run build</code>. El resultado sale en <code>dist</code>.
-								</p>
-							</article>
-							<article class="callout-card">
-								<h3>Amplify</h3>
-								<p>
-									CloudFormation crea la app de Amplify y apunta al repo del proyecto para que el frontend
-									se despliegue automáticamente desde la rama configurada.
-								</p>
-							</article>
-						</div>
-						<div class="content-callout">
-							<strong>Objetivo:</strong> el frontend debe poder publicarse sin tocar manualmente el servidor
-							cada vez que cambia una vista.
-						</div>
-					</section>
-				</main>
+        <section class="doc-section">
+          <h2 class="section-title">Docker por servicio</h2>
+          <div class="card-grid two-up">
+            <article class="feature-card">
+              <h3>Microservicios</h3>
+              <p>Cada servicio del backend tiene su propio <code>Dockerfile</code>, permitiendo construir imágenes independientes y desplegarlas de forma aislada sin afectar a los demás.</p>
+            </article>
+            <article class="feature-card">
+              <h3>CI/CD automático</h3>
+              <p>El workflow de GitHub Actions (<code>.github/workflows/docker-image.yml</code>) construye y publica las imágenes automáticamente en cada push a la rama configurada.</p>
+            </article>
+          </div>
+        </section>
 
-				<div data-include="../components/fotter.html">
-					<footer class="site-footer">
-						<p>OpenStore Docs · Microservicios, documentación técnica y despliegue replicable.</p>
-					</footer>
-				</div>
-			</div>
-		</div>
-	</body>
+        <section class="doc-section">
+          <h2 class="section-title">Docker Compose — entorno local</h2>
+          <div class="card-grid two-up">
+            <article class="feature-card">
+              <h3>database/docker-compose.yml</h3>
+              <p>Levanta PostgreSQL en <code>5432</code>, MySQL en <code>3307</code> y MongoDB en <code>27017</code>. Cada contenedor conserva su volumen para no perder datos entre reinicios.</p>
+            </article>
+            <article class="feature-card">
+              <h3>backend/docker-compose.yml</h3>
+              <p>Arranca <code>user-service</code>, <code>shop-service</code>, <code>product-service</code> y <code>store-service</code> con healthchecks y variables de entorno predefinidas.</p>
+            </article>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Archivo</th><th>Qué arranca</th><th>Nota</th></tr></thead>
+              <tbody>
+                <tr><td><code>database/docker-compose.yml</code></td><td>PostgreSQL · MySQL · MongoDB</td><td>Volúmenes persistentes locales</td></tr>
+                <tr><td><code>backend/docker-compose.yml</code></td><td>user · shop · product · store services</td><td>Healthchecks y redes internas listos</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="doc-section">
+          <h2 class="section-title">Frontend en Amplify</h2>
+          <div class="card-grid two-up">
+            <article class="feature-card">
+              <h3>Build</h3>
+              <p>La carpeta <code>frontend/</code> se compila con Vite usando <code>pnpm install</code> y <code>pnpm run build</code>. El resultado sale en <code>dist/</code>.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Amplify</h3>
+              <p>CloudFormation crea la app de Amplify apuntando al repositorio. El frontend se despliega automáticamente desde la rama configurada sin tocar el servidor.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="doc-section">
+          <h2 class="section-title">Buenas prácticas</h2>
+          <div class="card-grid two-up">
+            <article class="feature-card">
+              <h3>Usa un rol dedicado</h3>
+              <p>Crea un IAM Role específico para ejecutar la plantilla en lugar de la cuenta raíz. Reduces superficie de error y delimitas qué acciones pueden realizar las pruebas.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Aplica least privilege</h3>
+              <p>Limita permisos a EC2, ELB, S3, CloudFormation y Amplify estrictamente a lo necesario para el despliegue. Menos permisos equivale a menos riesgo.</p>
+            </article>
+          </div>
+        </section>
+
+          <div class="callout callout-info">
+            <strong>Importante:</strong> usa un rol IAM y un usuario específico para el despliegue en lugar de la cuenta raíz. Limita permisos a lo estrictamente necesario (EC2, ELB, S3, CloudFormation, Amplify) y aplica least privilege. El objetivo es reducir la superficie de riesgo y limitar el impacto si algo falla.
+          </div>
+
+          <div class="callout callout-info">
+             Con cuentas limitadas se recomienda usar el rol proporcionado por la institución educativa para el despliegue. Aunque esto sea una vulnerabilidad de seguridad.
+          </div>
+
+        <nav class="page-nav" aria-label="Navegación de páginas">
+          <a class="page-nav-btn next" data-doc-href="pages/infrastructure.html" href="#">
+            Infrastructure
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </a>
+        </nav>
+
+        <footer class="docs-footer">OpenStore Docs · <span data-current-year></span> · <a href="https://github.com/Lazheart/OpenStore" target="_blank" rel="noopener">GitHub</a></footer>
+      </div>
+    </div>
+  </div>
+
+  <div class="image-modal" id="image-modal" role="dialog" aria-modal="true">
+    <div class="image-modal__backdrop" id="modal-backdrop"></div>
+    <div class="image-modal__panel"><button class="image-modal__close" id="modal-close" aria-label="Cerrar">✕</button><img id="modal-img" src="" alt="" /></div>
+  </div>
+</body>
 </html>
