@@ -1,72 +1,37 @@
 # OpenStore
 
-OpenStore es una plataforma de e-commerce open source, autohosteable y basada en microservicios.
+Plataforma de e-commerce open source, autohosteable y basada en microservicios. Permite gestionar múltiples tiendas, productos y usuarios con una arquitectura desacoplada lista para nube.
 
-Permite gestionar multiples tiendas, productos y usuarios con una arquitectura desacoplada lista para nube.
+## Servicios
 
-## Que es OpenStore
+| Directorio | Tecnología | Responsabilidad |
+|---|---|---|
+| `frontend/` | React + TypeScript + Vite | Interfaz del cliente y panel de propietario |
+| `backend/user-service/` | Java + Spring Boot | Autenticación y gestión de usuarios |
+| `backend/shop-service/` | TypeScript + Express + Prisma | Gestión de tiendas |
+| `backend/store-service/` | TypeScript + Express | Orquestación entre servicios |
+| `backend/product-service/` | Python + FastAPI | Catálogo de productos e imágenes (S3) |
+| `dataingest/` | Python | Scripts de ingesta y seed de datos hacia AWS |
+| `cloud-aws/` | AWS CloudFormation | Infraestructura declarativa en nube |
 
-OpenStore busca ser una alternativa abierta para construir tiendas online, con estos objetivos:
+## Inicio rápido (local)
 
-- Separacion por dominios (usuarios, tiendas, productos).
-- Escalado por servicio.
-- Despliegue en AWS con infraestructura declarativa.
-- Frontend personalizable para cada marca.
+```bash
+cd backend
+cp .env.example .env  # configurar variables
+docker-compose up
+```
 
-## Arquitectura
+## Documentación
 
-El proyecto esta organizado por servicios:
+La documentación técnica completa está disponible en [`docs/index.html`](docs/index.html), con secciones para:
 
-- frontend: interfaz React.
-- backend/user-service: autenticacion y gestion de usuarios (Spring Boot).
-- backend/shop-service: gestion de tiendas y membresias (Node.js + Express + Prisma).
-- backend/product-service: catalogo de productos e imagenes (FastAPI + S3).
+- **API** — endpoints por servicio
+- **Frontend** — arquitectura y flujos de UI
+- **Infraestructura** — recursos AWS y red
+- **Despliegue** — paso a paso con CloudFormation + Amplify
+- **Data Ingest** — scripts de ingesta y queries Athena
 
-Bases de datos utilizadas segun el dominio:
+## Estado
 
-- PostgreSQL
-- MySQL
-- MongoDB
-
-## Funcionalidades principales
-
-- Gestion de usuarios con roles ADMIN, OWNER y CLIENT.
-- Creacion y administracion de tiendas.
-- Catalogo de productos por tienda.
-- Soporte para imagenes de productos en S3.
-- Personalizacion visual de la tienda (temas).
-- Flujo de cierre de venta con pasarela de pago o contacto por WhatsApp.
-
-## Stack tecnologico
-
-- Frontend: React + TypeScript + Vite.
-- User service: Java + Spring Boot.
-- Shop service: TypeScript + Express + Prisma.
-- Product service: Python + FastAPI.
-- Infraestructura: AWS CloudFormation.
-
-## Despliegue
-
-El repositorio incluye un template de infraestructura en [cloud-formation.yml](cloud-formation.yml), con:
-
-- Balanceador de carga (ALB).
-- Servidores de aplicacion.
-- Servidor de base de datos.
-- Bucket S3.
-
-Script de inicializacion:
-
-- [setup.sh](setup.sh) (pensado para entornos Linux).
-
-## Documentacion
-
-La documentacion tecnica de APIs, comunicacion entre servicios y modelo ER se encuentra en:
-
-- [docs/index.html](docs/index.html)
-- En esa misma pagina, revisa la seccion **Despliegue AWS (CloudFormation + Amplify)** para el paso a paso de deploy.
-
-## Estado del repositorio
-
-El proyecto esta en evolucion activa y algunos componentes pueden estar en proceso de ajuste.
-
-
+Proyecto en desarrollo activo.
