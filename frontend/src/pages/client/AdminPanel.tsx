@@ -41,10 +41,12 @@ export default function AdminPanel() {
   const [userId, setUserId] = useState<string | null>(null);
 
   const [clients, setClients] = useState<Client[]>([]);
+  const [ownerShops, setOwnerShops] = useState<Store[]>([]);
   const [clientPage, setClientPage] = useState(0);
   const [clientTotalPages, setClientTotalPages] = useState(0);
   const clientPageSize = 20;
   const [stores, setStores] = useState<Store[]>([]);
+  const [selectedShopId, setSelectedShopId] = useState<string>('all');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedClientsList, setSelectedClientsList] = useState<Client[] | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -65,15 +67,29 @@ export default function AdminPanel() {
   }, []);
 
   useEffect(() => {
-    if (role === 'owner') void fetchOwnerClients(0);
+    if (role === 'owner') {
+      void fetchOwnerShops();
+      void fetchOwnerClients(0, selectedShopId !== 'all' ? selectedShopId : undefined);
+    }
     else fetchStores();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role, userId]);
+  }, [role, userId, selectedShopId]);
 
-  async function fetchOwnerClients(page = 0) {
+  async function fetchOwnerShops() {
     if (!userId) return;
     try {
-      const { data } = await api.get(`/owners/${userId}/clients?page=${page}&size=${clientPageSize}`);
+      const { data } = await api.get(`/owners/${userId}/shops`);
+      setOwnerShops(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Failed to fetch owner shops:', error);
+    }
+  }
+
+  async function fetchOwnerClients(page = 0, shopId?: string) {
+    if (!userId) return;
+    try {
+      const query = shopId ? `&shopId=${encodeURIComponent(shopId)}` : '';
+      const { data } = await api.get(`/owners/${userId}/clients?page=${page}&size=${clientPageSize}${query}`);
       const rawPayload = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
       const payload = rawPayload.filter(isClientApiRecord);
       const normalized: Client[] = payload.map((client: ClientApiRecord) => ({
@@ -169,6 +185,29 @@ export default function AdminPanel() {
 
       {role === 'owner' ? (
         <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+            <label style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }} htmlFor="shopFilter">
+              Filtrar por tienda
+            </label>
+            <select
+              id="shopFilter"
+              className="input"
+              value={selectedShopId}
+              onChange={(event) => {
+                const nextShopId = event.target.value;
+                setSelectedShopId(nextShopId);
+                void fetchOwnerClients(0, nextShopId === 'all' ? undefined : nextShopId);
+              }}
+              style={{ minWidth: 240 }}
+            >
+              <option value="all">Todas las tiendas</option>
+              {ownerShops.map((shop) => (
+                <option key={shop.id} value={shop.id}>
+                  {shop.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <table className="data-table">
             <thead>
               <tr>

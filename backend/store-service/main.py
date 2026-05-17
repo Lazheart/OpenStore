@@ -39,9 +39,11 @@ from services_paths import (
 	user_update_subscription_url,
 	user_auth_login_url,
 	user_auth_register_url,
+	owner_shops_url,
 	shop_list_url,
 	shop_list_by_owner_url,
 	user_list_by_shop_ids_url,
+	user_list_by_shop_url,
 	product_list_by_shop_url,
 	product_create_url,
 	product_update_url,
@@ -569,6 +571,7 @@ async def get_owner_clients(
 	owner_id: str,
 	page: int = 0,
 	size: int = 20,
+	shopId: str | None = None,
 	authorization: str | None = Header(default=None),
 ) -> dict[str, object]:
 	current_user = await _resolve_current_user(authorization)
@@ -592,6 +595,11 @@ async def get_owner_clients(
 		shop_id_str = str(shop_id)
 		shop_ids.append(shop_id_str)
 		shop_names_by_id[shop_id_str] = str(shop.get("shopName") or shop.get("name") or "")
+
+	if shopId:
+		if shopId not in shop_names_by_id:
+			raise HTTPException(status_code=404, detail="La tienda no pertenece a este owner")
+		shop_ids = [shopId]
 
 	safe_page = max(page, 0)
 	safe_size = min(max(size, 1), 100)
@@ -637,6 +645,37 @@ async def get_owner_clients(
 		}
 
 	return {"data": clients, "meta": meta}
+
+
+@app.get("/owners/{owner_id}/shops", tags=["Utilidades"], summary="Tiendas de un owner")
+async def get_owner_shops(
+	owner_id: str,
+	authorization: str | None = Header(default=None),
+) -> list[dict[str, object]]:
+	current_user = await _resolve_current_user(authorization)
+	current_user_id = str(current_user.get("id", ""))
+	current_user_role = str(current_user.get("role", "")).upper()
+	if current_user_role != "ADMIN" and current_user_id != owner_id:
+		raise HTTPException(status_code=403, detail="No puedes consultar tiendas de otro owner")
+
+	shops = await _forward("GET", owner_shops_url(owner_id), authorization=authorization)
+	if not isinstance(shops, list):
+		raise HTTPException(status_code=502, detail="No se pudieron obtener las tiendas del owner")
+
+	result: list[dict[str, object]] = []
+	for shop in shops:
+		if not isinstance(shop, dict):
+			continue
+		result.append(
+			{
+				"id": str(shop.get("shopId") or shop.get("id") or shop.get("shop_id") or ""),
+				"name": str(shop.get("shopName") or shop.get("name") or ""),
+				"ownerId": owner_id,
+				"phone": str(shop.get("phoneNumber") or shop.get("phone") or ""),
+			}
+		)
+
+	return result
 
 
 @app.get("/analytics/productos-por-tienda", tags=["Analytics"], summary="Top tiendas por número de productos")

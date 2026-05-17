@@ -75,10 +75,18 @@ def shop_list_by_owner_url(owner_id: str) -> str:
 	return f"{SHOP_SERVICE_URL}/shop/owner/{owner_id}"
 
 
+def owner_shops_url(owner_id: str) -> str:
+	return f"{SHOP_SERVICE_URL}/owners/{owner_id}/shops"
+
+
 def user_list_by_shop_ids_url(shop_ids: list[str], page: int = 0, size: int = 20) -> str:
 	query_items = [("shopIds", shop_id) for shop_id in shop_ids]
 	query_items.extend([("page", str(page)), ("size", str(size))])
 	return f"{USER_SERVICE_URL}/users/shops?{urlencode(query_items)}"
+
+
+def user_list_by_shop_url(shop_id: str, page: int = 0, size: int = 20) -> str:
+	return f"{USER_SERVICE_URL}/users/shop/{shop_id}?page={page}&size={size}"
 
 
 def shop_list_url(page: int = 1, limit: int = 10) -> str:
