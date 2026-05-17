@@ -88,7 +88,7 @@ function readColors(themeConfig: import('../storefront/themeTypes').ShopThemeJso
   };
 }
 
-export default function DevStyle({ shopId, shopName, themeConfig, catalogProducts }: ThemeViewProps) {
+export default function DevStyle({ shopName, themeConfig, catalogProducts }: ThemeViewProps) {
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [terminalLog, setTerminalLog] = useState<string[]>([

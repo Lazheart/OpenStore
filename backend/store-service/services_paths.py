@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlencode
 
 USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://user-service:8080")
 USER_AUTH_BASE_PATH = "/auth"
@@ -71,7 +72,13 @@ def shop_internal_delete_url(shop_id: str) -> str:
 
 
 def shop_list_by_owner_url(owner_id: str) -> str:
-	return f"{SHOP_SERVICE_URL}/owners/{owner_id}/shops"
+	return f"{SHOP_SERVICE_URL}/shop/owner/{owner_id}"
+
+
+def user_list_by_shop_ids_url(shop_ids: list[str], page: int = 0, size: int = 20) -> str:
+	query_items = [("shopIds", shop_id) for shop_id in shop_ids]
+	query_items.extend([("page", str(page)), ("size", str(size))])
+	return f"{USER_SERVICE_URL}/users/shops?{urlencode(query_items)}"
 
 
 def shop_list_url(page: int = 1, limit: int = 10) -> str:

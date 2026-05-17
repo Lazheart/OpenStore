@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 import com.OpenStore.user.user.domain.User;
 import com.OpenStore.user.user.domain.UserRole;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,6 +20,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByName(String name);
     Optional<User> findByNameIgnoreCase(String name);
     Page<User> findByShopIdPageable(UUID shopId, Pageable pageable);
+    Page<User> findByShopIdIn(Collection<UUID> shopIds, Pageable pageable);
     Page<User> findByRole(UserRole role, Pageable pageable);
-    Optional<User> findByShopId(UUID shopId);
+    List<User> findByShopId(UUID shopId);
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Server } from 'lucide-react';
+import { api } from '../../api/api';
 import DetailClientView from './DetailClientView';
 
 type Client = {
@@ -17,11 +18,32 @@ type Store = {
   phone?: string;
 };
 
+type ClientApiRecord = {
+  id?: unknown;
+  name?: unknown;
+  username?: unknown;
+  email?: unknown;
+  phoneNumber?: unknown;
+  phone?: unknown;
+  shopName?: unknown;
+  storeName?: unknown;
+  shop?: {
+    name?: unknown;
+  } | null;
+  [key: string]: unknown;
+};
+
+const isClientApiRecord = (value: unknown): value is ClientApiRecord =>
+	typeof value === 'object' && value !== null;
+
 export default function AdminPanel() {
   const [role, setRole] = useState<'owner' | 'admin'>('owner');
   const [userId, setUserId] = useState<string | null>(null);
 
   const [clients, setClients] = useState<Client[]>([]);
+  const [clientPage, setClientPage] = useState(0);
+  const [clientTotalPages, setClientTotalPages] = useState(0);
+  const clientPageSize = 20;
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedClientsList, setSelectedClientsList] = useState<Client[] | null>(null);
@@ -43,22 +65,27 @@ export default function AdminPanel() {
   }, []);
 
   useEffect(() => {
-    if (role === 'owner') fetchOwnerClients();
+    if (role === 'owner') void fetchOwnerClients(0);
     else fetchStores();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, userId]);
 
-  async function fetchOwnerClients() {
+  async function fetchOwnerClients(page = 0) {
     if (!userId) return;
     try {
-      const res = await fetch(`/api/owners/${userId}/clients`);
-      if (!res.ok) throw new Error('Fetch failed');
-      const data = await res.json();
-      const normalized = (data || []).map((c: any) => ({
-        ...c,
-        shopName: c.shopName ?? c.storeName ?? c.shop?.name ?? '',
+      const { data } = await api.get(`/api/owners/${userId}/clients?page=${page}&size=${clientPageSize}`);
+      const rawPayload = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      const payload = rawPayload.filter(isClientApiRecord);
+      const normalized: Client[] = payload.map((client: ClientApiRecord) => ({
+        id: String(client.id ?? ''),
+        username: String(client.username ?? client.name ?? ''),
+        email: String(client.email ?? ''),
+        phone: String(client.phoneNumber ?? client.phone ?? ''),
+        shopName: String(client.shopName ?? client.storeName ?? client.shop?.name ?? ''),
       }));
       setClients(normalized);
+      setClientPage(Number(data?.meta?.page ?? page));
+      setClientTotalPages(Number(data?.meta?.totalPages ?? (normalized.length > 0 ? 1 : 0)));
     } catch (error) {
       console.error('Failed to fetch clients:', error);
     }
@@ -66,9 +93,7 @@ export default function AdminPanel() {
 
   async function fetchStores() {
     try {
-      const res = await fetch('/api/admin/stores');
-      if (!res.ok) throw new Error('Fetch failed');
-      const data = await res.json();
+      const { data } = await api.get('/api/admin/stores');
       setStores(data || []);
     } catch (error) {
       console.error('Failed to fetch stores:', error);
@@ -78,14 +103,17 @@ export default function AdminPanel() {
   async function onStoreClick(store: Store) {
     // Admin: fetch clients for owner id then show modal with list
     try {
-      const res = await fetch(`/api/owners/${store.ownerId}/clients`);
-      if (!res.ok) throw new Error('Fetch failed');
-      const data = await res.json();
-      const normalized = (data || []).map((c: any) => ({
-        ...c,
-        shopName: c.shopName ?? c.storeName ?? c.shop?.name ?? store.name ?? '',
+      const { data } = await api.get(`/api/owners/${store.ownerId}/clients?page=0&size=100`);
+      const rawPayload = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      const payload = rawPayload.filter(isClientApiRecord);
+      const normalized: Client[] = payload.map((client: ClientApiRecord) => ({
+        id: String(client.id ?? ''),
+        username: String(client.username ?? client.name ?? ''),
+        email: String(client.email ?? ''),
+        phone: String(client.phoneNumber ?? client.phone ?? ''),
+        shopName: String(client.shopName ?? client.storeName ?? client.shop?.name ?? store.name ?? ''),
       }));
-      setSelectedClientsList(normalized || []);
+      setSelectedClientsList(normalized);
     } catch {
       setSelectedClientsList([
         { id: '1', username: 'demo1', email: 'demo1@example.com', phone: '+1-555-0001' },
@@ -169,6 +197,29 @@ export default function AdminPanel() {
               )}
             </tbody>
           </table>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', gap: '1rem' }}>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              {clientTotalPages > 0 ? `Page ${clientPage + 1} of ${clientTotalPages}` : 'No clients found'}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                className="btn"
+                onClick={() => void fetchOwnerClients(clientPage - 1)}
+                disabled={clientPage <= 0}
+                style={{ opacity: clientPage <= 0 ? 0.6 : 1, cursor: clientPage <= 0 ? 'not-allowed' : 'pointer' }}
+              >
+                Prev
+              </button>
+              <button
+                className="btn"
+                onClick={() => void fetchOwnerClients(clientPage + 1)}
+                disabled={clientTotalPages > 0 ? clientPage + 1 >= clientTotalPages : true}
+                style={{ opacity: clientTotalPages > 0 && clientPage + 1 < clientTotalPages ? 1 : 0.6, cursor: clientTotalPages > 0 && clientPage + 1 < clientTotalPages ? 'pointer' : 'not-allowed' }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="card">

@@ -40,6 +40,8 @@ from services_paths import (
 	user_auth_login_url,
 	user_auth_register_url,
 	shop_list_url,
+	shop_list_by_owner_url,
+	user_list_by_shop_ids_url,
 	product_list_by_shop_url,
 	product_create_url,
 	product_update_url,
@@ -560,6 +562,81 @@ async def get_owner_by_shop_id(shop_id: str) -> dict[str, str]:
 		raise HTTPException(status_code=404, detail="No se pudo resolver ownerId para la tienda")
 
 	return {"shopId": shop_id, "ownerId": str(owner_id)}
+
+
+@app.get("/owners/{owner_id}/clients", tags=["Utilidades"], summary="Clientes de un owner")
+async def get_owner_clients(
+	owner_id: str,
+	page: int = 0,
+	size: int = 20,
+	authorization: str | None = Header(default=None),
+) -> dict[str, object]:
+	current_user = await _resolve_current_user(authorization)
+	current_user_id = str(current_user.get("id", ""))
+	current_user_role = str(current_user.get("role", "")).upper()
+	if current_user_role != "ADMIN" and current_user_id != owner_id:
+		raise HTTPException(status_code=403, detail="No puedes consultar clientes de otro owner")
+
+	shops = await _forward("GET", shop_list_by_owner_url(owner_id), authorization=authorization)
+	if not isinstance(shops, list):
+		raise HTTPException(status_code=502, detail="No se pudieron obtener las tiendas del owner")
+
+	shop_names_by_id: dict[str, str] = {}
+	shop_ids: list[str] = []
+	for shop in shops:
+		if not isinstance(shop, dict):
+			continue
+		shop_id = shop.get("shopId") or shop.get("id") or shop.get("shop_id")
+		if shop_id is None:
+			continue
+		shop_id_str = str(shop_id)
+		shop_ids.append(shop_id_str)
+		shop_names_by_id[shop_id_str] = str(shop.get("shopName") or shop.get("name") or "")
+
+	safe_page = max(page, 0)
+	safe_size = min(max(size, 1), 100)
+	if not shop_ids:
+		return {"data": [], "meta": {"page": safe_page, "size": safe_size, "total": 0, "totalPages": 0}}
+
+	users_page = await _forward(
+		"GET",
+		user_list_by_shop_ids_url(shop_ids, page=safe_page, size=safe_size),
+		authorization=authorization,
+	)
+	if not isinstance(users_page, dict):
+		raise HTTPException(status_code=502, detail="No se pudo obtener el listado de clientes")
+
+	raw_clients = users_page.get("data") or []
+	if not isinstance(raw_clients, list):
+		raw_clients = []
+
+	clients: list[dict[str, object]] = []
+	for user in raw_clients:
+		if not isinstance(user, dict):
+			continue
+		shop_id = user.get("shopId") or user.get("shop_id")
+		shop_id_str = str(shop_id) if shop_id is not None else None
+		clients.append(
+			{
+				"id": str(user.get("id") or ""),
+				"username": user.get("name") or user.get("username") or "",
+				"email": user.get("email") or "",
+				"phone": user.get("phoneNumber") or user.get("phone") or "",
+				"shopId": shop_id_str,
+				"shopName": shop_names_by_id.get(shop_id_str or "", ""),
+			}
+		)
+
+	meta = users_page.get("meta")
+	if not isinstance(meta, dict):
+		meta = {
+			"page": safe_page,
+			"size": safe_size,
+			"total": len(clients),
+			"totalPages": 1 if clients else 0,
+		}
+
+	return {"data": clients, "meta": meta}
 
 
 @app.get("/analytics/productos-por-tienda", tags=["Analytics"], summary="Top tiendas por número de productos")

@@ -9,9 +9,9 @@ import com.OpenStore.user.user.repository.UserRepository;
 import com.OpenStore.user.verification.PasswordResetToken;
 import com.OpenStore.user.verification.PasswordResetTokenRepository;
 
-import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -20,6 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -231,5 +234,32 @@ public class UserService implements UserDetailsService {
         int safeSize = Math.min(Math.max(size, 1), 100);
         return userRepository.findByShopIdPageable(shopId, PageRequest.of(safePage, safeSize))
                 .map(this::toResponse);
+    }
+
+    public Map<String, Object> findByShopIds(Collection<UUID> shopIds, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        PageRequest pageRequest = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        if (shopIds == null || shopIds.isEmpty()) {
+            return buildPagedUsersResponse(Page.empty(pageRequest));
+        }
+
+        Page<UserResponse> users = userRepository.findByShopIdIn(shopIds, pageRequest)
+                .map(this::toResponse);
+        return buildPagedUsersResponse(users);
+    }
+
+    private Map<String, Object> buildPagedUsersResponse(Page<UserResponse> users) {
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("page", users.getNumber());
+        meta.put("size", users.getSize());
+        meta.put("total", users.getTotalElements());
+        meta.put("totalPages", users.getTotalPages());
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("data", users.getContent());
+        response.put("meta", meta);
+        return response;
     }
 }

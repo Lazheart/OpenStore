@@ -56,7 +56,7 @@ function readGhColors(themeConfig: import('../storefront/themeTypes').ShopThemeJ
   };
 }
 
-export default function GhettoStyle({ shopId, shopName, themeConfig, catalogProducts }: ThemeViewProps) {
+export default function GhettoStyle({ shopName, themeConfig, catalogProducts }: ThemeViewProps) {
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [cartOpen, setCartOpen] = useState(false);

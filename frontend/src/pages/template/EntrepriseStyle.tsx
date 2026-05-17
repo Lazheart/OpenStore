@@ -99,7 +99,7 @@ function readEntColors(themeConfig: import('../storefront/themeTypes').ShopTheme
   };
 }
 
-export default function EntrepriseStyle({ shopId, shopName, themeConfig, catalogProducts }: ThemeViewProps) {
+export default function EntrepriseStyle({ shopName, themeConfig, catalogProducts }: ThemeViewProps) {
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
