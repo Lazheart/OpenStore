@@ -123,7 +123,7 @@ export default function AdminPanel() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
           <h1 style={{ margin: 0 }}>Admin Panel</h1>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>{role === 'owner' ? 'Clients registered in your store' : 'All stores in the platform'}</p>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>{role === 'owner' ? 'Clients registered in your stores' : 'All stores in the platform'}</p>
         </div>
         {role === 'owner' && (
           <div style={{ display: 'flex', gap: '0.5rem' }}>

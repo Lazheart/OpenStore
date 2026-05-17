@@ -73,6 +73,7 @@ export default function StorefrontPage() {
       } catch (e) {
         if (!cancelled) {
           setError('No se pudo cargar la tienda o su tema. Comprueba el id y tu conexión al API.');
+          console.error(e);
         }
       } finally {
         if (!cancelled) setLoading(false);

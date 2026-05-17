@@ -223,7 +223,7 @@ export default function ThemePanel({ shopId, shopName }: ThemePanelProps) {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Palette size={18} /> Storefront Configuration
+          <Palette size={18} /> Visual Settings
         </h3>
       </div>
 
