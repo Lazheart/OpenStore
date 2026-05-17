@@ -619,8 +619,9 @@ export default function DevStyle({ shopId, shopName, themeConfig, catalogProduct
                 variant="inline"
                 shopId={shopId}
                 shopName={shopName}
+                themeColors={colors}
                 cartItems={cartItemsForWhatsApp}
-                label="Confirmar tienda por WhatsApp"
+                label="WhatsApp"
               />
             </div>
           </div>

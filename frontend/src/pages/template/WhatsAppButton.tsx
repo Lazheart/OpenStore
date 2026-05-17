@@ -1,6 +1,13 @@
 import { AiOutlineWhatsApp } from 'react-icons/ai';
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { getPublicShopById } from '../../api/shop-service/shop-api';
+
+type ThemeColors = {
+  primary?: string;
+  bg?: string;
+  text?: string;
+  accent?: string;
+};
 
 type CartItem = {
   name: string;
@@ -11,6 +18,7 @@ type Props = {
   shopId: string;
   shopName?: string;
   cartItems: CartItem[];
+  themeColors?: ThemeColors;
   label?: string;
   className?: string;
   variant?: 'floating' | 'inline';
@@ -23,7 +31,8 @@ const WhatsAppButton = ({
   shopId,
   shopName,
   cartItems,
-  label = 'Confirmar por WhatsApp',
+  themeColors,
+  label = 'WhatsApp',
   className = '',
   variant = 'floating',
 }: Props) => {
@@ -73,13 +82,39 @@ const WhatsAppButton = ({
 
   const buttonClassName =
     variant === 'floating'
-      ? `fixed bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-white shadow-lg transition-colors duration-300 hover:bg-green-600 ${className}`
-      : `inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-white shadow-lg transition-colors duration-300 hover:bg-green-600 ${className}`;
+      ? `fixed bottom-4 right-4 inline-flex items-center gap-2 rounded-full px-4 py-3 shadow-lg transition-colors duration-300 ${className}`
+      : `inline-flex items-center gap-2 rounded-md px-4 py-2 ${className}`;
+
+  const buttonStyle: CSSProperties =
+    variant === 'inline'
+      ? {
+          background: themeColors?.bg ?? 'rgba(13, 17, 23, 0.92)',
+          border: `1px solid ${themeColors?.primary ?? '#39ff14'}`,
+          color: themeColors?.primary ?? '#39ff14',
+          boxShadow: `0 0 0 1px ${themeColors?.accent ?? 'rgba(57, 255, 20, 0.14)'}`,
+          fontFamily: 'inherit',
+          fontSize: '0.72rem',
+          fontWeight: 700,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          lineHeight: 1,
+        }
+      : {
+          background: themeColors?.primary ?? '#25d366',
+          border: 'none',
+          color: themeColors?.text ?? '#ffffff',
+          boxShadow: `0 8px 20px ${themeColors?.accent ?? 'rgba(0, 0, 0, 0.22)'}`,
+        };
 
   return (
-    <button onClick={handleClick} disabled={loading} className={buttonClassName}>
-      <AiOutlineWhatsApp size={20} />
-      <span>{loading ? 'Abriendo...' : label}</span>
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className={buttonClassName}
+      style={buttonStyle}
+    >
+      <AiOutlineWhatsApp size={variant === 'floating' ? 20 : 18} style={{ flexShrink: 0, display: 'block' }} />
+      <span style={{ lineHeight: 1 }}>{loading ? 'Abriendo...' : label}</span>
     </button>
   );
 };
