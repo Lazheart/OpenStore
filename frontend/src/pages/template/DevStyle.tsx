@@ -15,8 +15,6 @@ export interface Product {
   version?: string;
 }
 
-const CATEGORIES = ['all', 'tools', 'libraries', 'devops', 'ui'];
-
 // ─── Star Component ───────────────────────────────────────────────────────────
 function Stars({ count }: { count: number }) {
   return (
@@ -61,7 +59,6 @@ function DevProductCard({ product, onAdd }: { product: Product; onAdd: (p: Produ
       <div className="dev-card-meta">
         <span className="dev-meta-item">version: <em>{product.version}</em></span>
         <span className="dev-meta-item">downloads: <em>{product.downloads}</em></span>
-        <span className="dev-meta-item">category: <em>{product.category}</em></span>
       </div>
 
       <p className="dev-description">// {product.description}</p>
@@ -92,7 +89,6 @@ function readColors(themeConfig: import('../storefront/themeTypes').ShopThemeJso
 }
 
 export default function DevStyle({ shopId, shopName, themeConfig, catalogProducts }: ThemeViewProps) {
-  const [activeCategory, setActiveCategory] = useState('all');
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [terminalLog, setTerminalLog] = useState<string[]>([
@@ -110,9 +106,8 @@ export default function DevStyle({ shopId, shopName, themeConfig, catalogProduct
 
   const filtered = productSource.filter(
     (p) =>
-      (activeCategory === 'all' || p.category === activeCategory) &&
-      (p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.description.toLowerCase().includes(search.toLowerCase()))
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.description.toLowerCase().includes(search.toLowerCase())
   );
 
   const addToCart = (product: Product) => {
@@ -558,17 +553,6 @@ export default function DevStyle({ shopId, shopName, themeConfig, catalogProduct
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-          </div>
-          <div className="dev-filter-group">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                className={`dev-filter-btn ${activeCategory === cat ? 'active' : ''}`}
-                onClick={() => setActiveCategory(cat)}
-              >
-                ./{cat}
-              </button>
-            ))}
           </div>
         </div>
 

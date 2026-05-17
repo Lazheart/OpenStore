@@ -3,8 +3,6 @@ import type { Product } from './DevStyle';
 import type { ThemeViewProps } from '../storefront/themeTypes';
 import { hasConfiguredHeroTitle, readHeroSubtitle, readHeroTitle } from '../storefront/themeTypes';
 
-const CATEGORIES = ['all', 'tools', 'libraries', 'devops', 'ui'];
-
 // ─── Star Rating ──────────────────────────────────────────────────────────────
 function StarRating({ count }: { count: number }) {
   return (
@@ -43,18 +41,16 @@ function EnterpriseProductCard({ product, onAdd }: { product: Product; onAdd: (p
       {/* Top line accent */}
       <div className="ent-card-accent" />
 
-      {/* Category tag */}
-      <div className="ent-category-row">
-        <span className="ent-category">{product.category.toUpperCase()}</span>
-        {badgeData && (
+      {badgeData && (
+        <div className="ent-category-row">
           <span
             className="ent-badge"
             style={{ background: badgeData.bg, color: badgeData.color }}
           >
             {badgeData.label}
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Title */}
       <h3 className="ent-card-title">{product.name}</h3>
@@ -104,7 +100,6 @@ function readEntColors(themeConfig: import('../storefront/themeTypes').ShopTheme
 }
 
 export default function EntrepriseStyle({ shopId, shopName, themeConfig, catalogProducts }: ThemeViewProps) {
-  const [activeCategory, setActiveCategory] = useState('all');
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
@@ -118,9 +113,8 @@ export default function EntrepriseStyle({ shopId, shopName, themeConfig, catalog
 
   const filtered = productSource.filter(
     (p) =>
-      (activeCategory === 'all' || p.category === activeCategory) &&
-      (p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.description.toLowerCase().includes(search.toLowerCase()))
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.description.toLowerCase().includes(search.toLowerCase())
   );
 
   const addToCart = (product: Product) => {
@@ -705,17 +699,6 @@ export default function EntrepriseStyle({ shopId, shopName, themeConfig, catalog
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="ent-filters">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                className={`ent-filter-btn ${activeCategory === cat ? 'active' : ''}`}
-                onClick={() => setActiveCategory(cat)}
-              >
-                {cat === 'all' ? 'All Products' : cat}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Products */}
@@ -731,7 +714,7 @@ export default function EntrepriseStyle({ shopId, shopName, themeConfig, catalog
           ) : filtered.length === 0 ? (
             <div className="ent-empty">
               <h3>No products match your criteria.</h3>
-              <p>Try adjusting your search or category filters.</p>
+              <p>Try adjusting your search.</p>
             </div>
           ) : (
             <div className="ent-grid">

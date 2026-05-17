@@ -3,8 +3,6 @@ import type { Product } from './DevStyle';
 import type { ThemeViewProps } from '../storefront/themeTypes';
 import { hasConfiguredHeroTitle, readHeroSubtitle, readHeroTitle } from '../storefront/themeTypes';
 
-const CATEGORIES = ['all', 'tools', 'libraries', 'devops', 'ui'];
-
 function GhettoProductCard({ product, onAdd }: { product: Product; onAdd: (p: Product) => void }) {
   const [added, setAdded] = useState(false);
 
@@ -23,7 +21,6 @@ function GhettoProductCard({ product, onAdd }: { product: Product; onAdd: (p: Pr
       <div className="gh-card-tape" />
       <div className="gh-card-inner">
         <div className="gh-card-top">
-          <span className="gh-cat-tag">#{product.category}</span>
           {product.badge && (
             <span className="gh-badge" style={{ background: badgeColors[product.badge] ?? '#ff2d55' }}>
               {product.badge}
@@ -60,7 +57,6 @@ function readGhColors(themeConfig: import('../storefront/themeTypes').ShopThemeJ
 }
 
 export default function GhettoStyle({ shopId, shopName, themeConfig, catalogProducts }: ThemeViewProps) {
-  const [activeCategory, setActiveCategory] = useState('all');
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
@@ -74,9 +70,8 @@ export default function GhettoStyle({ shopId, shopName, themeConfig, catalogProd
 
   const filtered = productSource.filter(
     (p) =>
-      (activeCategory === 'all' || p.category === activeCategory) &&
-      (p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.description.toLowerCase().includes(search.toLowerCase()))
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.description.toLowerCase().includes(search.toLowerCase())
   );
 
   const addToCart = (p: Product) => setCart((prev) => [...prev, p]);
@@ -538,17 +533,6 @@ export default function GhettoStyle({ shopId, shopName, themeConfig, catalogProd
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <div className="gh-filters">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                className={`gh-filter-btn ${activeCategory === cat ? 'active' : ''}`}
-                onClick={() => setActiveCategory(cat)}
-              >
-                {cat === 'all' ? 'TODO' : cat}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Products */}
