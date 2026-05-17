@@ -249,15 +249,15 @@ export default function UserShopPageLogin({ shopId, shopName, themeKey, themeCon
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <BadgeCheck size={18} color={palette.primary} />
-                <span style={{ fontSize: '0.95rem' }}>Sesión separada para este shop</span>
+                <span style={{ fontSize: '0.95rem' }}>Cuenta exclusiva para esta tienda</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <KeyRound size={18} color={palette.primary} />
-                <span style={{ fontSize: '0.95rem' }}>Registro y login usan {shopId.slice(0, 8)}…</span>
+                <span style={{ fontSize: '0.95rem' }}>Acceso seguro con contraseña</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Store size={18} color={palette.primary} />
-                <span style={{ fontSize: '0.95rem' }}>No pisa la sesión del owner</span>
+                <span style={{ fontSize: '0.95rem' }}>Tu historial y pedidos en un solo lugar</span>
               </div>
             </div>
           </aside>
@@ -304,7 +304,7 @@ export default function UserShopPageLogin({ shopId, shopName, themeKey, themeCon
               </h2>
               <p style={{ color: palette.muted, margin: 0, lineHeight: 1.6 }}>
                 {isRegister
-                  ? 'Regístrate para esta tienda y conserva una sesión independiente de la cuenta del owner.'
+                  ? 'Crea tu cuenta de cliente para comenzar a comprar y guardar tu historial de pedidos.'
                   : 'Accede a tu cuenta para continuar con tus compras y tu historial dentro de esta tienda.'}
               </p>
             </div>

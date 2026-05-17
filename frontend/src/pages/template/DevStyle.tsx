@@ -92,9 +92,9 @@ export default function DevStyle({ shopId, shopName, themeConfig, catalogProduct
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [terminalLog, setTerminalLog] = useState<string[]>([
-    '> OpenStore DevShop v2.0.0 initialised...',
+    '> Shop initialised...',
     '> Fetching package registry...',
-    '> 6 packages found. Ready.',
+    '> Ready.',
   ]);
 
   const productSource = catalogProducts ?? [];
@@ -505,10 +505,11 @@ export default function DevStyle({ shopId, shopName, themeConfig, catalogProduct
             )}
           </div>
           <div className="dev-header-right">
-            <span style={{ color: '#484f58', fontSize: '0.75rem' }}>
-              {shopName ? `${shopName} · storefront` : 'registry.openstore.sh/v2'}
-              {shopId ? ` · ${shopId.slice(0, 8)}…` : ''}
-            </span>
+            {shopName && (
+              <span style={{ color: '#484f58', fontSize: '0.75rem' }}>
+                {shopName} · storefront
+              </span>
+            )}
             <button className="dev-cart-pill">
               📦 cart [{cart.length}]
             </button>

@@ -485,7 +485,7 @@ export default function GhettoStyle({ shopId, shopName, themeConfig, catalogProd
             {displayHeader ? (
               <>{displayHeader}<span> · store</span></>
             ) : (
-              <>Open<span>Store</span></>
+              <><span>store</span></>
             )}
           </div>
           <button className="gh-cart-btn" onClick={() => setCartOpen(true)}>
@@ -507,7 +507,7 @@ export default function GhettoStyle({ shopId, shopName, themeConfig, catalogProd
               <p className="gh-hero-sub">
                 {readHeroSubtitle(
                   themeConfig,
-                  shopId ? `Shop ID on deck: ${shopId.slice(0, 8)}…` : 'No cap. Tu catálogo en vivo desde OpenStore.',
+                  'No cap. Tu catálogo en vivo. Toda la selección disponible ahora.',
                 )}
               </p>
             </>
@@ -586,7 +586,7 @@ export default function GhettoStyle({ shopId, shopName, themeConfig, catalogProd
 
         {/* Bottom */}
         <div className="gh-bottom-strip">
-          💀 OPENSTORE GHETTO EDITION · BUILT DIFFERENT · EST. 2026 💀
+          💀 {(shopName || displayHeader || 'STORE').toUpperCase()} · BUILT DIFFERENT · EST. 2026 💀
         </div>
       </div>
     </>

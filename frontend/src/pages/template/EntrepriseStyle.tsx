@@ -627,11 +627,6 @@ export default function EntrepriseStyle({ shopId, shopName, themeConfig, catalog
         <header className="ent-header">
           <div className="ent-logo">
             {displayHeader}<em>{' '}</em>
-            {shopId ? (
-              <span style={{ display: 'block', fontSize: '0.65rem', color: 'color-mix(in srgb, var(--ent-text) 40%, transparent)', marginTop: '0.25rem' }}>
-                storefront · {shopId.slice(0, 8)}…
-              </span>
-            ) : null}
           </div>
           <nav className="ent-nav">
             <a href="#">Products</a>
@@ -756,7 +751,7 @@ export default function EntrepriseStyle({ shopId, shopName, themeConfig, catalog
 
         {/* Footer */}
         <footer className="ent-footer">
-          © 2026 <span>OpenStore Enterprise</span> · SOC 2 Type II · ISO 27001 · GDPR Compliant
+          © 2026 <span>{shopName || displayHeader}</span> · SOC 2 Type II · ISO 27001 · GDPR Compliant
         </footer>
       </div>
     </>
