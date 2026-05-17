@@ -3,6 +3,8 @@ package com.OpenStore.user.user.controller;
 import com.OpenStore.user.user.domain.UserService;
 import com.OpenStore.user.user.dto.UpdateUserRequest;
 import com.OpenStore.user.user.dto.UserResponse;
+
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +22,22 @@ public class UserController {
         this.userService = userService;
     }
 
+    @GetMapping("/shop/{shopId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isShopOwner(principal.id, #shopId)")
+    public ResponseEntity<?> findByShopId(
+            @PathVariable UUID shopId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") String size) {
+        if ("all".equalsIgnoreCase(size)) {
+            return ResponseEntity.ok(userService.findAllByShopId(shopId));
+        }
+        try {
+            int pageSize = Integer.parseInt(size);
+            return ResponseEntity.ok(userService.findByShopId(shopId, page, pageSize));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body("Parametro size debe ser numero o all");
+        }
+    }
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserResponse>> findAll() {

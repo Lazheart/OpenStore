@@ -8,6 +8,8 @@ import com.OpenStore.user.user.dto.UserResponse;
 import com.OpenStore.user.user.repository.UserRepository;
 import com.OpenStore.user.verification.PasswordResetToken;
 import com.OpenStore.user.verification.PasswordResetTokenRepository;
+
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -216,5 +218,18 @@ public class UserService implements UserDetailsService {
                 .phone(user.getPhoneNumber())
                 .subscription(user.getSubscription())
                 .build();
+    }
+
+    public List<UserResponse> findAllByShopId(UUID shopId) {
+        return userRepository.findByShopId(shopId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public Page<UserResponse> findByShopId(UUID shopId, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        return userRepository.findByShopIdPageable(shopId, PageRequest.of(safePage, safeSize))
+                .map(this::toResponse);
     }
 }
