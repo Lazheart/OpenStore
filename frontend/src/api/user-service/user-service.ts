@@ -114,28 +114,32 @@ export const register = async (data: RegisterRequest): Promise<AuthResponse> => 
 };
 
 export const loginShopUser = async (shopId: string, data: LoginRequest): Promise<AuthResponse> => {
+  const resolvedShopId = shopId.trim();
   const payload = {
     identifier: data.email,
     password: data.password || '',
+    shopId: resolvedShopId,
   };
 
-  const response = await api.post<AuthResponse>(`/auth/${encodeURIComponent(shopId)}/login`, payload);
-  persistAuthResponse(response.data, 'shop', shopId);
+  const response = await api.post<AuthResponse>('/auth/login', payload);
+  persistAuthResponse(response.data, 'shop', resolvedShopId);
   return response.data;
 };
 
 export const registerShopUser = async (shopId: string, data: ShopRegisterRequest): Promise<AuthResponse> => {
+  const resolvedShopId = shopId.trim();
   const payload: Record<string, string> = {
     email: data.email,
     password: data.password || '',
+    shopId: resolvedShopId,
   };
 
   if (data.phoneNumber) {
-    payload.phone = data.phoneNumber;
+    payload.phoneNumber = data.phoneNumber;
   }
 
-  const response = await api.post<AuthResponse>(`/auth/${encodeURIComponent(shopId)}/register`, payload);
-  persistAuthResponse(response.data, 'shop', shopId);
+  const response = await api.post<AuthResponse>('/auth/register', payload);
+  persistAuthResponse(response.data, 'shop', resolvedShopId);
   return response.data;
 };
 
