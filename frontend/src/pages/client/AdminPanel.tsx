@@ -73,7 +73,7 @@ export default function AdminPanel() {
   async function fetchOwnerClients(page = 0) {
     if (!userId) return;
     try {
-      const { data } = await api.get(`/api/owners/${userId}/clients?page=${page}&size=${clientPageSize}`);
+      const { data } = await api.get(`/owners/${userId}/clients?page=${page}&size=${clientPageSize}`);
       const rawPayload = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
       const payload = rawPayload.filter(isClientApiRecord);
       const normalized: Client[] = payload.map((client: ClientApiRecord) => ({
@@ -103,7 +103,7 @@ export default function AdminPanel() {
   async function onStoreClick(store: Store) {
     // Admin: fetch clients for owner id then show modal with list
     try {
-      const { data } = await api.get(`/api/owners/${store.ownerId}/clients?page=0&size=100`);
+      const { data } = await api.get(`/owners/${store.ownerId}/clients?page=0&size=100`);
       const rawPayload = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
       const payload = rawPayload.filter(isClientApiRecord);
       const normalized: Client[] = payload.map((client: ClientApiRecord) => ({
