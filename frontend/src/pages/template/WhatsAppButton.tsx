@@ -92,18 +92,36 @@ const WhatsAppButton = ({
           border: `1px solid ${themeColors?.primary ?? '#39ff14'}`,
           color: themeColors?.primary ?? '#39ff14',
           boxShadow: `0 0 0 1px ${themeColors?.accent ?? 'rgba(57, 255, 20, 0.14)'}`,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'row',
+          flexWrap: 'nowrap',
+          gap: '0.5rem',
           fontFamily: 'inherit',
           fontSize: '0.72rem',
           fontWeight: 700,
           letterSpacing: '0.18em',
           textTransform: 'uppercase',
           lineHeight: 1,
+          whiteSpace: 'nowrap',
+          width: 'fit-content',
+          minWidth: 'max-content',
         }
       : {
           background: themeColors?.primary ?? '#25d366',
           border: 'none',
           color: themeColors?.text ?? '#ffffff',
           boxShadow: `0 8px 20px ${themeColors?.accent ?? 'rgba(0, 0, 0, 0.22)'}`,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'row',
+          flexWrap: 'nowrap',
+          gap: '0.5rem',
+          whiteSpace: 'nowrap',
+          width: 'fit-content',
+          minWidth: 'max-content',
         };
 
   return (
@@ -113,8 +131,13 @@ const WhatsAppButton = ({
       className={buttonClassName}
       style={buttonStyle}
     >
-      <AiOutlineWhatsApp size={variant === 'floating' ? 20 : 18} style={{ flexShrink: 0, display: 'block' }} />
-      <span style={{ lineHeight: 1 }}>{loading ? 'Abriendo...' : label}</span>
+      <AiOutlineWhatsApp
+        size={variant === 'floating' ? 20 : 18}
+        style={{ flexShrink: 0, display: 'block', verticalAlign: 'middle' }}
+      />
+      <span style={{ lineHeight: 1, display: 'inline-block', whiteSpace: 'nowrap' }}>
+        {loading ? 'Abriendo...' : label}
+      </span>
     </button>
   );
 };
