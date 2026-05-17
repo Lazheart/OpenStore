@@ -6,8 +6,8 @@ import { DEFAULT_THEME_KEY, THEME_REGISTRY } from './themeRegistry';
 import { mapApiProductsToCatalog } from './mapCatalogProducts';
 import type { ShopThemeJson } from './themeTypes';
 import type { Product } from '../template/DevStyle';
-import { useAuth } from '../../config/AuthContext';
-import UserShopPageLogin from '../auth/UserShopPageLogin';
+import { getShopCurrentUser } from '../../api/user-service/user-service';
+import UserShopPageLogin from '../template/UserShopPageLogin';
 
 function decodeShopSlug(raw: string | undefined): string {
   if (!raw) return '';
@@ -22,8 +22,6 @@ export default function StorefrontPage() {
   const { shopSlug } = useParams<{ shopSlug: string }>();
   const [searchParams] = useSearchParams();
   const id = (searchParams.get('id') ?? '').trim();
-
-  const { isAuthenticated } = useAuth();
   const [loginOpen, setLoginOpen] = useState(false);
 
   const slugDecoded = useMemo(() => decodeShopSlug(shopSlug), [shopSlug]);
@@ -34,6 +32,7 @@ export default function StorefrontPage() {
   const [shopName, setShopName] = useState('');
   const [themeKey, setThemeKey] = useState(DEFAULT_THEME_KEY);
   const [themeConfig, setThemeConfig] = useState<ShopThemeJson | null>(null);
+  const [shopSession, setShopSession] = useState(() => getShopCurrentUser(id));
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +69,7 @@ export default function StorefrontPage() {
         setShopName(resolvedName);
         setThemeKey(theme.themeKey || DEFAULT_THEME_KEY);
         setThemeConfig((theme.config ?? {}) as ShopThemeJson);
+        setShopSession(getShopCurrentUser(id));
       } catch (e) {
         if (!cancelled) {
           setError('No se pudo cargar la tienda o su tema. Comprueba el id y tu conexión al API.');
@@ -90,6 +90,8 @@ export default function StorefrontPage() {
 
   useEffect(() => {
     if (!shopId || error) return;
+
+    setShopSession(getShopCurrentUser(shopId));
 
     let cancelled = false;
     void (async () => {
@@ -136,7 +138,7 @@ export default function StorefrontPage() {
       />
 
       {/* Botón flotante de login para visitantes no autenticados */}
-      {!isAuthenticated && !loginOpen && (
+      {!shopSession && !loginOpen && (
         <button
           onClick={() => setLoginOpen(true)}
           style={{
@@ -173,7 +175,14 @@ export default function StorefrontPage() {
 
       {loginOpen && (
         <UserShopPageLogin
-          onSuccess={() => setLoginOpen(false)}
+          shopId={shopId}
+          shopName={shopName}
+          themeKey={themeKey}
+          themeConfig={themeConfig}
+          onSuccess={() => {
+            setShopSession(getShopCurrentUser(shopId));
+            setLoginOpen(false);
+          }}
           onClose={() => setLoginOpen(false)}
         />
       )}
