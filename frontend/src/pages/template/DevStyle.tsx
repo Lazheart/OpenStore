@@ -15,73 +15,6 @@ export interface Product {
   version?: string;
 }
 
-export const PRODUCTS: Product[] = [
-  {
-    id: 1,
-    name: 'NeuralDebugger Pro',
-    description: 'AI-powered debugger with real-time stack trace analysis and LLM-assisted root cause detection.',
-    price: 49,
-    category: 'tools',
-    badge: 'HOT',
-    stars: 5,
-    downloads: '12.4k',
-    version: 'v3.2.1',
-  },
-  {
-    id: 2,
-    name: 'TypeSafe ORM Kit',
-    description: 'End-to-end type-safe database layer with automatic migrations and query builder.',
-    price: 29,
-    category: 'libraries',
-    badge: 'NEW',
-    stars: 4,
-    downloads: '8.1k',
-    version: 'v1.0.5',
-  },
-  {
-    id: 3,
-    name: 'DevOps Pipeline Pack',
-    description: 'Pre-built CI/CD templates for GitHub Actions, GitLab CI and Bitbucket Pipelines.',
-    price: 19,
-    category: 'devops',
-    stars: 4,
-    downloads: '20.3k',
-    version: 'v2.7.0',
-  },
-  {
-    id: 4,
-    name: 'API Blueprint Studio',
-    description: 'Design, mock and document REST & GraphQL APIs with auto-generated OpenAPI specs.',
-    price: 39,
-    category: 'tools',
-    badge: 'SALE',
-    stars: 5,
-    downloads: '5.9k',
-    version: 'v4.0.0',
-  },
-  {
-    id: 5,
-    name: 'SecureVault SDK',
-    description: 'Cryptography primitives, JWT utilities and OAuth2 helpers for backend devs.',
-    price: 34,
-    category: 'libraries',
-    stars: 3,
-    downloads: '3.2k',
-    version: 'v0.9.8',
-  },
-  {
-    id: 6,
-    name: 'Terminal UI Components',
-    description: 'Beautiful TUI widgets for Node.js and Python CLIs. Spinners, tables, progress bars.',
-    price: 15,
-    category: 'ui',
-    badge: 'FREE',
-    stars: 5,
-    downloads: '31.7k',
-    version: 'v5.1.3',
-  },
-];
-
 const CATEGORIES = ['all', 'tools', 'libraries', 'devops', 'ui'];
 
 // ─── Star Component ───────────────────────────────────────────────────────────
@@ -168,10 +101,12 @@ export default function DevStyle({ shopId, shopName, themeConfig, catalogProduct
     '> 6 packages found. Ready.',
   ]);
 
-  const productSource = catalogProducts?.length ? catalogProducts : PRODUCTS;
+  const productSource = catalogProducts ?? [];
   const showCustomHero = hasConfiguredHeroTitle(themeConfig);
   const colors = readColors(themeConfig);
   const displayHeader = colors.headerName || shopName || 'openStore.dev';
+  const hasProducts = productSource.length > 0;
+  const EMPTY_PRODUCTS_MESSAGE = 'Your query returned 0 products. Try again later.';
 
   const filtered = productSource.filter(
     (p) =>
@@ -640,7 +575,11 @@ export default function DevStyle({ shopId, shopName, themeConfig, catalogProduct
         {/* Main */}
         <div className="dev-main">
           <div className="dev-products-area">
-            {filtered.length === 0 ? (
+            {!hasProducts ? (
+              <div className="dev-empty" style={{ padding: '3rem 1rem', textAlign: 'center', color: '#8b949e' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--dev-text)' }}>{EMPTY_PRODUCTS_MESSAGE}</h3>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="dev-empty">
                 <div className="dev-empty-code">404</div>
                 <div>No packages match your query.</div>

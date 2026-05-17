@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { Product } from './DevStyle';
-import { PRODUCTS } from './DevStyle';
 import type { ThemeViewProps } from '../storefront/themeTypes';
 import { hasConfiguredHeroTitle, readHeroSubtitle, readHeroTitle } from '../storefront/themeTypes';
 
@@ -66,10 +65,12 @@ export default function GhettoStyle({ shopId, shopName, themeConfig, catalogProd
   const [search, setSearch] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
 
-  const productSource = catalogProducts?.length ? catalogProducts : PRODUCTS;
+  const productSource = catalogProducts ?? [];
   const showCustomHero = hasConfiguredHeroTitle(themeConfig);
   const ghColors = readGhColors(themeConfig);
   const displayHeader = ghColors.headerName || shopName;
+  const hasProducts = productSource.length > 0;
+  const EMPTY_PRODUCTS_MESSAGE = 'There are no products available yet, please check back soon';
 
   const filtered = productSource.filter(
     (p) =>
@@ -555,7 +556,9 @@ export default function GhettoStyle({ shopId, shopName, themeConfig, catalogProd
           <div className="gh-count-bar">
             <span>{filtered.length}</span> TOOLS IN THE DROP
           </div>
-          {filtered.length === 0 ? (
+          {!hasProducts ? (
+            <div className="gh-empty">{EMPTY_PRODUCTS_MESSAGE}</div>
+          ) : filtered.length === 0 ? (
             <div className="gh-empty">NADA. TRY AGAIN.</div>
           ) : (
             <div className="gh-grid">

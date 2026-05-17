@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { Product } from './DevStyle';
-import { PRODUCTS } from './DevStyle';
 import type { ThemeViewProps } from '../storefront/themeTypes';
 import { hasConfiguredHeroTitle, readHeroSubtitle, readHeroTitle } from '../storefront/themeTypes';
 
@@ -110,10 +109,12 @@ export default function EntrepriseStyle({ shopId, shopName, themeConfig, catalog
   const [search, setSearch] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
 
-  const productSource = catalogProducts?.length ? catalogProducts : PRODUCTS;
+  const productSource = catalogProducts ?? [];
   const showCustomHero = hasConfiguredHeroTitle(themeConfig);
   const entColors = readEntColors(themeConfig);
   const displayHeader = entColors.headerName || shopName || 'OpenStore';
+  const hasProducts = productSource.length > 0;
+  const EMPTY_PRODUCTS_MESSAGE = 'No products are currently available. Please check back later.';
 
   const filtered = productSource.filter(
     (p) =>
@@ -723,7 +724,11 @@ export default function EntrepriseStyle({ shopId, shopName, themeConfig, catalog
             {filtered.length} solution{filtered.length !== 1 ? 's' : ''} available
           </div>
 
-          {filtered.length === 0 ? (
+          {!hasProducts ? (
+            <div className="ent-empty">
+              <h3>{EMPTY_PRODUCTS_MESSAGE}</h3>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="ent-empty">
               <h3>No products match your criteria.</h3>
               <p>Try adjusting your search or category filters.</p>
