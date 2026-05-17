@@ -76,7 +76,7 @@ def shop_list_by_owner_url(owner_id: str) -> str:
 
 
 def owner_shops_url(owner_id: str) -> str:
-	return f"{SHOP_SERVICE_URL}/owners/{owner_id}/shops"
+	return f"{SHOP_SERVICE_URL}/shop/owner/{owner_id}"
 
 
 def user_list_by_shop_ids_url(shop_ids: list[str], page: int = 0, size: int = 20) -> str:
