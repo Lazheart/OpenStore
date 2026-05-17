@@ -1,48 +1,40 @@
-import { AiOutlineWhatsApp } from "react-icons/ai";
-import React, { useState } from "react";
+import { AiOutlineWhatsApp } from 'react-icons/ai';
+import { useState } from 'react';
+import { getPublicShopById } from '../api/shop-service/shop-api';
 
-type CartItem = { name: string; quantity?: number; price?: number };
+type CartItem = {
+  name: string;
+  quantity: number;
+};
 
 type Props = {
   shopId: string;
   shopName?: string;
-  productName?: string;
-  cartItems?: CartItem[];
+  cartItems: CartItem[];
   label?: string;
   className?: string;
+  variant?: 'floating' | 'inline';
 };
 
-const formatItems = (productName?: string, cartItems?: CartItem[]) => {
-  if (cartItems && cartItems.length > 0) {
-    return cartItems
-      .map((it) => `${it.quantity ?? 1}x ${it.name}`)
-      .join(', ');
-  }
-  return productName ?? '';
-};
+const formatItems = (cartItems: CartItem[]) =>
+  cartItems.map((item) => `${item.quantity}x ${item.name}`).join(', ');
 
-const WhatsAppButton: React.FC<Props> = ({
+const WhatsAppButton = ({
   shopId,
   shopName,
-  productName,
   cartItems,
-  label = 'Comprar por WhatsApp',
+  label = 'Confirmar por WhatsApp',
   className = '',
-}) => {
+  variant = 'floating',
+}: Props) => {
   const [loading, setLoading] = useState(false);
 
   const getStorePhone = async (id: string): Promise<string | null> => {
     try {
-      const STORE_SERVICE_URL = (import.meta.env.VITE_STORE_SERVICE_URL as string) || '';
-      const base = STORE_SERVICE_URL || '';
-      const url = `${base}/shop/${encodeURIComponent(id)}`;
-      const res = await fetch(url);
-      if (!res.ok) return null;
-      const data = await res.json();
-      // expecting { phoneNumber: string, ... }
-      return data.phoneNumber ?? data.phone ?? null;
-    } catch (e) {
-      console.error('Error fetching shop phone:', e);
+      const data = await getPublicShopById(id);
+      return data.phoneNumber ?? null;
+    } catch (error) {
+      console.error('Error fetching shop phone:', error);
       return null;
     }
   };
@@ -50,40 +42,44 @@ const WhatsAppButton: React.FC<Props> = ({
   const cleanPhoneForWa = (raw: string) => raw.replace(/[^0-9+]/g, '').replace(/^\+/, '');
 
   const handleClick = async () => {
+    if (cartItems.length === 0) {
+      alert('Tu carrito está vacío');
+      return;
+    }
+
     setLoading(true);
     try {
       const phone = await getStorePhone(shopId);
+
       if (!phone) {
-        alert('No se encontro numero de telefono para la tienda');
-        setLoading(false);
+        alert('No se encontró número de teléfono para la tienda');
         return;
       }
 
-      const clean = cleanPhoneForWa(phone);
-      if (!clean) {
-        alert('Numero de telefono invalido');
-        setLoading(false);
+      const cleanPhone = cleanPhoneForWa(phone);
+      if (!cleanPhone) {
+        alert('Número de teléfono inválido');
         return;
       }
 
-      const itemsText = formatItems(productName, cartItems);
-      const message = `Hola, estoy interesado en [carrito de compras ${itemsText}] vengo de ${shopName ?? 'la tienda'}`;
-      const url = `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
+      const message = `Hola, estoy interesado en ${formatItems(cartItems)}, vengo de la tienda ${shopName ?? 'la tienda'}`;
+      const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener,noreferrer');
     } finally {
       setLoading(false);
     }
   };
 
+  const buttonClassName =
+    variant === 'floating'
+      ? `fixed bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-white shadow-lg transition-colors duration-300 hover:bg-green-600 ${className}`
+      : `inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-white shadow-lg transition-colors duration-300 hover:bg-green-600 ${className}`;
+
   return (
-    <button
-      onClick={handleClick}
-      disabled={loading}
-      className={`fixed bottom-4 right-4 bg-green-500 text-white p-3 rounded-full shadow-lg hover:bg-green-600 transition-colors duration-300 ${className}`}
-    >
+    <button onClick={handleClick} disabled={loading} className={buttonClassName}>
       <AiOutlineWhatsApp size={20} />
-      <span className="ml-2 hidden sm:inline">{loading ? 'Abriendo...' : label}</span>
+      <span>{loading ? 'Abriendo...' : label}</span>
     </button>
   );
 };

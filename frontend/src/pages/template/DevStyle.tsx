@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import WhatsAppButton from '../../components/WhatsAppButton';
 import type { ThemeViewProps } from '../storefront/themeTypes';
 import { hasConfiguredHeroTitle, readHeroSubtitle, readHeroTitle } from '../storefront/themeTypes';
 
@@ -25,14 +26,17 @@ function Stars({ count }: { count: number }) {
 }
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
-function DevProductCard({ product, onAdd }: { product: Product; onAdd: (p: Product) => void }) {
-  const [added, setAdded] = useState(false);
-
-  const handleAdd = () => {
-    onAdd(product);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
-  };
+function DevProductCard({
+  product,
+  quantity,
+  onIncrease,
+  onDecrease,
+}: {
+  product: Product;
+  quantity: number;
+  onIncrease: (p: Product) => void;
+  onDecrease: (p: Product) => void;
+}) {
 
   const badgeColors: Record<string, string> = {
     HOT: '#ff5f57',
@@ -67,9 +71,15 @@ function DevProductCard({ product, onAdd }: { product: Product; onAdd: (p: Produ
         <Stars count={product.stars} />
         <div className="dev-actions">
           <span className="dev-price">${product.price}.00</span>
-          <button className="dev-btn" onClick={handleAdd}>
-            {added ? '✓ Added!' : '$ install --save'}
-          </button>
+          <div className="dev-qty-controls">
+            <button className="dev-btn dev-btn-small" onClick={() => onDecrease(product)} disabled={quantity === 0}>
+              -
+            </button>
+            <span className="dev-qty-value">{quantity}</span>
+            <button className="dev-btn dev-btn-small" onClick={() => onIncrease(product)}>
+              +
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -88,14 +98,9 @@ function readColors(themeConfig: import('../storefront/themeTypes').ShopThemeJso
   };
 }
 
-export default function DevStyle({ shopName, themeConfig, catalogProducts }: ThemeViewProps) {
+export default function DevStyle({ shopId, shopName, themeConfig, catalogProducts }: ThemeViewProps) {
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
-  const [terminalLog, setTerminalLog] = useState<string[]>([
-    '> Shop initialised...',
-    '> Fetching package registry...',
-    '> Ready.',
-  ]);
 
   const productSource = catalogProducts ?? [];
   const showCustomHero = hasConfiguredHeroTitle(themeConfig);
@@ -103,6 +108,24 @@ export default function DevStyle({ shopName, themeConfig, catalogProducts }: The
   const displayHeader = colors.headerName || shopName || 'openStore.dev';
   const hasProducts = productSource.length > 0;
   const EMPTY_PRODUCTS_MESSAGE = 'Your query returned 0 products. Try again later.';
+
+  const cartSummary = cart.reduce<Record<number, { product: Product; quantity: number }>>((acc, product) => {
+    const current = acc[product.id];
+    if (current) {
+      current.quantity += 1;
+    } else {
+      acc[product.id] = { product, quantity: 1 };
+    }
+    return acc;
+  }, {});
+
+  const cartEntries = Object.values(cartSummary);
+  const cartItemCount = cartEntries.reduce((total, entry) => total + entry.quantity, 0);
+  const cartTotal = cartEntries.reduce((total, entry) => total + entry.product.price * entry.quantity, 0);
+  const cartItemsForWhatsApp = cartEntries.map((entry) => ({
+    name: entry.product.name,
+    quantity: entry.quantity,
+  }));
 
   const filtered = productSource.filter(
     (p) =>
@@ -112,11 +135,19 @@ export default function DevStyle({ shopName, themeConfig, catalogProducts }: The
 
   const addToCart = (product: Product) => {
     setCart((prev) => [...prev, product]);
-    setTerminalLog((prev) => [
-      ...prev,
-      `> npm install ${product.name.toLowerCase().replace(/\s+/g, '-')} --save`,
-      `  ✓ added to cart (total: ${cart.length + 1} pkg)`,
-    ]);
+  };
+
+  const removeFromCart = (product: Product) => {
+    setCart((prev) => {
+      const index = prev.findIndex((item) => item.id === product.id);
+      if (index === -1) {
+        return prev;
+      }
+
+      const next = [...prev];
+      next.splice(index, 1);
+      return next;
+    });
   };
 
   return (
@@ -174,6 +205,11 @@ export default function DevStyle({ shopName, themeConfig, catalogProducts }: The
           font-family: inherit;
         }
         .dev-cart-pill:hover { border-color: var(--dev-primary); color: var(--dev-primary); }
+        .dev-cart-pill-summary {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
 
         /* ── Hero ── */
         .dev-hero {
@@ -287,19 +323,11 @@ export default function DevStyle({ shopName, themeConfig, catalogProducts }: The
 
         /* ── Grid ── */
         .dev-main {
-          display: grid;
-          grid-template-columns: 1fr 320px;
-          gap: 0;
           min-height: calc(100vh - 200px);
-        }
-        @media (max-width: 900px) {
-          .dev-main { grid-template-columns: 1fr; }
-          .dev-terminal { display: none; }
         }
 
         .dev-products-area {
           padding: 2rem;
-          border-right: 1px solid #21262d;
         }
 
         .dev-grid {
@@ -407,50 +435,31 @@ export default function DevStyle({ shopName, themeConfig, catalogProducts }: The
           transition: all 0.2s;
           white-space: nowrap;
         }
+        .dev-btn-small {
+          padding: 0.35rem 0.7rem;
+          min-width: 2rem;
+        }
         .dev-btn:hover {
           background: color-mix(in srgb, var(--dev-primary) 12%, transparent);
           box-shadow: 0 0 10px color-mix(in srgb, var(--dev-primary) 30%, transparent);
         }
         .dev-btn:active { transform: scale(0.97); }
-
-        /* ── Terminal Sidebar ── */
-        .dev-terminal {
-          background: color-mix(in srgb, var(--dev-bg) 50%, #000);
-          border-left: 1px solid color-mix(in srgb, var(--dev-primary) 15%, transparent);
-          padding: 1.5rem;
-          font-size: 0.75rem;
-          color: #8b949e;
-          overflow-y: auto;
-          max-height: calc(100vh - 200px);
-          position: sticky;
-          top: 120px;
+        .dev-btn:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+          box-shadow: none;
         }
-        .dev-terminal-title {
-          color: var(--dev-primary);
-          font-size: 0.7rem;
-          letter-spacing: 2px;
-          text-transform: uppercase;
-          margin-bottom: 1rem;
-          border-bottom: 1px solid #21262d;
-          padding-bottom: 0.5rem;
+        .dev-qty-controls {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
         }
-        .dev-terminal-line {
-          margin-bottom: 0.35rem;
-          line-height: 1.5;
-          animation: devFadeIn 0.3s ease;
+        .dev-qty-value {
+          min-width: 1.5rem;
+          text-align: center;
+          color: var(--dev-text);
+          font-weight: 700;
         }
-        .dev-terminal-line:nth-child(odd) { color: var(--dev-primary); }
-        .dev-terminal-line:nth-child(even) { color: color-mix(in srgb, var(--dev-text) 60%, transparent); padding-left: 1rem; }
-        .dev-cursor {
-          display: inline-block;
-          width: 8px;
-          height: 14px;
-          background: var(--dev-primary);
-          vertical-align: middle;
-          animation: devBlink 1s step-end infinite;
-        }
-        @keyframes devBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-        @keyframes devFadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
 
         /* ── Empty ── */
         .dev-empty {
@@ -473,25 +482,26 @@ export default function DevStyle({ shopName, themeConfig, catalogProducts }: The
           display: flex;
           align-items: center;
           justify-content: space-between;
+          gap: 1rem;
           font-size: 0.8rem;
           position: sticky;
           bottom: 0;
+          flex-wrap: wrap;
         }
         .dev-cart-total { color: color-mix(in srgb, var(--dev-text) 60%, transparent); }
         .dev-cart-total span { color: color-mix(in srgb, var(--dev-primary) 80%, #ff0); font-weight: 700; }
-        .dev-checkout-btn {
-          background: linear-gradient(135deg, var(--dev-primary), var(--dev-accent));
-          border: none;
-          color: color-mix(in srgb, var(--dev-bg) 90%, #000);
-          padding: 0.5rem 1.5rem;
-          border-radius: 4px;
-          font-family: 'Source Code Pro', monospace;
-          font-weight: 700;
-          font-size: 0.8rem;
-          cursor: pointer;
-          transition: opacity 0.2s, transform 0.2s;
+        .dev-cart-summary {
+          color: var(--dev-text);
+          line-height: 1.5;
         }
-        .dev-checkout-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+        .dev-cart-summary small {
+          color: color-mix(in srgb, var(--dev-text) 55%, transparent);
+          display: block;
+        }
+        .dev-checkout-wrap {
+          display: inline-flex;
+          align-items: center;
+        }
       `}</style>
 
       <div className="dev-root">
@@ -507,11 +517,13 @@ export default function DevStyle({ shopName, themeConfig, catalogProducts }: The
           <div className="dev-header-right">
             {shopName && (
               <span style={{ color: '#484f58', fontSize: '0.75rem' }}>
-                {shopName} · storefront
+                {shopName}
               </span>
             )}
             <button className="dev-cart-pill">
-              📦 cart [{cart.length}]
+              <span className="dev-cart-pill-summary">
+                📦 cart · {cartItemCount} items · ${cartTotal.toFixed(2)}
+              </span>
             </button>
           </div>
         </header>
@@ -575,32 +587,42 @@ export default function DevStyle({ shopName, themeConfig, catalogProducts }: The
             ) : (
               <div className="dev-grid">
                 {filtered.map((p) => (
-                  <DevProductCard key={p.id} product={p} onAdd={addToCart} />
+                  <DevProductCard
+                    key={p.id}
+                    product={p}
+                    quantity={cartSummary[p.id]?.quantity ?? 0}
+                    onIncrease={addToCart}
+                    onDecrease={removeFromCart}
+                  />
                 ))}
               </div>
             )}
           </div>
-
-          {/* Terminal Log */}
-          <aside className="dev-terminal">
-            <div className="dev-terminal-title">// activity log</div>
-            {terminalLog.map((line, i) => (
-              <div key={i} className="dev-terminal-line">{line}</div>
-            ))}
-            <div className="dev-terminal-line">
-              &gt; <span className="dev-cursor" />
-            </div>
-          </aside>
         </div>
 
         {/* Cart strip */}
         {cart.length > 0 && (
           <div className="dev-cart-strip">
-            <div className="dev-cart-total">
-              {cart.length} pkg · total:{' '}
-              <span>${cart.reduce((a, p) => a + p.price, 0)}.00</span>
+            <div className="dev-cart-summary">
+              <div className="dev-cart-total">
+                {cartItemCount} item(s) · total:{' '}
+                <span>${cartTotal.toFixed(2)}</span>
+              </div>
+              <small>
+                {cartEntries
+                  .map((entry) => `${entry.quantity}x ${entry.product.name}`)
+                  .join(' · ')}
+              </small>
             </div>
-            <button className="dev-checkout-btn">$ checkout --confirm</button>
+            <div className="dev-checkout-wrap">
+              <WhatsAppButton
+                variant="inline"
+                shopId={shopId}
+                shopName={shopName}
+                cartItems={cartItemsForWhatsApp}
+                label="Confirmar tienda por WhatsApp"
+              />
+            </div>
           </div>
         )}
       </div>
