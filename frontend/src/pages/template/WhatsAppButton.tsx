@@ -1,6 +1,6 @@
 import { AiOutlineWhatsApp } from 'react-icons/ai';
 import { useState } from 'react';
-import { getPublicShopById } from '../api/shop-service/shop-api';
+import { getPublicShopById } from '../../api/shop-service/shop-api';
 
 type CartItem = {
   name: string;

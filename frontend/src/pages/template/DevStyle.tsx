@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import WhatsAppButton from '../../components/WhatsAppButton';
+import WhatsAppButton from './WhatsAppButton';
 import type { ThemeViewProps } from '../storefront/themeTypes';
 import { hasConfiguredHeroTitle, readHeroSubtitle, readHeroTitle } from '../storefront/themeTypes';
 
