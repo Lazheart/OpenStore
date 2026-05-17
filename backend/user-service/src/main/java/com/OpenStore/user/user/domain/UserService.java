@@ -232,7 +232,7 @@ public class UserService implements UserDetailsService {
     public Page<UserResponse> findByShopId(UUID shopId, int page, int size) {
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), 100);
-        return userRepository.findByShopIdPageable(shopId, PageRequest.of(safePage, safeSize))
+        return userRepository.findByShopId(shopId, PageRequest.of(safePage, safeSize))
                 .map(this::toResponse);
     }
 
