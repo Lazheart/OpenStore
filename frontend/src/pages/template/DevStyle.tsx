@@ -254,7 +254,7 @@ export default function DevStyle({ shopId, shopName, themeConfig, catalogProduct
           background: color-mix(in srgb, var(--dev-bg) 60%, #000);
           border: 1px solid color-mix(in srgb, var(--dev-primary) 20%, transparent);
           color: var(--dev-text);
-          padding: 0.55rem 0.75rem 0.55rem 3.5rem;
+          padding: 0.55rem 0.75rem 0.55rem 6.5rem;
           border-radius: 4px;
           font-family: 'Source Code Pro', monospace;
           font-size: 0.85rem;
