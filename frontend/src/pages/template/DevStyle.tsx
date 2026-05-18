@@ -11,19 +11,9 @@ export interface Product {
   price: number;
   category: string;
   badge?: string;
-  stars: number;
-  downloads?: string;
-  version?: string;
 }
 
-// ─── Star Component ───────────────────────────────────────────────────────────
-function Stars({ count }: { count: number }) {
-  return (
-    <span style={{ color: '#39ff14', fontSize: '0.75rem', letterSpacing: '2px' }}>
-      {'█'.repeat(count)}{'░'.repeat(5 - count)}
-    </span>
-  );
-}
+
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 function DevProductCard({
@@ -60,15 +50,11 @@ function DevProductCard({
         )}
       </div>
 
-      <div className="dev-card-meta">
-        <span className="dev-meta-item">version: <em>{product.version}</em></span>
-        <span className="dev-meta-item">downloads: <em>{product.downloads}</em></span>
-      </div>
+
 
       <p className="dev-description">// {product.description}</p>
 
       <div className="dev-card-footer">
-        <Stars count={product.stars} />
         <div className="dev-actions">
           <span className="dev-price">${product.price}.00</span>
           <div className="dev-qty-controls">

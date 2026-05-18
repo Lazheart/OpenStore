@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import WhatsAppButton from './WhatsAppButton';
 import type { Product } from './DevStyle';
 import type { ThemeViewProps } from '../storefront/themeTypes';
 import { hasConfiguredHeroTitle, readHeroSubtitle, readHeroTitle } from '../storefront/themeTypes';
@@ -29,11 +30,6 @@ function GhettoProductCard({ product, onAdd }: { product: Product; onAdd: (p: Pr
         </div>
         <h3 className="gh-card-title">{product.name}</h3>
         <p className="gh-card-desc">{product.description}</p>
-        <div className="gh-card-meta">
-          <span>🔥 {product.downloads} drops</span>
-          <span>⭐ {product.stars}/5</span>
-          <span>📦 {product.version}</span>
-        </div>
         <div className="gh-card-footer">
           <span className="gh-price">${product.price}</span>
           <button className="gh-btn" onClick={handleAdd}>
@@ -56,7 +52,7 @@ function readGhColors(themeConfig: import('../storefront/themeTypes').ShopThemeJ
   };
 }
 
-export default function GhettoStyle({ shopName, themeConfig, catalogProducts }: ThemeViewProps) {
+export default function GhettoStyle({ shopId, shopName, themeConfig, catalogProducts }: ThemeViewProps) {
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
@@ -76,6 +72,17 @@ export default function GhettoStyle({ shopName, themeConfig, catalogProducts }: 
 
   const addToCart = (p: Product) => setCart((prev) => [...prev, p]);
   const total = cart.reduce((a, p) => a + p.price, 0);
+  const cartItemsForWhatsApp = Object.values(
+    cart.reduce<Record<number, { name: string; quantity: number }>>((acc, item) => {
+      const current = acc[item.id];
+      if (current) {
+        current.quantity += 1;
+      } else {
+        acc[item.id] = { name: item.name, quantity: 1 };
+      }
+      return acc;
+    }, {}),
+  );
 
   return (
     <>
@@ -483,7 +490,7 @@ export default function GhettoStyle({ shopName, themeConfig, catalogProducts }: 
         <header className="gh-header">
           <div className="gh-logo">
             {displayHeader ? (
-              <>{displayHeader}<span> · store</span></>
+              <>{displayHeader}<span></span></>
             ) : (
               <><span>store</span></>
             )}
@@ -495,7 +502,7 @@ export default function GhettoStyle({ shopName, themeConfig, catalogProducts }: 
 
         {/* Hero */}
         <section className="gh-hero">
-          <div className="gh-hero-bg-text">DEVTOOLS</div>
+          <div className="gh-hero-bg-text">{shopName}</div>
           <div className="gh-hero-tag">🔥 Exclusive Drop</div>
           {showCustomHero ? (
             <>
@@ -577,7 +584,14 @@ export default function GhettoStyle({ shopName, themeConfig, catalogProducts }: 
                     <span>TOTAL</span>
                     <span style={{ color: '#00f5d4' }}>${total}</span>
                   </div>
-                  <button className="gh-checkout-btn">💸 CHECK OUT</button>
+                  <WhatsAppButton
+                    variant="inline"
+                    shopId={shopId}
+                    shopName={shopName}
+                    themeColors={ghColors}
+                    cartItems={cartItemsForWhatsApp}
+                    label="WhatsApp"
+                  />
                 </>
               )}
             </div>
@@ -586,7 +600,7 @@ export default function GhettoStyle({ shopName, themeConfig, catalogProducts }: 
 
         {/* Bottom */}
         <div className="gh-bottom-strip">
-          💀 {(shopName || displayHeader || 'STORE').toUpperCase()} · BUILT DIFFERENT · EST. 2026 💀
+          💀 {(shopName || displayHeader || 'STORE').toUpperCase()} · BUILT WITH OPEN STORE · 2026 💀
         </div>
       </div>
     </>

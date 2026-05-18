@@ -1,16 +1,10 @@
 import { useState } from 'react';
+import WhatsAppButton from './WhatsAppButton';
 import type { Product } from './DevStyle';
 import type { ThemeViewProps } from '../storefront/themeTypes';
 import { hasConfiguredHeroTitle, readHeroSubtitle, readHeroTitle } from '../storefront/themeTypes';
 
-// ─── Star Rating ──────────────────────────────────────────────────────────────
-function StarRating({ count }: { count: number }) {
-  return (
-    <span style={{ color: '#c9a84c', fontSize: '0.85rem', letterSpacing: '1px' }}>
-      {'★'.repeat(count)}{'☆'.repeat(5 - count)}
-    </span>
-  );
-}
+
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 function EnterpriseProductCard({ product, onAdd }: { product: Product; onAdd: (p: Product) => void }) {
@@ -23,14 +17,7 @@ function EnterpriseProductCard({ product, onAdd }: { product: Product; onAdd: (p
     setTimeout(() => setAdded(false), 1800);
   };
 
-  const badgeMap: Record<string, { bg: string; color: string; label: string }> = {
-    HOT: { bg: '#b91c1c', color: '#fff', label: 'High Demand' },
-    NEW: { bg: '#1d4ed8', color: '#fff', label: 'New Release' },
-    SALE: { bg: '#c9a84c', color: '#000', label: 'Limited Offer' },
-    FREE: { bg: '#166534', color: '#fff', label: 'Open Source' },
-  };
 
-  const badgeData = product.badge ? badgeMap[product.badge] : null;
 
   return (
     <div
@@ -41,26 +28,10 @@ function EnterpriseProductCard({ product, onAdd }: { product: Product; onAdd: (p
       {/* Top line accent */}
       <div className="ent-card-accent" />
 
-      {badgeData && (
-        <div className="ent-category-row">
-          <span
-            className="ent-badge"
-            style={{ background: badgeData.bg, color: badgeData.color }}
-          >
-            {badgeData.label}
-          </span>
-        </div>
-      )}
 
       {/* Title */}
       <h3 className="ent-card-title">{product.name}</h3>
 
-      {/* Version line */}
-      <div className="ent-version-line">
-        <span>Release {product.version}</span>
-        <span>·</span>
-        <span>{product.downloads} installs</span>
-      </div>
 
       {/* Description */}
       <p className="ent-description">{product.description}</p>
@@ -71,8 +42,8 @@ function EnterpriseProductCard({ product, onAdd }: { product: Product; onAdd: (p
       {/* Footer */}
       <div className="ent-card-footer">
         <div className="ent-footer-left">
-          <StarRating count={product.stars} />
-          <span className="ent-star-label">({product.stars}.0)</span>
+          <span className="ent-star-label">
+          </span>
         </div>
         <div className="ent-footer-right">
           <span className="ent-price">
@@ -99,7 +70,7 @@ function readEntColors(themeConfig: import('../storefront/themeTypes').ShopTheme
   };
 }
 
-export default function EntrepriseStyle({ shopName, themeConfig, catalogProducts }: ThemeViewProps) {
+export default function EntrepriseStyle({ shopId, shopName, themeConfig, catalogProducts }: ThemeViewProps) {
   const [cart, setCart] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
@@ -122,6 +93,17 @@ export default function EntrepriseStyle({ shopName, themeConfig, catalogProducts
   };
 
   const total = cart.reduce((a, p) => a + p.price, 0);
+  const cartItemsForWhatsApp = Object.values(
+    cart.reduce<Record<number, { name: string; quantity: number }>>((acc, item) => {
+      const current = acc[item.id];
+      if (current) {
+        current.quantity += 1;
+      } else {
+        acc[item.id] = { name: item.name, quantity: 1 };
+      }
+      return acc;
+    }, {}),
+  );
 
   return (
     <>
@@ -742,7 +724,14 @@ export default function EntrepriseStyle({ shopName, themeConfig, catalogProducts
                     <span>Total Monthly</span>
                     <span style={{ color: '#c9a84c' }}>${total}/mo</span>
                   </div>
-                  <button className="ent-checkout-btn">Request Enterprise Proposal</button>
+                  <WhatsAppButton
+                    variant="inline"
+                    shopId={shopId}
+                    shopName={shopName}
+                    themeColors={entColors}
+                    cartItems={cartItemsForWhatsApp}
+                    label="WhatsApp"
+                  />
                 </>
               )}
             </div>
@@ -751,7 +740,7 @@ export default function EntrepriseStyle({ shopName, themeConfig, catalogProducts
 
         {/* Footer */}
         <footer className="ent-footer">
-          © 2026 <span>{shopName || displayHeader}</span> · SOC 2 Type II · ISO 27001 · GDPR Compliant
+          © 2026 <span>{shopName || displayHeader}</span> · Built with OpenStore
         </footer>
       </div>
     </>
