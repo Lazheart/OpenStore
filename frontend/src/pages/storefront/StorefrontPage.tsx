@@ -34,6 +34,19 @@ export default function StorefrontPage() {
   const [themeConfig, setThemeConfig] = useState<ShopThemeJson | null>(null);
   const [shopSession, setShopSession] = useState(() => getShopCurrentUser(id));
 
+  const palette = useMemo(() => {
+    const colors = (themeConfig?.colors as Record<string, string> | undefined) ?? {};
+    return {
+      primary: colors.primaryColor ?? '#5b6cff',
+      accent: colors.accentColor ?? '#7ee0b8',
+      bg: colors.bgColor ?? '#0c111b',
+      surface: `color-mix(in srgb, ${colors.bgColor ?? '#0c111b'} 84%, #000)`,
+      text: colors.textColor ?? '#e8eefc',
+      muted: '#8f9ab3',
+      shadow: 'rgba(0,0,0,0.4)',
+    };
+  }, [themeConfig]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -146,7 +159,7 @@ export default function StorefrontPage() {
             bottom: '1.75rem',
             right: '1.75rem',
             zIndex: 500,
-            background: 'var(--primary, #9ACD32)',
+            background: `linear-gradient(135deg, ${palette.primary}, ${palette.accent})`,
             color: '#000',
             border: 'none',
             borderRadius: '50px',
@@ -154,7 +167,7 @@ export default function StorefrontPage() {
             fontWeight: 700,
             cursor: 'pointer',
             fontSize: '0.875rem',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+            boxShadow: `0 4px 20px ${palette.shadow}`,
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
@@ -162,14 +175,14 @@ export default function StorefrontPage() {
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 8px 28px rgba(0,0,0,0.5)';
+            e.currentTarget.style.boxShadow = `0 8px 28px ${palette.shadow}`;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.4)';
+            e.currentTarget.style.boxShadow = `0 4px 20px ${palette.shadow}`;
           }}
         >
-          🔑 Iniciar sesión
+          Iniciar sesión
         </button>
       )}
 

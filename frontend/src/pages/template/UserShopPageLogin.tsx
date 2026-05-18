@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BadgeCheck, Eye, EyeOff, KeyRound, Lock, Mail, Phone, Store, X } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, Phone, X } from 'lucide-react';
 import { loginShopUser, registerShopUser } from '../../api/user-service/user-service';
 import { getApiErrorMessage } from '../../api/api';
 import { getShopPublicTheme } from '../../api/shop-service/shop-api';
 import type { ShopThemeJson } from '../storefront/themeTypes';
-import { readHeroSubtitle, readHeroTitle } from '../storefront/themeTypes';
 
 interface Props {
   shopId: string;
@@ -80,13 +79,6 @@ export default function UserShopPageLogin({ shopId, shopName, themeKey, themeCon
     if (resolvedTheme.themeKey === 'ghetto') return 'Oswald, Arial Black, sans-serif';
     return 'Source Code Pro, Fira Code, monospace';
   }, [resolvedTheme.themeKey]);
-  const heroTitle = readHeroTitle(resolvedTheme.themeConfig, shopName);
-  const heroSubtitle = readHeroSubtitle(
-    resolvedTheme.themeConfig,
-    mode === 'login'
-      ? 'Accede con tu cuenta para seguir comprando dentro de esta tienda.'
-      : 'Crea tu cuenta de cliente para esta tienda sin mezclarla con la sesión del owner.'
-  );
   const isRegister = mode === 'register';
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,9 +112,9 @@ export default function UserShopPageLogin({ shopId, shopName, themeKey, themeCon
         zIndex: 1000,
         background: `linear-gradient(135deg, color-mix(in srgb, ${palette.bg} 88%, #000), rgba(0,0,0,0.82))`,
         display: 'flex',
-        alignItems: 'stretch',
+        alignItems: 'center',
         justifyContent: 'center',
-        padding: '1rem',
+        padding: '0.75rem',
         backdropFilter: 'blur(14px)',
         overflowY: 'auto',
         fontFamily,
@@ -134,12 +126,12 @@ export default function UserShopPageLogin({ shopId, shopName, themeKey, themeCon
         style={{
           background: `linear-gradient(145deg, ${palette.surface}, color-mix(in srgb, ${palette.surface} 72%, ${palette.primary}) 100%)`,
           border: `1px solid color-mix(in srgb, ${palette.primary} 22%, transparent)`,
-          borderRadius: '28px',
+          borderRadius: '18px',
           padding: '0',
           width: '100%',
-          maxWidth: '1040px',
+           maxWidth: '520px',
           position: 'relative',
-          boxShadow: `0 28px 80px ${palette.shadow}`,
+          boxShadow: `0 18px 48px ${palette.shadow}`,
           overflow: 'hidden',
           margin: 'auto',
         }}
@@ -196,118 +188,24 @@ export default function UserShopPageLogin({ shopId, shopName, themeKey, themeCon
           </button>
         )}
 
-        <div className="shop-auth-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr' }}>
-          <aside
-            className="shop-auth-hero"
-            style={{
-              padding: '2.25rem',
-              minHeight: '100%',
-              background: `radial-gradient(circle at top left, color-mix(in srgb, ${palette.primary} 22%, transparent), transparent 46%), linear-gradient(180deg, color-mix(in srgb, ${palette.bg} 82%, #000), ${palette.bg})`,
-              borderRight: `1px solid color-mix(in srgb, ${palette.primary} 18%, transparent)`,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              <div
-                style={{
-                  width: '3rem',
-                  height: '3rem',
-                  borderRadius: '18px',
-                  background: `linear-gradient(135deg, ${palette.primary}, ${palette.accent})`,
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: '#000',
-                  boxShadow: `0 14px 34px color-mix(in srgb, ${palette.primary} 30%, transparent)`,
-                }}
-              >
-                <Store size={18} />
-              </div>
-              <div>
-                <p style={{ margin: 0, color: palette.muted, fontSize: '0.75rem', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-                  Storefront access
-                </p>
-                <h2 style={{ margin: 0, color: palette.text, fontSize: '1.2rem', fontWeight: 700 }}>
-                  {shopName}
-                </h2>
-              </div>
-            </div>
+        <div className="shop-auth-grid" style={{ display: 'grid', gridTemplateColumns: '1fr' }}>
 
-            <p style={{ color: palette.muted, margin: '0 0 0.85rem', fontSize: '0.9rem', lineHeight: 1.7 }}>
-              {heroSubtitle}
-            </p>
-
-            <h3 style={{ margin: '0 0 1rem', color: palette.text, fontSize: 'clamp(2rem, 4vw, 3.6rem)', lineHeight: 1.02 }}>
-              {heroTitle}
-            </h3>
-
-            <div
-              style={{
-                display: 'grid',
-                gap: '0.75rem',
-                marginTop: '1.75rem',
-                color: palette.text,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <BadgeCheck size={18} color={palette.primary} />
-                <span style={{ fontSize: '0.95rem' }}>Cuenta exclusiva para esta tienda</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <KeyRound size={18} color={palette.primary} />
-                <span style={{ fontSize: '0.95rem' }}>Acceso seguro con contraseña</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Store size={18} color={palette.primary} />
-                <span style={{ fontSize: '0.95rem' }}>Tu historial y pedidos en un solo lugar</span>
-              </div>
-            </div>
-          </aside>
-
-          <section style={{ padding: '2.25rem' }}>
+            <section style={{ padding: '1rem' }}>
             <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'inline-flex', padding: '0.3rem', borderRadius: '999px', background: 'rgba(255,255,255,0.04)', border: `1px solid color-mix(in srgb, ${palette.primary} 14%, transparent)`, marginBottom: '1.25rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setMode('login')}
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '0.7rem 1rem',
-                    borderRadius: '999px',
-                    background: mode === 'login' ? palette.primary : 'transparent',
-                    color: mode === 'login' ? '#000' : palette.text,
-                    fontWeight: 700,
-                    minWidth: '110px',
-                  }}
-                >
-                  Entrar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('register')}
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '0.7rem 1rem',
-                    borderRadius: '999px',
-                    background: mode === 'register' ? palette.primary : 'transparent',
-                    color: mode === 'register' ? '#000' : palette.text,
-                    fontWeight: 700,
-                    minWidth: '110px',
-                  }}
-                >
-                  Registrarse
-                </button>
-              </div>
+
 
               <h2 style={{ fontSize: '1.75rem', margin: '0 0 0.35rem', color: palette.text, fontWeight: 800 }}>
-                {isRegister ? 'Crear cuenta de cliente' : 'Iniciar sesión en la tienda'}
+                {isRegister
+                  ? `Regístrate en ${shopName}`
+                  : `¿Eres cliente? `}
               </h2>
               <p style={{ color: palette.muted, margin: 0, lineHeight: 1.6 }}>
                 {isRegister
-                  ? 'Crea tu cuenta de cliente para comenzar a comprar y guardar tu historial de pedidos.'
-                  : 'Accede a tu cuenta para continuar con tus compras y tu historial dentro de esta tienda.'}
+                  ? 'Crea tu cuenta para obtener cotizaciones y mejores tarifas.'
+                  : 'Accede a tu cuenta para beneficios.'}
               </p>
             </div>
+
 
             {error && (
               <div
